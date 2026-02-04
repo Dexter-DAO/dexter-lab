@@ -417,8 +417,9 @@ Choose the right model for your resource's quality and cost needs.
 | **Standard** | `gpt-5` | $1.25 / $10.00 | General purpose |
 | **Standard** | `gpt-5.2` | $1.75 / $14.00 | Best standard model |
 | **Standard** | `gpt-4.1` | $2.00 / $8.00 | 1M context window |
-| **Reasoning** | `o4-mini` | $1.10 / $4.40 | Code, math, logic |
-| **Reasoning** | `o3` | $2.00 / $8.00 | Complex reasoning |
+| **Codex** | `gpt-5.2-codex` | TBD | **Best for code** - use this for all code generation |
+| **Reasoning** | `o4-mini` | $1.10 / $4.40 | Math, logic (NOT code) |
+| **Reasoning** | `o3` | $2.00 / $8.00 | Complex reasoning (NOT code) |
 | **Premium** | `gpt-5.2-pro` | $21.00 / $168.00 | Maximum quality |
 | **Premium** | `o3-pro` | $20.00 / $80.00 | Extended reasoning |
 
@@ -427,9 +428,9 @@ Choose the right model for your resource's quality and cost needs.
 | Model | Input/Output (per 1M) | Best For |
 |-------|----------------------|----------|
 | `claude-3-haiku-20240307` | $0.25 / $1.25 | Fast, simple tasks |
-| `claude-3-sonnet-20240229` | $3.00 / $15.00 | Balanced (recommended) |
-| `claude-3-opus-20240229` | $15.00 / $75.00 | Maximum capability |
-| `claude-4-opus` | $15.00 / $75.00 | Latest, most capable |
+| `claude-3-sonnet-20240229` | $3.00 / $15.00 | Balanced |
+| `claude-3-opus-20240229` | $15.00 / $75.00 | Previous flagship |
+| `claude-opus-4-5` | $5.00 / $25.00 | **Best for code**, 200K context |
 
 ### Google Gemini (via `/proxy/gemini/*`)
 
@@ -446,8 +447,9 @@ Choose the right model for your resource's quality and cost needs.
 - Budget: `gpt-5-mini` or `claude-3-sonnet`
 
 **Code Generation Resources:**
-- Best: `o3` or `o4-mini` (reasoning models excel at code)
-- Alternative: `claude-4-opus` (excellent for code)
+- **REQUIRED**: `gpt-5.2-codex` (OpenAI's best coding model) OR `claude-opus-4-5` (Anthropic's best)
+- These are the ONLY acceptable options for code generation
+- Do NOT use reasoning models (o3, o4) for code - they're slower and not optimized for it
 
 **Research/Analysis Resources:**
 - Best: `o3-deep-research` or `gpt-5.2`

@@ -83,6 +83,9 @@ const data = await response.json();
 
 **Available Models (2026):**
 
+*Codex (FOR ALL CODE GENERATION):*
+- `gpt-5.2-codex` - **USE THIS FOR CODE** - Best agentic coding model
+
 *Standard Chat:*
 - `gpt-5.2` - Latest, best all-around ($1.75/$14 per 1M)
 - `gpt-5.1` - Improved instruction following
@@ -92,7 +95,7 @@ const data = await response.json();
 - `gpt-4.1` - 1M context window specialist
 - `gpt-4o` - Previous flagship with vision
 
-*Reasoning (o-series):*
+*Reasoning (o-series) - NOT for code:*
 - `o4-mini` - Best reasoning per dollar ($1.10/$4.40 per 1M)
 - `o3` - Full reasoning, excellent for complex problems
 - `o3-mini` - Improved mini reasoner
@@ -139,8 +142,9 @@ const data = await response.json();
 ```
 
 **Available Models:**
-- `claude-3-opus-20240229` - Most capable
-- `claude-3-sonnet-20240229` - Balanced (recommended)
+- `claude-opus-4-5` - **USE THIS FOR CODE** - Best for coding, 200K context ($5/$25 per 1M)
+- `claude-3-opus-20240229` - Previous flagship
+- `claude-3-sonnet-20240229` - Balanced
 - `claude-3-haiku-20240307` - Fast and cheap
 
 ---
