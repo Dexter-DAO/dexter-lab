@@ -410,57 +410,151 @@ Choose the right model for your resource's quality and cost needs.
 
 ### OpenAI Models (via `/proxy/openai/*`)
 
+**Codex (FOR ALL CODE GENERATION):**
+| Model | Best For |
+|-------|----------|
+| `gpt-5.2-codex` | **REQUIRED for code** - State-of-the-art on SWE-Bench, agentic coding |
+
+**Text/Chat Models:**
 | Tier | Model | Input/Output (per 1M) | Best For |
 |------|-------|----------------------|----------|
-| **Fast** | `gpt-5-nano` | $0.05 / $0.40 | Simple tasks, high volume |
-| **Fast** | `gpt-5-mini` | $0.25 / $2.00 | Good balance, most resources |
-| **Standard** | `gpt-5` | $1.25 / $10.00 | General purpose |
-| **Standard** | `gpt-5.2` | $1.75 / $14.00 | Best standard model |
-| **Standard** | `gpt-4.1` | $2.00 / $8.00 | 1M context window |
-| **Codex** | `gpt-5.2-codex` | TBD | **Best for code** - use this for all code generation |
-| **Reasoning** | `o4-mini` | $1.10 / $4.40 | Math, logic (NOT code) |
-| **Reasoning** | `o3` | $2.00 / $8.00 | Complex reasoning (NOT code) |
-| **Premium** | `gpt-5.2-pro` | $21.00 / $168.00 | Maximum quality |
-| **Premium** | `o3-pro` | $20.00 / $80.00 | Extended reasoning |
+| Fast | `gpt-5-nano` | $0.05 / $0.40 | Simple tasks, high volume |
+| Fast | `gpt-5-mini` | $0.25 / $2.00 | Good balance, most resources |
+| Fast | `gpt-4o-mini` | $0.15 / $0.60 | Legacy fast model |
+| Standard | `gpt-5` | $1.25 / $10.00 | General purpose |
+| Standard | `gpt-5.1` | $1.25 / $10.00 | Improved instruction following |
+| Standard | `gpt-5.2` | $1.75 / $14.00 | Best standard model |
+| Standard | `gpt-4.1` | $2.00 / $8.00 | 1M context window |
+| Standard | `gpt-4o` | $2.50 / $10.00 | Multimodal with vision |
+| Premium | `gpt-5-pro` | $15.00 / $120.00 | Enhanced GPT-5 |
+| Premium | `gpt-5.2-pro` | $21.00 / $168.00 | Maximum capability |
+
+**Reasoning Models:**
+| Model | Input/Output (per 1M) | Best For |
+|-------|----------------------|----------|
+| `o4-mini` | $1.10 / $4.40 | Best reasoning per dollar |
+| `o3-mini` | $1.10 / $4.40 | Fast reasoning |
+| `o1-mini` | $1.10 / $4.40 | Original mini reasoner |
+| `o3` | $2.00 / $8.00 | Complex problems |
+| `o1` | $15.00 / $60.00 | Full reasoning |
+| `o3-pro` | $20.00 / $80.00 | Extended reasoning |
+| `o1-pro` | $150.00 / $600.00 | Most capable |
+
+**Research/Specialized:**
+| Model | Input/Output (per 1M) | Best For |
+|-------|----------------------|----------|
+| `o3-deep-research` | $10.00 / $40.00 | Extended research with web |
+| `o4-mini-deep-research` | $2.00 / $8.00 | Affordable research |
+| `computer-use-preview` | $3.00 / $12.00 | Computer control |
+
+**Image Generation:**
+| Model | Best For |
+|-------|----------|
+| `gpt-image-1.5` | Latest, accurate text in images |
+| `gpt-image-1` | Previous generation |
+| `dall-e-3` | High quality 1024-1792px |
+| `dall-e-2` | Editing, variations, lower cost |
+
+**Video Generation:**
+| Model | Best For |
+|-------|----------|
+| `sora-2` | Video from text prompts |
+| `sora-2-pro` | Extended video capabilities |
+
+**Audio:**
+| Model | Best For |
+|-------|----------|
+| `gpt-4o-transcribe` | Best speech-to-text |
+| `gpt-4o-mini-transcribe` | Fast transcription |
+| `whisper-1` | Legacy transcription |
+| `tts-1` | Real-time text-to-speech |
+| `tts-1-hd` | High quality TTS |
+| `gpt-realtime` | Live audio conversation |
+| `gpt-realtime-mini` | Affordable realtime |
+
+**Embeddings:**
+| Model | Best For |
+|-------|----------|
+| `text-embedding-3-large` | Best quality (3072 dim) |
+| `text-embedding-3-small` | Fast (1536 dim) |
+| `text-embedding-ada-002` | Legacy |
 
 ### Anthropic Claude (via `/proxy/anthropic/*`)
 
+**Claude 4.5 Family (Latest):**
+| Model | Input/Output (per 1M) | Context | Best For |
+|-------|----------------------|---------|----------|
+| `claude-opus-4-5` | $5.00 / $25.00 | 1M tokens | **REQUIRED for code**, flagship |
+| `claude-sonnet-4-5` | $3.00 / $15.00 | 200K | Balanced reasoning/cost |
+| `claude-haiku-4-5` | $1.00 / $5.00 | 200K | Fast, matches Sonnet 4 |
+
+**Claude 3 Family (Legacy):**
 | Model | Input/Output (per 1M) | Best For |
 |-------|----------------------|----------|
-| `claude-3-haiku-20240307` | $0.25 / $1.25 | Fast, simple tasks |
-| `claude-3-sonnet-20240229` | $3.00 / $15.00 | Balanced |
 | `claude-3-opus-20240229` | $15.00 / $75.00 | Previous flagship |
-| `claude-opus-4-5` | $5.00 / $25.00 | **Best for code**, 200K context |
+| `claude-3-sonnet-20240229` | $3.00 / $15.00 | Balanced |
+| `claude-3-haiku-20240307` | $0.25 / $1.25 | Fast, cheap |
 
 ### Google Gemini (via `/proxy/gemini/*`)
 
+**Gemini 3 Family (Latest):**
 | Model | Best For |
 |-------|----------|
-| `gemini-pro` | General text tasks |
-| `gemini-pro-vision` | Image + text tasks |
-| `gemini-1.5-pro` | Long context (up to 1M) |
+| `gemini-3-pro-preview` | Most intelligent, advanced reasoning |
+| `gemini-3-flash-preview` | Fast frontier performance |
+| `gemini-3-pro-image-preview` | Text + image generation |
+
+**Gemini 2.0 Family:**
+| Model | Best For |
+|-------|----------|
+| `gemini-2.0-flash` | GA workhorse, 1M context |
+| `gemini-2.0-flash-lite` | Most cost-efficient |
+| `gemini-2.0-pro-experimental` | Best for coding |
+
+**Legacy:**
+| Model | Best For |
+|-------|----------|
+| `gemini-1.5-pro` | Long context (1M) |
+| `gemini-pro` | General text |
+| `gemini-pro-vision` | Multimodal |
+
+---
 
 ### Recommendations by Resource Type
 
-**AI Chat/Writing Resources:**
-- Production: `gpt-5.2` or `claude-4-opus`
-- Budget: `gpt-5-mini` or `claude-3-sonnet`
-
 **Code Generation Resources:**
-- **REQUIRED**: `gpt-5.2-codex` (OpenAI's best coding model) OR `claude-opus-4-5` (Anthropic's best)
+- **REQUIRED**: `gpt-5.2-codex` OR `claude-opus-4-5`
 - These are the ONLY acceptable options for code generation
-- Do NOT use reasoning models (o3, o4) for code - they're slower and not optimized for it
+- Do NOT use other models for code
+
+**AI Chat/Writing Resources:**
+- Production: `gpt-5.2` or `claude-sonnet-4-5`
+- Budget: `gpt-5-mini` or `claude-haiku-4-5`
 
 **Research/Analysis Resources:**
-- Best: `o3-deep-research` or `gpt-5.2`
-- Long docs: `gpt-4.1` (1M context)
+- Best: `o3-deep-research` or `o4-mini-deep-research`
+- Long docs: `gpt-4.1` (1M context) or `claude-opus-4-5` (1M context)
+
+**Image Generation Resources:**
+- Best quality: `gpt-image-1.5`
+- Text in images: `gpt-image-1.5` (accurate text rendering)
+- Budget: `dall-e-3`
+
+**Video Generation Resources:**
+- Use `sora-2` or `sora-2-pro`
+
+**Voice/Audio Resources:**
+- Transcription: `gpt-4o-transcribe`
+- TTS: `tts-1-hd` for quality, `tts-1` for speed
+- Live conversation: `gpt-realtime`
 
 **High-Volume/Cheap Resources:**
 - `gpt-5-nano` or `gpt-5-mini`
+- `claude-haiku-4-5`
 
 ### Don't Cheap Out
 
-If you're building a premium x402 resource, **use a premium model**. Users are paying for quality. A resource that uses `gpt-4o-mini` when it should use `o3` will feel cheap and users won't come back.
+If you're building a premium x402 resource, **use a premium model**. Users are paying for quality. A resource that uses a cheap model when it should use `gpt-5.2-codex` or `claude-opus-4-5` will feel cheap and users won't come back.
 
 ---
 

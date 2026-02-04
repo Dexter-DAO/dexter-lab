@@ -67,12 +67,13 @@ const data = await response.json();
 
 **Image Generation**
 ```typescript
+// Latest image model with text rendering
 const response = await fetch('/proxy/openai/v1/images/generations', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
-    model: 'dall-e-3',
-    prompt: 'A sunset over mountains',
+    model: 'gpt-image-1.5',  // or dall-e-3, gpt-image-1
+    prompt: 'A sunset over mountains with "Hello World" text',
     size: '1024x1024',
     n: 1,
   }),
@@ -81,42 +82,110 @@ const data = await response.json();
 // data.data[0].url
 ```
 
+**Video Generation (Sora)**
+```typescript
+const response = await fetch('/proxy/openai/v1/videos/generations', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    model: 'sora-2',  // or sora-2-pro for extended capabilities
+    prompt: 'A cat walking on a beach at sunset, cinematic quality',
+  }),
+});
+const data = await response.json();
+// data.id - video generation job ID
+// Poll /proxy/openai/v1/videos/{id} for completion
+```
+
+**Text-to-Speech**
+```typescript
+const response = await fetch('/proxy/openai/v1/audio/speech', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    model: 'tts-1-hd',  // or tts-1 for real-time
+    input: 'Hello, welcome to Dexter Lab!',
+    voice: 'alloy',  // alloy, echo, fable, onyx, nova, shimmer
+  }),
+});
+// Response is audio/mpeg binary
+const audioBlob = await response.blob();
+```
+
+**Speech-to-Text**
+```typescript
+const formData = new FormData();
+formData.append('file', audioFile);
+formData.append('model', 'gpt-4o-transcribe');  // or whisper-1
+
+const response = await fetch('/proxy/openai/v1/audio/transcriptions', {
+  method: 'POST',
+  body: formData,
+});
+const data = await response.json();
+// data.text - transcribed text
+```
+
 **Available Models (2026):**
 
 *Codex (FOR ALL CODE GENERATION):*
-- `gpt-5.2-codex` - **USE THIS FOR CODE** - Best agentic coding model
+- `gpt-5.2-codex` - **USE THIS FOR CODE** - Best agentic coding model, state-of-the-art on SWE-Bench
 
 *Standard Chat:*
 - `gpt-5.2` - Latest, best all-around ($1.75/$14 per 1M)
 - `gpt-5.1` - Improved instruction following
-- `gpt-5` - Base GPT-5, excellent
+- `gpt-5` - Base GPT-5, excellent ($1.25/$10 per 1M)
 - `gpt-5-mini` - Small but capable, great value ($0.25/$2 per 1M)
 - `gpt-5-nano` - Cheapest, extremely fast ($0.05/$0.40 per 1M)
-- `gpt-4.1` - 1M context window specialist
-- `gpt-4o` - Previous flagship with vision
+- `gpt-4.1` - 1M context window specialist ($2/$8 per 1M)
+- `gpt-4o` - Previous flagship with vision ($2.50/$10 per 1M)
+- `gpt-4o-mini` - Fast and cheap legacy ($0.15/$0.60 per 1M)
 
-*Reasoning (o-series) - NOT for code:*
+*Reasoning (o-series):*
 - `o4-mini` - Best reasoning per dollar ($1.10/$4.40 per 1M)
-- `o3` - Full reasoning, excellent for complex problems
-- `o3-mini` - Improved mini reasoner
-- `o1` - Original reasoning model
+- `o3` - Full reasoning, excellent for complex problems ($2/$8 per 1M)
+- `o3-mini` - Improved mini reasoner ($1.10/$4.40 per 1M)
+- `o1` - Original reasoning model ($15/$60 per 1M)
+- `o1-mini` - Fast reasoning ($1.10/$4.40 per 1M)
 
 *Premium:*
 - `gpt-5.2-pro` - Maximum capability ($21/$168 per 1M)
-- `o3-pro` - Extended reasoning time
-- `o1-pro` - Most capable reasoning
+- `gpt-5-pro` - Enhanced GPT-5 ($15/$120 per 1M)
+- `o3-pro` - Extended reasoning time ($20/$80 per 1M)
+- `o1-pro` - Most capable reasoning ($150/$600 per 1M)
 
-*Specialized:*
-- `o3-deep-research` - Extended research sessions
-- `computer-use-preview` - Can control computer interfaces
-- `gpt-realtime` - Real-time audio conversation
+*Specialized/Research:*
+- `o3-deep-research` - Extended research sessions with web access ($10/$40 per 1M)
+- `o4-mini-deep-research` - Affordable deep research ($2/$8 per 1M)
+- `computer-use-preview` - Can control computer interfaces ($3/$12 per 1M)
+
+*Realtime Audio:*
+- `gpt-realtime` - Real-time audio conversation ($4/$16 per 1M)
+- `gpt-realtime-mini` - Affordable realtime ($0.60/$2.40 per 1M)
+
+*Speech-to-Text:*
+- `gpt-4o-transcribe` - Best transcription, improved accuracy
+- `gpt-4o-mini-transcribe` - Fast transcription
+- `whisper-1` - Legacy transcription
+
+*Text-to-Speech:*
+- `tts-1` - Optimized for real-time ($0.015/1K chars)
+- `tts-1-hd` - High quality audio ($0.030/1K chars)
 
 *Embeddings:*
-- `text-embedding-3-small` - Fast embeddings
-- `text-embedding-3-large` - Higher quality embeddings
+- `text-embedding-3-small` - Fast embeddings, 1536 dimensions
+- `text-embedding-3-large` - Higher quality, 3072 dimensions
+- `text-embedding-ada-002` - Legacy embeddings
 
 *Image Generation:*
-- `dall-e-3` - Image generation
+- `gpt-image-1.5` - Latest image generation with text rendering
+- `gpt-image-1` - Previous generation
+- `dall-e-3` - High quality, 1024x1024 to 1792x1024
+- `dall-e-2` - Lower cost, editing/variations support
+
+*Video Generation:*
+- `sora-2` - Video generation from text prompts
+- `sora-2-pro` - Extended video generation capabilities
 
 ---
 
@@ -142,10 +211,16 @@ const data = await response.json();
 ```
 
 **Available Models:**
-- `claude-opus-4-5` - **USE THIS FOR CODE** - Best for coding, 200K context ($5/$25 per 1M)
-- `claude-3-opus-20240229` - Previous flagship
-- `claude-3-sonnet-20240229` - Balanced
-- `claude-3-haiku-20240307` - Fast and cheap
+
+*Claude 4.5 Family (Latest):*
+- `claude-opus-4-5` - **USE THIS FOR CODE** - Flagship, 1M context, 64K output ($5/$25 per 1M)
+- `claude-sonnet-4-5` - Balanced reasoning/cost, 200K context, 64K output ($3/$15 per 1M)
+- `claude-haiku-4-5` - Fast, cost-efficient, matches Sonnet 4 performance ($1/$5 per 1M)
+
+*Claude 3 Family (Legacy):*
+- `claude-3-opus-20240229` - Previous flagship, 200K context ($15/$75 per 1M)
+- `claude-3-sonnet-20240229` - Balanced ($3/$15 per 1M)
+- `claude-3-haiku-20240307` - Fast and cheap ($0.25/$1.25 per 1M)
 
 ---
 
@@ -169,6 +244,19 @@ const data = await response.json();
 ```
 
 **Available Models:**
+
+*Gemini 3 Family (Latest):*
+- `gemini-3-pro-preview` - Most intelligent, advanced reasoning
+- `gemini-3-flash-preview` - Fast frontier-class performance
+- `gemini-3-pro-image-preview` - Text + image generation
+
+*Gemini 2.0 Family:*
+- `gemini-2.0-flash` - GA workhorse, 1M context, optimized for speed/agentic tasks
+- `gemini-2.0-flash-lite` - Most cost-efficient
+- `gemini-2.0-pro-experimental` - Best for coding and complex prompts
+
+*Legacy:*
+- `gemini-1.5-pro` - Long context (up to 1M tokens)
 - `gemini-pro` - Text generation
 - `gemini-pro-vision` - Multimodal (text + images)
 
