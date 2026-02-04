@@ -266,9 +266,9 @@ const data = await response.json();
 
 ### Helius (`/proxy/helius/*`)
 
-Solana RPC and enhanced APIs.
+Premium Solana RPC, DAS API, webhooks, and enhanced transaction parsing.
 
-**RPC Calls**
+**Standard RPC**
 ```typescript
 // Get balance
 const response = await fetch('/proxy/helius/rpc', {
@@ -278,10 +278,9 @@ const response = await fetch('/proxy/helius/rpc', {
     jsonrpc: '2.0',
     id: 1,
     method: 'getBalance',
-    params: ['YourWalletAddress...'],
+    params: ['WalletAddress...'],
   }),
 });
-const data = await response.json();
 // data.result.value (lamports)
 
 // Get token accounts
@@ -299,42 +298,123 @@ const response = await fetch('/proxy/helius/rpc', {
     ],
   }),
 });
-```
 
-**Token Metadata**
-```typescript
-// Get token info by mint address
-const response = await fetch('/proxy/helius/token/EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
-const data = await response.json();
-// { name, symbol, decimals, logoURI, ... }
-```
-
-**Transaction History**
-```typescript
-const response = await fetch('/proxy/helius/transactions/WalletAddress...');
-const data = await response.json();
-// Array of parsed transactions
-```
-
-**DAS (Digital Asset Standard)**
-```typescript
-// Get NFTs/assets for a wallet
-const response = await fetch('/proxy/helius/das/getAssetsByOwner', {
+// Get recent transactions (enhanced - includes token account txs)
+const response = await fetch('/proxy/helius/rpc', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
-    ownerAddress: 'WalletAddress...',
-    page: 1,
-    limit: 100,
+    jsonrpc: '2.0',
+    id: 1,
+    method: 'getSignaturesForAddress',
+    params: ['WalletAddress...', { limit: 100 }],
   }),
 });
 ```
+
+**DAS API (Digital Asset Standard) - NFTs & Compressed Assets**
+```typescript
+// Get single asset
+const response = await fetch('/proxy/helius/das', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    jsonrpc: '2.0',
+    id: 1,
+    method: 'getAsset',
+    params: { id: 'AssetMintAddress...' },
+  }),
+});
+
+// Get all assets by owner (NFTs, compressed NFTs, tokens)
+const response = await fetch('/proxy/helius/das', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    jsonrpc: '2.0',
+    id: 1,
+    method: 'getAssetsByOwner',
+    params: {
+      ownerAddress: 'WalletAddress...',
+      page: 1,
+      limit: 1000,
+      displayOptions: { showFungible: true, showNativeBalance: true },
+    },
+  }),
+});
+
+// Search assets with filters
+const response = await fetch('/proxy/helius/das', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    jsonrpc: '2.0',
+    id: 1,
+    method: 'searchAssets',
+    params: {
+      ownerAddress: 'WalletAddress...',
+      grouping: ['collection', 'CollectionAddress...'],
+      page: 1,
+      limit: 100,
+    },
+  }),
+});
+
+// Get assets by creator
+const response = await fetch('/proxy/helius/das', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    jsonrpc: '2.0',
+    id: 1,
+    method: 'getAssetsByCreator',
+    params: { creatorAddress: 'CreatorAddress...', page: 1, limit: 100 },
+  }),
+});
+
+// Get proof for compressed NFT
+const response = await fetch('/proxy/helius/das', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    jsonrpc: '2.0',
+    id: 1,
+    method: 'getAssetProof',
+    params: { id: 'CompressedAssetId...' },
+  }),
+});
+```
+
+**Enhanced Transaction Parsing**
+```typescript
+// Parse transactions with human-readable data
+const response = await fetch('/proxy/helius/transactions', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    transactions: ['TxSignature1...', 'TxSignature2...'],
+  }),
+});
+// Returns parsed: type, description, fee, accounts involved, token transfers
+```
+
+**Available DAS Methods:**
+- `getAsset` - Single asset by ID
+- `getAssetBatch` - Multiple assets
+- `getAssetProof` / `getAssetProofBatch` - Merkle proofs for compressed
+- `getAssetsByOwner` - All assets for wallet
+- `getAssetsByCreator` - Assets by creator
+- `getAssetsByAuthority` - Assets by authority
+- `getAssetsByGroup` - Assets by collection/group
+- `searchAssets` - Advanced search with filters
+- `getTokenAccounts` - Token accounts for wallet
+- `getNftEditions` - NFT edition info
 
 ---
 
 ### Jupiter (`/proxy/jupiter/*`)
 
-Solana DEX aggregator for swaps.
+Solana's leading DEX aggregator. Swap, limit orders, DCA, and price APIs.
 
 **Get Quote**
 ```typescript
@@ -342,69 +422,234 @@ const inputMint = 'So11111111111111111111111111111111111111112';  // SOL
 const outputMint = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'; // USDC
 const amount = '1000000000'; // 1 SOL in lamports
 
-const response = await fetch(
-  `/proxy/jupiter/quote?inputMint=${inputMint}&outputMint=${outputMint}&amount=${amount}&slippageBps=50`
-);
+const response = await fetch('/proxy/jupiter/swap/v1/quote', {
+  method: 'GET',
+  params: new URLSearchParams({
+    inputMint,
+    outputMint,
+    amount,
+    slippageBps: '50',  // 0.5%
+    // Optional:
+    // swapMode: 'ExactIn' | 'ExactOut',
+    // onlyDirectRoutes: 'true',
+    // asLegacyTransaction: 'true',
+  }),
+});
 const quote = await response.json();
-// { inAmount, outAmount, priceImpactPct, routePlan, ... }
+// { inputMint, outputMint, inAmount, outAmount, priceImpactPct, routePlan, ... }
 ```
 
 **Execute Swap**
 ```typescript
-const response = await fetch('/proxy/jupiter/swap', {
+const response = await fetch('/proxy/jupiter/swap/v1/swap', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
     quoteResponse: quote,
     userPublicKey: 'UserWalletAddress...',
-    // Optional: wrapUnwrapSOL, feeAccount, etc.
+    wrapAndUnwrapSol: true,
+    // Optional:
+    // feeAccount: 'FeeAccountAddress...',
+    // computeUnitPriceMicroLamports: 1000,
+    // prioritizationFeeLamports: 'auto',
   }),
 });
 const swapResult = await response.json();
-// { swapTransaction } - base64 encoded transaction to sign
+// { swapTransaction } - base64 versioned transaction to sign
+```
+
+**Price API**
+```typescript
+// Get prices for multiple tokens
+const response = await fetch('/proxy/jupiter/price/v2', {
+  method: 'GET',
+  params: new URLSearchParams({
+    ids: 'So11111111111111111111111111111111111111112,EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
+    // Optional: vsToken, showExtraInfo
+  }),
+});
+const prices = await response.json();
+// { data: { 'So11...': { id, price, ... }, ... } }
+```
+
+**Limit Orders (Trigger API)**
+```typescript
+// Create limit order
+const response = await fetch('/proxy/jupiter/trigger/v1/createOrder', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    inputMint: 'So11111111111111111111111111111111111111112',
+    outputMint: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
+    maker: 'UserWalletAddress...',
+    makingAmount: '1000000000',  // 1 SOL
+    takingAmount: '150000000',   // 150 USDC (limit price)
+    // Optional:
+    // expiredAt: 1735689600,  // Unix timestamp
+    // feeBps: 10,
+  }),
+});
+// Returns transaction to sign
+
+// Get open orders
+const response = await fetch('/proxy/jupiter/trigger/v1/orders?wallet=WalletAddress...');
+
+// Cancel order
+const response = await fetch('/proxy/jupiter/trigger/v1/cancelOrder', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    maker: 'UserWalletAddress...',
+    orderId: 'OrderId...',
+  }),
+});
 ```
 
 **Token List**
 ```typescript
-const response = await fetch('/proxy/jupiter/tokens');
+const response = await fetch('/proxy/jupiter/tokens/v1/all');
 const tokens = await response.json();
-// Array of { address, symbol, name, decimals, logoURI, ... }
+// Array of { address, symbol, name, decimals, logoURI, tags, ... }
+
+// Strict list (verified tokens only)
+const response = await fetch('/proxy/jupiter/tokens/v1/strict');
 ```
 
-**Price**
+---
+
+### Solscan (`/proxy/solscan/*`)
+
+Comprehensive Solana blockchain explorer API v2.
+
+**Account Endpoints**
 ```typescript
-const response = await fetch('/proxy/jupiter/price?ids=So11111111111111111111111111111111111111112');
-const prices = await response.json();
-// { data: { SOL: { price: 123.45, ... } } }
+// Account detail
+const response = await fetch('/proxy/solscan/v2/account?address=WalletAddress...');
+// { lamports, ownerProgram, type, ... }
+
+// Account transactions
+const response = await fetch('/proxy/solscan/v2/account/transactions?address=WalletAddress...&limit=20');
+// Array of transactions with parsed data
+
+// Account token accounts
+const response = await fetch('/proxy/solscan/v2/account/token-accounts?address=WalletAddress...');
+// All SPL token accounts
+
+// Account transfers
+const response = await fetch('/proxy/solscan/v2/account/transfer?address=WalletAddress...&limit=50');
+// SOL and token transfers
+
+// Account portfolio (balances)
+const response = await fetch('/proxy/solscan/v2/account/portfolio?address=WalletAddress...');
+// Total value, token breakdown
+
+// Account DeFi activities
+const response = await fetch('/proxy/solscan/v2/account/defi?address=WalletAddress...');
+// Swaps, LP, staking activities
+
+// Account staking
+const response = await fetch('/proxy/solscan/v2/account/stake?address=WalletAddress...');
+// Stake accounts and rewards
+```
+
+**Token Endpoints**
+```typescript
+// Token metadata
+const response = await fetch('/proxy/solscan/v2/token/meta?address=TokenMintAddress...');
+// { name, symbol, decimals, supply, holder, price, ... }
+
+// Token price
+const response = await fetch('/proxy/solscan/v2/token/price?address=TokenMintAddress...');
+// { price, priceChange24h }
+
+// Token holders
+const response = await fetch('/proxy/solscan/v2/token/holders?address=TokenMintAddress...&limit=20');
+// Top holders with amounts and percentages
+
+// Token transfers
+const response = await fetch('/proxy/solscan/v2/token/transfer?address=TokenMintAddress...&limit=50');
+// Recent token transfers
+
+// Token markets
+const response = await fetch('/proxy/solscan/v2/token/markets?address=TokenMintAddress...');
+// DEX pairs and liquidity
+
+// Trending tokens
+const response = await fetch('/proxy/solscan/v2/token/trending');
+// Currently trending tokens
+
+// Token search
+const response = await fetch('/proxy/solscan/v2/token/search?keyword=BONK');
+// Search tokens by name/symbol
+```
+
+**Transaction Endpoints**
+```typescript
+// Transaction detail
+const response = await fetch('/proxy/solscan/v2/transaction?tx=TxSignature...');
+// Full parsed transaction with all instructions
+
+// Last transactions
+const response = await fetch('/proxy/solscan/v2/transaction/last?limit=20');
+// Recent network transactions
+```
+
+**Block Endpoints**
+```typescript
+// Block detail
+const response = await fetch('/proxy/solscan/v2/block?block=123456789');
+// Block info with transactions
+
+// Last blocks
+const response = await fetch('/proxy/solscan/v2/block/last?limit=10');
 ```
 
 ---
 
 ### Birdeye (`/proxy/birdeye/*`)
 
-Token analytics and market data.
+Token analytics, market data, and trading signals.
 
 **Token Overview**
 ```typescript
-const response = await fetch('/proxy/birdeye/token/overview?address=TokenMintAddress...');
-const data = await response.json();
-// { price, priceChange24h, volume24h, marketCap, ... }
+const response = await fetch('/proxy/birdeye/defi/token_overview?address=TokenMintAddress...');
+// { price, priceChange24h, volume24h, marketCap, liquidity, ... }
 ```
 
 **Token Security**
 ```typescript
-const response = await fetch('/proxy/birdeye/token/security?address=TokenMintAddress...');
-const data = await response.json();
-// { isHoneypot, isMintable, top10HolderPercent, ... }
+const response = await fetch('/proxy/birdeye/defi/token_security?address=TokenMintAddress...');
+// { isHoneypot, isMintable, freezeable, top10HolderPercent, ... }
+```
+
+**Token Price History**
+```typescript
+const response = await fetch('/proxy/birdeye/defi/history_price?address=TokenMintAddress...&type=1H&time_from=1704067200&time_to=1704153600');
+// Array of { value, unixTime }
 ```
 
 **OHLCV (Candlestick Data)**
 ```typescript
-const response = await fetch(
-  '/proxy/birdeye/ohlcv?address=TokenMintAddress...&type=15m&time_from=1704067200&time_to=1704153600'
-);
-const data = await response.json();
+const response = await fetch('/proxy/birdeye/defi/ohlcv?address=TokenMintAddress...&type=15m&time_from=1704067200&time_to=1704153600');
 // Array of { o, h, l, c, v, unixTime }
+```
+
+**Token Trades**
+```typescript
+const response = await fetch('/proxy/birdeye/defi/txs/token?address=TokenMintAddress...&limit=50');
+// Recent trades with price, size, side
+```
+
+**Wallet Portfolio**
+```typescript
+const response = await fetch('/proxy/birdeye/v1/wallet/token_list?wallet=WalletAddress...');
+// All tokens with values
+```
+
+**Multi-Price**
+```typescript
+const response = await fetch('/proxy/birdeye/defi/multi_price?list_address=Token1,Token2,Token3');
+// Batch price lookup
 ```
 
 ---
