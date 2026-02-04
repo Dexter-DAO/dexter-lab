@@ -32,6 +32,8 @@ jobs:
           pnpm dedupe --check || echo "✅ Duplicate dependency check completed"
 
       - name: Check bundle size
+        env:
+          NODE_OPTIONS: "--max-old-space-size=4096"
         run: |
           pnpm run build
           echo "Bundle analysis completed (bundlesize tool requires configuration)"
@@ -82,12 +84,13 @@ jobs:
         uses: ./.github/actions/setup-and-build
 
       - name: Start development server
+        env:
+          CI: true
+          NODE_OPTIONS: "--max-old-space-size=4096"
         run: |
           pnpm run build
           pnpm run start &
           sleep 15
-        env:
-          CI: true
 
       - name: Run accessibility tests with axe
         run: |
@@ -108,6 +111,8 @@ jobs:
         uses: ./.github/actions/setup-and-build
 
       - name: Start server for Lighthouse
+        env:
+          NODE_OPTIONS: "--max-old-space-size=4096"
         run: |
           pnpm run build
           pnpm run start &

@@ -27,6 +27,8 @@ runs:
 
     - name: Install dependencies and build project
       shell: bash
+      env:
+        NODE_OPTIONS: "--max-old-space-size=4096"
       run: |
         pnpm install
         pnpm run build
