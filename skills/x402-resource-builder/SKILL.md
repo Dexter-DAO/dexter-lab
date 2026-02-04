@@ -164,13 +164,13 @@ const server = createX402Server({
   network: 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp',
 });
 
-// Use built-in OpenAI rates
+// For high-quality AI resources, use the best models:
 const pricing = createTokenPricing({
-  model: 'gpt-4o-mini',
-  // Or custom rates for other models:
-  // model: 'claude-3-sonnet',
-  // inputRate: 3.0,    // $3.00 per 1M input tokens
-  // outputRate: 15.0,  // $15.00 per 1M output tokens
+  model: 'o3',  // Reasoning model - excellent for complex tasks
+  // Other excellent options:
+  // model: 'gpt-5.2',      // Latest GPT, best all-around
+  // model: 'o4-mini',      // Best reasoning per dollar
+  // model: 'gpt-5.2-pro',  // Maximum capability (expensive)
 });
 
 app.post('/api/chat', async (req, res) => {
@@ -404,6 +404,64 @@ CMD ["npm", "start"]
 
 ---
 
+## Model Selection Guide
+
+Choose the right model for your resource's quality and cost needs.
+
+### OpenAI Models (via `/proxy/openai/*`)
+
+| Tier | Model | Input/Output (per 1M) | Best For |
+|------|-------|----------------------|----------|
+| **Fast** | `gpt-5-nano` | $0.05 / $0.40 | Simple tasks, high volume |
+| **Fast** | `gpt-5-mini` | $0.25 / $2.00 | Good balance, most resources |
+| **Standard** | `gpt-5` | $1.25 / $10.00 | General purpose |
+| **Standard** | `gpt-5.2` | $1.75 / $14.00 | Best standard model |
+| **Standard** | `gpt-4.1` | $2.00 / $8.00 | 1M context window |
+| **Reasoning** | `o4-mini` | $1.10 / $4.40 | Code, math, logic |
+| **Reasoning** | `o3` | $2.00 / $8.00 | Complex reasoning |
+| **Premium** | `gpt-5.2-pro` | $21.00 / $168.00 | Maximum quality |
+| **Premium** | `o3-pro` | $20.00 / $80.00 | Extended reasoning |
+
+### Anthropic Claude (via `/proxy/anthropic/*`)
+
+| Model | Input/Output (per 1M) | Best For |
+|-------|----------------------|----------|
+| `claude-3-haiku-20240307` | $0.25 / $1.25 | Fast, simple tasks |
+| `claude-3-sonnet-20240229` | $3.00 / $15.00 | Balanced (recommended) |
+| `claude-3-opus-20240229` | $15.00 / $75.00 | Maximum capability |
+| `claude-4-opus` | $15.00 / $75.00 | Latest, most capable |
+
+### Google Gemini (via `/proxy/gemini/*`)
+
+| Model | Best For |
+|-------|----------|
+| `gemini-pro` | General text tasks |
+| `gemini-pro-vision` | Image + text tasks |
+| `gemini-1.5-pro` | Long context (up to 1M) |
+
+### Recommendations by Resource Type
+
+**AI Chat/Writing Resources:**
+- Production: `gpt-5.2` or `claude-4-opus`
+- Budget: `gpt-5-mini` or `claude-3-sonnet`
+
+**Code Generation Resources:**
+- Best: `o3` or `o4-mini` (reasoning models excel at code)
+- Alternative: `claude-4-opus` (excellent for code)
+
+**Research/Analysis Resources:**
+- Best: `o3-deep-research` or `gpt-5.2`
+- Long docs: `gpt-4.1` (1M context)
+
+**High-Volume/Cheap Resources:**
+- `gpt-5-nano` or `gpt-5-mini`
+
+### Don't Cheap Out
+
+If you're building a premium x402 resource, **use a premium model**. Users are paying for quality. A resource that uses `gpt-4o-mini` when it should use `o3` will feel cheap and users won't come back.
+
+---
+
 ## Best Practices
 
 ### 1. Always Validate Inputs
@@ -521,10 +579,11 @@ const server = createX402Server({
   network: 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp',
 });
 
+// Use a high-quality model for a premium writing experience
 const pricing = createTokenPricing({
-  model: 'gpt-4o-mini',
-  minUsd: 0.001,
-  maxUsd: 1.00,
+  model: 'gpt-5.2',  // Latest GPT, excellent for writing
+  minUsd: 0.01,
+  maxUsd: 5.00,
 });
 
 app.post('/api/write', async (req, res) => {
@@ -563,12 +622,12 @@ app.post('/api/write', async (req, res) => {
     return res.status(402).json({ error: result.errorReason });
   }
 
-  // Call OpenAI via proxy
+  // Call OpenAI via proxy - use the same model as pricing
   const llmResponse = await fetch('/proxy/openai/v1/chat/completions', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model: 'gpt-4o-mini',
+      model: 'gpt-5.2',  // Match pricing model for accurate costs
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: prompt },

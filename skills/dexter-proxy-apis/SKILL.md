@@ -39,13 +39,12 @@ const response = await fetch('/proxy/openai/v1/chat/completions', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
-    model: 'gpt-4o-mini',  // or gpt-4o, gpt-4-turbo, gpt-3.5-turbo
+    model: 'gpt-5.2',  // or gpt-5, o3, o4-mini (for reasoning)
     messages: [
       { role: 'system', content: 'You are a helpful assistant.' },
       { role: 'user', content: 'Hello!' }
     ],
-    max_tokens: 1000,
-    temperature: 0.7,
+    max_completion_tokens: 4096,  // GPT-5 family uses max_completion_tokens
   }),
 });
 const data = await response.json();
@@ -82,13 +81,38 @@ const data = await response.json();
 // data.data[0].url
 ```
 
-**Available Models:**
-- `gpt-4o` - Most capable
-- `gpt-4o-mini` - Fast and cheap (recommended for most uses)
-- `gpt-4-turbo` - Previous generation flagship
-- `gpt-3.5-turbo` - Legacy, very cheap
-- `text-embedding-3-small` - Embeddings
+**Available Models (2026):**
+
+*Standard Chat:*
+- `gpt-5.2` - Latest, best all-around ($1.75/$14 per 1M)
+- `gpt-5.1` - Improved instruction following
+- `gpt-5` - Base GPT-5, excellent
+- `gpt-5-mini` - Small but capable, great value ($0.25/$2 per 1M)
+- `gpt-5-nano` - Cheapest, extremely fast ($0.05/$0.40 per 1M)
+- `gpt-4.1` - 1M context window specialist
+- `gpt-4o` - Previous flagship with vision
+
+*Reasoning (o-series):*
+- `o4-mini` - Best reasoning per dollar ($1.10/$4.40 per 1M)
+- `o3` - Full reasoning, excellent for complex problems
+- `o3-mini` - Improved mini reasoner
+- `o1` - Original reasoning model
+
+*Premium:*
+- `gpt-5.2-pro` - Maximum capability ($21/$168 per 1M)
+- `o3-pro` - Extended reasoning time
+- `o1-pro` - Most capable reasoning
+
+*Specialized:*
+- `o3-deep-research` - Extended research sessions
+- `computer-use-preview` - Can control computer interfaces
+- `gpt-realtime` - Real-time audio conversation
+
+*Embeddings:*
+- `text-embedding-3-small` - Fast embeddings
 - `text-embedding-3-large` - Higher quality embeddings
+
+*Image Generation:*
 - `dall-e-3` - Image generation
 
 ---
