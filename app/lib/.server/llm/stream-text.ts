@@ -10,6 +10,7 @@ import { createScopedLogger } from '~/utils/logger';
 import { createFilesContext, extractPropertiesFromMessage } from './utils';
 import { discussPrompt } from '~/lib/common/prompts/discuss-prompt';
 import type { DesignScheme } from '~/types/design-scheme';
+import { getSkillsPromptSection } from '~/lib/.server/skills';
 
 export type Messages = Message[];
 
@@ -149,6 +150,9 @@ export async function streamText(props: {
     `Token limits for model ${modelDetails.name}: maxTokens=${safeMaxTokens}, maxTokenAllowed=${modelDetails.maxTokenAllowed}, maxCompletionTokens=${modelDetails.maxCompletionTokens}`,
   );
 
+  // Load skills from /skills directory (server-side only)
+  const skillsPrompt = getSkillsPromptSection();
+
   let systemPrompt =
     PromptLibrary.getPropmtFromLibrary(promptId || 'default', {
       cwd: WORK_DIR,
@@ -160,6 +164,7 @@ export async function streamText(props: {
         hasSelectedProject: options?.supabaseConnection?.hasSelectedProject || false,
         credentials: options?.supabaseConnection?.credentials || undefined,
       },
+      skills: skillsPrompt,
     }) ?? getSystemPrompt();
 
   if (chatMode === 'build' && contextFiles && contextOptimization) {
