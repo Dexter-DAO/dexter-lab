@@ -21,7 +21,7 @@ x402 resources have access to powerful APIs through Dexter's proxy layer. You do
 ## Base URL
 
 In local development (WebContainer): `http://localhost:3001/proxy`
-In production: `https://api.dexter.cash/proxy`
+In production: `https://x402.dexter.cash/proxy`
 
 For simplicity, use relative paths: `/proxy/...`
 
