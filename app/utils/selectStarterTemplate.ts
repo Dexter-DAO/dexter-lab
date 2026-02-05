@@ -239,13 +239,19 @@ If you need to make changes to functionality, create new files instead of modify
 
   userMessage += `
 ---
-Template import complete. You may use these files as a starting point, editing only what needs to change.
-Do NOT modify files that don't require changes.
----
-Continue with the original request.
+template import is done, and you can now use the imported files, edit only the files that need to be changed, and you can create new files as needed. NO NOT EDIT/WRITE ANY FILES THAT ALREADY EXIST IN THE PROJECT AND DOES NOT NEED TO BE MODIFIED
+Now that the Template is imported please continue with my original request
+`;
 
-FOR x402 RESOURCES: After creating all files (index.ts, package.json, Dockerfile, README.md), deploy via the Deployment API:
-\`\`\`typescript
+  // x402 deployment instructions go in assistant context (not visible to user, but guides the AI)
+  const x402DeploymentContext = `
+---
+IMPORTANT: x402 RESOURCE DEPLOYMENT INSTRUCTIONS (internal context, do not repeat to user)
+
+For x402 paid API resources, after creating all files (index.ts, package.json, Dockerfile, README.md), 
+you MUST deploy via the Deployment API. DO NOT run npm run dev or npm start locally.
+
+Deployment example:
 const response = await fetch('/api/deploy', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
@@ -255,15 +261,14 @@ const response = await fetch('/api/deploy', {
     type: 'api',
     basePriceUsdc: 0.01,
     pricingModel: 'per-request',
-    files: { 'index.ts': '...', 'package.json': '...', 'Dockerfile': '...', 'README.md': '...' }
+    files: { 'index.ts': '...content...', 'package.json': '...content...', 'Dockerfile': '...content...', 'README.md': '...content...' }
   })
 });
-\`\`\`
-DO NOT use npm run dev or npm start for x402 resources - use the deployment API above.
+---
 `;
 
   return {
-    assistantMessage,
+    assistantMessage: assistantMessage + x402DeploymentContext,
     userMessage,
   };
 }
