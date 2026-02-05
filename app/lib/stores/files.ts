@@ -1,7 +1,8 @@
 import type { PathWatcherEvent, WebContainer } from '@webcontainer/api';
 import { getEncoding } from 'istextorbinary';
 import { map, type MapStore } from 'nanostores';
-import { Buffer } from 'node:buffer';
+// Use buffer package which provides browser-compatible Buffer
+import { Buffer } from 'buffer';
 import { path } from '~/utils/path';
 import { bufferWatchEvents } from '~/utils/buffer';
 import { WORK_DIR } from '~/utils/constants';
@@ -786,7 +787,8 @@ export class FilesStore {
       const isBinary = content instanceof Uint8Array;
 
       if (isBinary) {
-        await webcontainer.fs.writeFile(relativePath, Buffer.from(content));
+        // Convert to Uint8Array for WebContainer compatibility
+        await webcontainer.fs.writeFile(relativePath, new Uint8Array(content));
 
         const base64Content = Buffer.from(content).toString('base64');
         this.files.setKey(filePath, {

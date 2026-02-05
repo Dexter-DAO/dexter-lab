@@ -23,7 +23,7 @@ export class PreviewsStore {
   #broadcastChannel?: BroadcastChannel;
   #lastUpdate = new Map<string, number>();
   #watchedFiles = new Set<string>();
-  #refreshTimeouts = new Map<string, NodeJS.Timeout>();
+  #refreshTimeouts = new Map<string, ReturnType<typeof setTimeout>>();
   #REFRESH_DELAY = 300;
   #storageChannel?: BroadcastChannel;
 

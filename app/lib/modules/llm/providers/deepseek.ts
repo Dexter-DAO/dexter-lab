@@ -1,8 +1,13 @@
 import { BaseProvider } from '~/lib/modules/llm/base-provider';
 import type { ModelInfo } from '~/lib/modules/llm/types';
 import type { IProviderSetting } from '~/types/model';
-import type { LanguageModelV1 } from 'ai';
-import { createDeepSeek } from '@ai-sdk/deepseek';
+import type { LanguageModelV1 } from '~/lib/modules/llm/ai-sdk-stub';
+import { createStubModel } from '~/lib/modules/llm/ai-sdk-stub';
+
+// Stub for DeepSeek - returns a placeholder model
+function createDeepSeek(options: { apiKey?: string }) {
+  return (model: string, _options?: Record<string, unknown>): LanguageModelV1 => createStubModel('deepseek', model);
+}
 
 export default class DeepseekProvider extends BaseProvider {
   name = 'Deepseek';

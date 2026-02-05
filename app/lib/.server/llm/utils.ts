@@ -1,4 +1,4 @@
-import { type Message } from 'ai';
+import { type Message } from '~/types/chat';
 import { DEFAULT_MODEL, DEFAULT_PROVIDER, MODEL_REGEX, PROVIDER_REGEX } from '~/utils/constants';
 import { IGNORE_PATTERNS, type FileMap } from './constants';
 import ignore from 'ignore';

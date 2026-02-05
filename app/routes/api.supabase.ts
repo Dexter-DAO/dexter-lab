@@ -23,7 +23,7 @@ export const action: ActionFunction = async ({ request }) => {
       return json({ error: 'Failed to fetch projects' }, { status: 401 });
     }
 
-    const projects = (await projectsResponse.json()) as SupabaseProject[];
+    const projects = (await projectsjson()) as SupabaseProject[];
 
     const uniqueProjectsMap = new Map<string, SupabaseProject>();
 

@@ -1,11 +1,11 @@
 import { memo, Fragment } from 'react';
 import { Markdown } from './Markdown';
-import type { JSONValue } from 'ai';
+import type { JSONValue } from '~/types/json';
 import Popover from '~/components/ui/Popover';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { WORK_DIR } from '~/utils/constants';
 import WithTooltip from '~/components/ui/Tooltip';
-import type { Message } from 'ai';
+import type { Message } from '~/types/chat';
 import type { ProviderInfo } from '~/types/model';
 import type {
   TextUIPart,
@@ -14,7 +14,8 @@ import type {
   SourceUIPart,
   FileUIPart,
   StepStartUIPart,
-} from '@ai-sdk/ui-utils';
+} from '~/types/ui-utils';
+import type { MessagePart } from '~/types/chat';
 import { ToolInvocations } from './ToolInvocations';
 import type { ToolCallAnnotation } from '~/types/context';
 
@@ -29,9 +30,7 @@ interface AssistantMessageProps {
   setChatMode?: (mode: 'discuss' | 'build') => void;
   model?: string;
   provider?: ProviderInfo;
-  parts:
-    | (TextUIPart | ReasoningUIPart | ToolInvocationUIPart | SourceUIPart | FileUIPart | StepStartUIPart)[]
-    | undefined;
+  parts: MessagePart[] | undefined;
   addToolResult: ({ toolCallId, result }: { toolCallId: string; result: any }) => void;
 }
 

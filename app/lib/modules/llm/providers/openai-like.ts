@@ -1,7 +1,7 @@
 import { BaseProvider, getOpenAILikeModel } from '~/lib/modules/llm/base-provider';
 import type { ModelInfo } from '~/lib/modules/llm/types';
 import type { IProviderSetting } from '~/types/model';
-import type { LanguageModelV1 } from 'ai';
+import type { LanguageModelV1 } from '~/lib/modules/llm/ai-sdk-stub';
 
 export default class OpenAILikeProvider extends BaseProvider {
   name = 'OpenAILike';

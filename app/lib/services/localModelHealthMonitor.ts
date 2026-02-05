@@ -52,7 +52,7 @@ export interface HealthCheckResult {
 
 export class LocalModelHealthMonitor extends SimpleEventEmitter {
   private _healthStatuses = new Map<string, ModelHealthStatus>();
-  private _checkIntervals = new Map<string, NodeJS.Timeout>();
+  private _checkIntervals = new Map<string, ReturnType<typeof setTimeout>>();
   private readonly _defaultCheckInterval = 30000; // 30 seconds
   private readonly _healthCheckTimeout = 10000; // 10 seconds
 

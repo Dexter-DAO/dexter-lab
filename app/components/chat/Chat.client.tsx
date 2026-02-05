@@ -1,6 +1,6 @@
 import { useStore } from '@nanostores/react';
-import type { Message } from 'ai';
-import { useChat } from '@ai-sdk/react';
+import type { Message } from '~/types/chat';
+import { useChat } from '~/lib/hooks/useChat';
 import { useAnimate } from 'framer-motion';
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
@@ -25,7 +25,7 @@ import { filesToArtifacts } from '~/utils/fileUtils';
 import { supabaseConnection } from '~/lib/stores/supabase';
 import { defaultDesignScheme, type DesignScheme } from '~/types/design-scheme';
 import type { ElementInfo } from '~/components/workbench/Inspector';
-import type { TextUIPart, FileUIPart, Attachment } from '@ai-sdk/ui-utils';
+import type { TextUIPart, FileUIPart, Attachment } from '~/types/ui-utils';
 import { useMCPStore } from '~/lib/stores/mcp';
 import type { LlmErrorAlertType } from '~/types/actions';
 
@@ -132,7 +132,7 @@ export const ChatImpl = memo(
       setData,
       addToolResult,
     } = useChat({
-      api: '/api/chat',
+      api: '/api/agent-chat',
       body: {
         apiKeys,
         files,

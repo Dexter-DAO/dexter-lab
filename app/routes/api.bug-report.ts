@@ -229,9 +229,9 @@ export async function action({ request, context }: ActionFunctionArgs) {
   } catch (error) {
     console.error('Error creating bug report:', error);
 
-    // Handle validation errors
+    // Handle validation errors (Zod 4 uses 'issues' instead of 'errors')
     if (error instanceof z.ZodError) {
-      return json({ error: 'Invalid input data', details: error.errors }, { status: 400 });
+      return json({ error: 'Invalid input data', details: error.issues }, { status: 400 });
     }
 
     // Handle GitHub API errors

@@ -1,7 +1,7 @@
-import type { LanguageModelV1 } from 'ai';
+import type { LanguageModelV1 } from './ai-sdk-stub';
+import { createOpenAI } from './ai-sdk-stub';
 import type { ProviderInfo, ProviderConfig, ModelInfo } from './types';
 import type { IProviderSetting } from '~/types/model';
-import { createOpenAI } from '@ai-sdk/openai';
 import { LLMManager } from './manager';
 
 export abstract class BaseProvider implements ProviderInfo {

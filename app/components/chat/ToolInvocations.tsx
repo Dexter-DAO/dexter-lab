@@ -1,4 +1,4 @@
-import type { ToolInvocationUIPart } from '@ai-sdk/ui-utils';
+import type { ToolInvocationUIPart } from '~/types/ui-utils';
 import { AnimatePresence, motion } from 'framer-motion';
 import { memo, useMemo, useState, useEffect } from 'react';
 import { createHighlighter, type BundledLanguage, type BundledTheme, type HighlighterGeneric } from 'shiki';
@@ -213,7 +213,7 @@ const ToolResultsList = memo(({ toolInvocations, toolCallAnnotations, theme }: T
           });
 
           const isErrorResult = [TOOL_NO_EXECUTE_FUNCTION, TOOL_EXECUTION_DENIED, TOOL_EXECUTION_ERROR].includes(
-            tool.toolInvocation.result,
+            tool.toolInvocation.result as string,
           );
 
           return (

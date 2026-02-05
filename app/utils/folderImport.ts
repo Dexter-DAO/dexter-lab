@@ -1,4 +1,4 @@
-import type { Message } from 'ai';
+import type { Message } from '~/types/chat';
 import { generateId } from './fileUtils';
 import { detectProjectCommands, createCommandsMessage, escapeBoltTags } from './projectCommands';
 

@@ -79,7 +79,7 @@ async function gitlabBranchesLoader({ request }: { request: Request }) {
     let defaultBranchName = 'main'; // fallback
 
     if (projectResponse.ok) {
-      const projectInfo: any = await projectResponse.json();
+      const projectInfo: any = await projectjson();
       defaultBranchName = projectInfo.default_branch || 'main';
     }
 

@@ -1,8 +1,8 @@
 import { BaseProvider } from '~/lib/modules/llm/base-provider';
 import type { ModelInfo } from '~/lib/modules/llm/types';
-import type { LanguageModelV1 } from 'ai';
+import type { LanguageModelV1 } from '~/lib/modules/llm/ai-sdk-stub';
+import { createAnthropic } from '~/lib/modules/llm/ai-sdk-stub';
 import type { IProviderSetting } from '~/types/model';
-import { createAnthropic } from '@ai-sdk/anthropic';
 
 export default class AnthropicProvider extends BaseProvider {
   name = 'Anthropic';
@@ -14,8 +14,28 @@ export default class AnthropicProvider extends BaseProvider {
 
   staticModels: ModelInfo[] = [
     /*
-     * Essential fallback models - only the most stable/reliable ones
-     * Claude 3.5 Sonnet: 200k context, excellent for complex reasoning and coding
+     * Claude 4.5 Models - Latest and most capable
+     */
+    // Claude Opus 4.5: Most intelligent model, optimized for complex reasoning and coding
+    {
+      name: 'claude-opus-4-5-20251101',
+      label: 'Claude Opus 4.5',
+      provider: 'Anthropic',
+      maxTokenAllowed: 200000,
+      maxCompletionTokens: 32000,
+    },
+
+    // Claude Sonnet 4.5: Advanced Sonnet, optimized for agents, coding, and computer use
+    {
+      name: 'claude-sonnet-4-5-20251016',
+      label: 'Claude Sonnet 4.5',
+      provider: 'Anthropic',
+      maxTokenAllowed: 200000,
+      maxCompletionTokens: 128000,
+    },
+
+    /*
+     * Claude 3.5 Models - Stable fallbacks
      */
     {
       name: 'claude-3-5-sonnet-20241022',
@@ -32,15 +52,6 @@ export default class AnthropicProvider extends BaseProvider {
       provider: 'Anthropic',
       maxTokenAllowed: 200000,
       maxCompletionTokens: 128000,
-    },
-
-    // Claude Opus 4: 200k context, 32k output limit (latest flagship model)
-    {
-      name: 'claude-opus-4-20250514',
-      label: 'Claude 4 Opus',
-      provider: 'Anthropic',
-      maxTokenAllowed: 200000,
-      maxCompletionTokens: 32000,
     },
   ];
 

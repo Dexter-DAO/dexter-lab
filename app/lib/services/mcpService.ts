@@ -1,12 +1,48 @@
-import {
-  experimental_createMCPClient,
-  type ToolSet,
-  type Message,
-  type DataStreamWriter,
-  convertToCoreMessages,
-  formatDataStreamPart,
-} from 'ai';
-import { Experimental_StdioMCPTransport } from 'ai/mcp-stdio';
+import type { Message, MessagePart } from '~/types/chat';
+import { convertToCoreMessages } from '~/types/chat';
+
+/**
+ * Tool definition type for MCP tools
+ */
+interface ToolDefinition {
+  description?: string;
+  parameters?: Record<string, unknown>;
+  execute?: (args: Record<string, unknown>, context: { messages: unknown[]; toolCallId: string }) => Promise<unknown>;
+}
+
+// Tool set is a record of tool definitions
+type ToolSet = Record<string, ToolDefinition>;
+
+// Data stream writer interface matching what the application expects
+interface DataStreamWriter {
+  writeData: (data: unknown) => void;
+  writeMessageAnnotation: (annotation: unknown) => void;
+  write: (data: string) => void;
+}
+
+/**
+ * Stub for MCP client - will be replaced with Claude Agent SDK's MCP support
+ */
+function experimental_createMCPClient(_options: unknown): Promise<{ tools: () => Promise<ToolSet>; close: () => Promise<void> }> {
+  return Promise.resolve({
+    tools: () => Promise.resolve({}),
+    close: () => Promise.resolve(),
+  });
+}
+
+/**
+ * Format data stream part for streaming responses
+ */
+function formatDataStreamPart(type: string, data: unknown): string {
+  return JSON.stringify({ type, data });
+}
+
+/**
+ * Stub transport - will be replaced with actual MCP transport
+ */
+class Experimental_StdioMCPTransport {
+  constructor(_options: unknown) {}
+}
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import { z } from 'zod';
 import type { ToolCallAnnotation } from '~/types/context';
@@ -26,9 +62,9 @@ export const stdioServerConfigSchema = z
     command: z.string().min(1, 'Command cannot be empty'),
     args: z.array(z.string()).optional(),
     cwd: z.string().optional(),
-    env: z.record(z.string()).optional(),
+    env: z.record(z.string(), z.string()).optional(),
   })
-  .transform((data) => ({
+  .transform((data, _ctx) => ({
     ...data,
     type: 'stdio' as const,
   }));
@@ -38,9 +74,9 @@ export const sseServerConfigSchema = z
   .object({
     type: z.enum(['sse']).optional(),
     url: z.string().url('URL must be a valid URL format'),
-    headers: z.record(z.string()).optional(),
+    headers: z.record(z.string(), z.string()).optional(),
   })
-  .transform((data) => ({
+  .transform((data, _ctx) => ({
     ...data,
     type: 'sse' as const,
   }));
@@ -50,9 +86,9 @@ export const streamableHTTPServerConfigSchema = z
   .object({
     type: z.enum(['streamable-http']).optional(),
     url: z.string().url('URL must be a valid URL format'),
-    headers: z.record(z.string()).optional(),
+    headers: z.record(z.string(), z.string()).optional(),
   })
-  .transform((data) => ({
+  .transform((data, _ctx) => ({
     ...data,
     type: 'streamable-http' as const,
   }));
@@ -152,7 +188,11 @@ export class MCPService {
       return mcpServerConfigSchema.parse(config);
     } catch (validationError) {
       if (validationError instanceof z.ZodError) {
-        const errorMessages = validationError.errors.map((err) => `${err.path.join('.')}: ${err.message}`).join('; ');
+        // Zod 4 uses 'issues' instead of 'errors'
+        const issues = validationError.issues || [];
+        const errorMessages = issues.map((err) => 
+          `${err.path.map(String).join('.')}: ${err.message}`
+        ).join('; ');
         throw new Error(`Invalid configuration for server "${serverName}": ${errorMessages}`);
       }
 
@@ -177,7 +217,7 @@ export class MCPService {
     const client = await experimental_createMCPClient({
       transport: new StreamableHTTPClientTransport(new URL(config.url), {
         requestInit: {
-          headers: config.headers,
+          headers: config.headers as Record<string, string> | undefined,
         },
       }),
     });
@@ -359,7 +399,8 @@ export class MCPService {
     const { toolCallId, toolName } = toolCall;
 
     if (this.isValidToolName(toolName)) {
-      const { description = 'No description available' } = this.toolsWithoutExecute[toolName];
+      const tool = this.toolsWithoutExecute[toolName];
+      const description = tool?.description ?? 'No description available';
       const serverName = this._toolNamesToServerNames.get(toolName);
 
       if (serverName) {
@@ -383,13 +424,24 @@ export class MCPService {
     }
 
     const processedParts = await Promise.all(
-      parts.map(async (part) => {
+      parts.map(async (part): Promise<MessagePart> => {
         // Only process tool invocations parts
         if (part.type !== 'tool-invocation') {
           return part;
         }
 
-        const { toolInvocation } = part;
+        // Type guard for tool-invocation parts
+        const toolInvocationPart = part as { 
+          type: 'tool-invocation'; 
+          toolInvocation: { 
+            state: 'partial-call' | 'call' | 'result';
+            toolCallId: string;
+            toolName: string;
+            args?: unknown;
+            result?: unknown;
+          } 
+        };
+        const { toolInvocation } = toolInvocationPart;
         const { toolName, toolCallId } = toolInvocation;
 
         // return part as-is if tool does not exist, or if it's not a tool call result
@@ -397,7 +449,7 @@ export class MCPService {
           return part;
         }
 
-        let result;
+        let result: unknown;
 
         if (toolInvocation.result === TOOL_EXECUTION_APPROVAL.APPROVE) {
           const toolInstance = this._tools[toolName];
@@ -406,7 +458,7 @@ export class MCPService {
             logger.debug(`calling tool "${toolName}" with args: ${JSON.stringify(toolInvocation.args)}`);
 
             try {
-              result = await toolInstance.execute(toolInvocation.args, {
+              result = await toolInstance.execute(toolInvocation.args as Record<string, unknown> || {}, {
                 messages: convertToCoreMessages(messages),
                 toolCallId,
               });
@@ -434,7 +486,7 @@ export class MCPService {
 
         // Return updated toolInvocation with the actual result.
         return {
-          ...part,
+          type: 'tool-invocation' as const,
           toolInvocation: {
             ...toolInvocation,
             result,

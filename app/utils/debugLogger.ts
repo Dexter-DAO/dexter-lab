@@ -238,7 +238,7 @@ class DebugLogger {
 
   // Debouncing for terminal logs
   private _terminalLogQueue: TerminalEntry[] = [];
-  private _terminalLogTimer: NodeJS.Timeout | null = null;
+  private _terminalLogTimer: ReturnType<typeof setTimeout> | null = null;
 
   // Helper for JSON replacer with seen tracking
   private _seenObjects = new WeakSet();

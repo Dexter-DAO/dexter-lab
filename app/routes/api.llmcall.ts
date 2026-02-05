@@ -1,7 +1,7 @@
 import { type ActionFunctionArgs } from '@remix-run/cloudflare';
 import { streamText } from '~/lib/.server/llm/stream-text';
 import type { IProviderSetting, ProviderInfo } from '~/types/model';
-import { generateText } from 'ai';
+import { generateText } from '~/lib/modules/llm/ai-sdk-stub';
 import { PROVIDER_LIST } from '~/utils/constants';
 import { MAX_TOKENS, PROVIDER_COMPLETION_LIMITS, isReasoningModel } from '~/lib/.server/llm/constants';
 import { LLMManager } from '~/lib/modules/llm/manager';
@@ -94,7 +94,13 @@ async function llmCallAction({ context, request }: ActionFunctionArgs) {
   const apiKeys = getApiKeysFromCookie(cookieHeader);
   const providerSettings = getProviderSettingsFromCookie(cookieHeader);
 
-  if (streamOutput) {
+  // Always use streaming for Anthropic models (required by their SDK)
+  // and fallback to streaming for other providers since our generateText stub is disabled
+  // Note: generateText now uses streaming internally for Anthropic (to avoid timeout errors)
+  // So we don't need to force streaming here - only use streaming when explicitly requested
+  const forceStreaming = false;
+
+  if (streamOutput || forceStreaming) {
     try {
       const result = await streamText({
         options: {

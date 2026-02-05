@@ -1,8 +1,15 @@
 import { BaseProvider } from '~/lib/modules/llm/base-provider';
 import type { ModelInfo } from '~/lib/modules/llm/types';
 import type { IProviderSetting } from '~/types/model';
-import type { LanguageModelV1 } from 'ai';
-import { createOpenRouter } from '@openrouter/ai-sdk-provider';
+import type { LanguageModelV1 } from '~/lib/modules/llm/ai-sdk-stub';
+import { createStubModel } from '~/lib/modules/llm/ai-sdk-stub';
+
+// Stub for OpenRouter - returns a placeholder model
+function createOpenRouter(options: { apiKey?: string }) {
+  return {
+    chat: (model: string): LanguageModelV1 => createStubModel('openrouter', model),
+  };
+}
 
 interface OpenRouterModel {
   name: string;

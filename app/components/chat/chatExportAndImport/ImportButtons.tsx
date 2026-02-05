@@ -1,4 +1,4 @@
-import type { Message } from 'ai';
+import type { Message } from '~/types/chat';
 import { toast } from 'react-toastify';
 import { ImportFolderButton } from '~/components/chat/ImportFolderButton';
 import { Button } from '~/components/ui/Button';

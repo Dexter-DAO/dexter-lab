@@ -1,4 +1,5 @@
-import type { Tool } from 'ai';
+// Tool type stubbed for compatibility - name is passed separately as toolName prop
+type Tool = { description?: string; parameters?: unknown };
 
 type ParameterProperty = {
   type?: string;

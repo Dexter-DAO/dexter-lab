@@ -13,13 +13,13 @@ import type {
   SourceUIPart,
   FileUIPart,
   StepStartUIPart,
-} from '@ai-sdk/ui-utils';
+  ImageUIPart,
+} from '~/types/ui-utils';
+import type { MessagePart } from '~/types/chat';
 
 interface UserMessageProps {
   content: string | Array<{ type: string; text?: string; image?: string }>;
-  parts:
-    | (TextUIPart | ReasoningUIPart | ToolInvocationUIPart | SourceUIPart | FileUIPart | StepStartUIPart)[]
-    | undefined;
+  parts: MessagePart[] | undefined;
 }
 
 export function UserMessage({ content, parts }: UserMessageProps) {

@@ -88,7 +88,7 @@ async function githubBranchesLoader({ request, context }: { request: Request; co
       throw new Error(`GitHub API error: ${repoResponse.status}`);
     }
 
-    const repoInfo: any = await repoResponse.json();
+    const repoInfo: any = await repojson();
     const defaultBranch = repoInfo.default_branch;
 
     // Fetch branches
@@ -104,7 +104,7 @@ async function githubBranchesLoader({ request, context }: { request: Request; co
       throw new Error(`Failed to fetch branches: ${branchesResponse.status}`);
     }
 
-    const branches: GitHubBranch[] = await branchesResponse.json();
+    const branches: GitHubBranch[] = await branchesjson();
 
     // Transform to our format
     const transformedBranches: BranchInfo[] = branches.map((branch) => ({

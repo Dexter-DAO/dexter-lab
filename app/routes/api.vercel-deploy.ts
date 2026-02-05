@@ -194,7 +194,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
       return json({ error: 'Failed to fetch project' }, { status: 400 });
     }
 
-    const projectData = (await projectResponse.json()) as any;
+    const projectData = (await projectjson()) as any;
 
     // Get latest deployment
     const deploymentsResponse = await fetch(`https://api.vercel.com/v6/deployments?projectId=${projectId}&limit=1`, {
@@ -207,7 +207,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
       return json({ error: 'Failed to fetch deployments' }, { status: 400 });
     }
 
-    const deploymentsData = (await deploymentsResponse.json()) as any;
+    const deploymentsData = (await deploymentsjson()) as any;
 
     const latestDeployment = deploymentsData.deployments?.[0];
 
@@ -277,14 +277,14 @@ export async function action({ request }: ActionFunctionArgs) {
       });
 
       if (!createProjectResponse.ok) {
-        const errorData = (await createProjectResponse.json()) as any;
+        const errorData = (await createProjectjson()) as any;
         return json(
           { error: `Failed to create project: ${errorData.error?.message || 'Unknown error'}` },
           { status: 400 },
         );
       }
 
-      const newProject = (await createProjectResponse.json()) as any;
+      const newProject = (await createProjectjson()) as any;
       targetProjectId = newProject.id;
       projectInfo = {
         id: newProject.id,
@@ -301,7 +301,7 @@ export async function action({ request }: ActionFunctionArgs) {
       });
 
       if (projectResponse.ok) {
-        const existingProject = (await projectResponse.json()) as any;
+        const existingProject = (await projectjson()) as any;
         projectInfo = {
           id: existingProject.id,
           name: existingProject.name,
@@ -324,14 +324,14 @@ export async function action({ request }: ActionFunctionArgs) {
         });
 
         if (!createProjectResponse.ok) {
-          const errorData = (await createProjectResponse.json()) as any;
+          const errorData = (await createProjectjson()) as any;
           return json(
             { error: `Failed to create project: ${errorData.error?.message || 'Unknown error'}` },
             { status: 400 },
           );
         }
 
-        const newProject = (await createProjectResponse.json()) as any;
+        const newProject = (await createProjectjson()) as any;
         targetProjectId = newProject.id;
         projectInfo = {
           id: newProject.id,
@@ -424,14 +424,14 @@ export async function action({ request }: ActionFunctionArgs) {
     });
 
     if (!deployResponse.ok) {
-      const errorData = (await deployResponse.json()) as any;
+      const errorData = (await deployjson()) as any;
       return json(
         { error: `Failed to create deployment: ${errorData.error?.message || 'Unknown error'}` },
         { status: 400 },
       );
     }
 
-    const deployData = (await deployResponse.json()) as any;
+    const deployData = (await deployjson()) as any;
 
     // Poll for deployment status
     let retryCount = 0;
@@ -447,7 +447,7 @@ export async function action({ request }: ActionFunctionArgs) {
       });
 
       if (statusResponse.ok) {
-        const status = (await statusResponse.json()) as any;
+        const status = (await statusjson()) as any;
         deploymentState = status.readyState;
         deploymentUrl = status.url ? `https://${status.url}` : '';
 

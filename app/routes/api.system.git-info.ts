@@ -154,7 +154,7 @@ export const loader: LoaderFunction = async ({ request, context }: LoaderFunctio
           throw new Error(`GitHub API error: ${reposResponse.status}`);
         }
 
-        const repos = (await reposResponse.json()) as GitHubRepo[];
+        const repos = (await reposjson()) as GitHubRepo[];
 
         // Get user's gists
         const gistsResponse = await fetch('https://api.github.com/gists', {
@@ -164,7 +164,7 @@ export const loader: LoaderFunction = async ({ request, context }: LoaderFunctio
           },
         });
 
-        const gists = gistsResponse.ok ? ((await gistsResponse.json()) as GitHubGist[]) : [];
+        const gists = gistsResponse.ok ? ((await gistsjson()) as GitHubGist[]) : [];
 
         // Calculate language statistics
         const languageStats: Record<string, number> = {};
@@ -193,7 +193,7 @@ export const loader: LoaderFunction = async ({ request, context }: LoaderFunctio
            *     });
            *
            *     if (langResponse.ok) {
-           *       const languages = await langResponse.json();
+           *       const languages = await langjson();
            *       Object.keys(languages).forEach(lang => {
            *         languageStats[lang] = (languageStats[lang] || 0) + languages[lang];
            *       });

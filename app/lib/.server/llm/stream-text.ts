@@ -1,4 +1,5 @@
-import { convertToCoreMessages, streamText as _streamText, type Message } from 'ai';
+import { type Message, convertToCoreMessages } from '~/types/chat';
+import { streamText as _streamText } from '~/lib/modules/llm/ai-sdk-stub';
 import { MAX_TOKENS, PROVIDER_COMPLETION_LIMITS, isReasoningModel, type FileMap } from './constants';
 import { getSystemPrompt } from '~/lib/common/prompts/prompts';
 import { DEFAULT_MODEL, DEFAULT_PROVIDER, MODIFICATIONS_TAG_NAME, PROVIDER_LIST, WORK_DIR } from '~/utils/constants';
@@ -14,7 +15,57 @@ import { getSkillsPromptSection } from '~/lib/.server/skills';
 
 export type Messages = Message[];
 
-export interface StreamingOptions extends Omit<Parameters<typeof _streamText>[0], 'model'> {
+/**
+ * Core streaming options for LLM calls
+ * These are properly typed instead of relying on the stubbed _streamText parameter
+ */
+export interface StreamingOptions {
+  /** System prompt */
+  system?: string;
+  
+  /** Tool choice mode */
+  toolChoice?: 'auto' | 'none' | 'required' | { type: 'tool'; toolName: string };
+  
+  /** Available tools */
+  tools?: Record<string, unknown>;
+  
+  /** Max number of tool use steps */
+  maxSteps?: number;
+  
+  /** Temperature for generation */
+  temperature?: number;
+  
+  /** Top P sampling */
+  topP?: number;
+  
+  /** Presence penalty */
+  presencePenalty?: number;
+  
+  /** Frequency penalty */
+  frequencyPenalty?: number;
+  
+  /** Callback on each step finish */
+  onStepFinish?: (event: { 
+    toolCalls: Array<{ 
+      type: 'tool-call'; 
+      toolCallId: string; 
+      toolName: string; 
+      args: Record<string, unknown>; 
+    }>;
+  }) => void;
+  
+  /** Callback on completion */
+  onFinish?: (event: { 
+    text: string; 
+    finishReason: string; 
+    usage?: { 
+      promptTokens?: number; 
+      completionTokens?: number; 
+      totalTokens?: number; 
+    };
+  }) => void | Promise<void>;
+  
+  /** Supabase connection info */
   supabaseConnection?: {
     isConnected: boolean;
     hasSelectedProject: boolean;

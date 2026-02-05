@@ -11,7 +11,7 @@ export interface StreamRecoveryOptions {
 
 export class StreamRecoveryManager {
   private _retryCount = 0;
-  private _timeoutHandle: NodeJS.Timeout | null = null;
+  private _timeoutHandle: ReturnType<typeof setTimeout> | null = null;
   private _lastActivity: number = Date.now();
   private _isActive = true;
 

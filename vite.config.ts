@@ -12,15 +12,32 @@ dotenv.config({ path: '.env' });
 dotenv.config();
 
 export default defineConfig((config) => {
+  // We're running in Node.js via PM2, so we should use native Node.js APIs for SSR
+  // Only polyfill for client-side builds
+  const isSSR = config.isSsrBuild;
+  
   return {
     define: {
       'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV),
+      'global': 'globalThis',
     },
     build: {
       target: 'esnext',
+      // For SSR builds, don't bundle Node.js built-ins - use native APIs
+      rollupOptions: isSSR ? {
+        external: ['buffer', 'stream', 'util', 'events', 'path', 'fs', 'crypto', 'http', 'https', 'url', 'querystring', 'os', 'child_process', 'worker_threads', 'net', 'tls', 'zlib', 'dns', 'tty', 'assert'],
+      } : undefined,
+    },
+    ssr: {
+      // In Node.js, use native modules instead of polyfills
+      external: ['buffer', 'stream', 'util', 'events', 'path', 'fs', 'crypto', 'http', 'https', 'url', 'os', 'child_process'],
+      // Don't externalize these - they need to be bundled
+      noExternal: ['@remix-run/react', 'remix-island', 'isbot'],
     },
     plugins: [
-      nodePolyfills({
+      // Only apply node polyfills to client builds, not server builds
+      // Server runs in Node.js where native APIs are available
+      !isSSR && nodePolyfills({
         include: ['buffer', 'process', 'util', 'stream'],
         globals: {
           Buffer: true,
@@ -30,20 +47,8 @@ export default defineConfig((config) => {
         protocolImports: true,
         exclude: ['child_process', 'fs', 'path'],
       }),
-      {
-        name: 'buffer-polyfill',
-        transform(code, id) {
-          if (id.includes('env.mjs')) {
-            return {
-              code: `import { Buffer } from 'buffer';\n${code}`,
-              map: null,
-            };
-          }
-
-          return null;
-        },
-      },
-      config.mode !== 'test' && remixCloudflareDevProxy(),
+      // Only use Cloudflare dev proxy in development mode, not for production Node.js builds
+      config.mode === 'development' && remixCloudflareDevProxy(),
       remixVitePlugin({
         future: {
           v3_fetcherPersist: true,
@@ -56,7 +61,7 @@ export default defineConfig((config) => {
       tsconfigPaths(),
       chrome129IssuePlugin(),
       config.mode === 'production' && optimizeCssModules({ apply: 'build' }),
-    ],
+    ].filter(Boolean),
     envPrefix: [
       'VITE_',
       'OPENAI_LIKE_API_BASE_URL',
