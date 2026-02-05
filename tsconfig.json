@@ -41,6 +41,7 @@
     "build",
     "functions",
     "x402-ai-assistant",
-    "x402-resources"
+    "x402-resources",
+    "x402-resource"
   ]
 }

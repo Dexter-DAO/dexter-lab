@@ -239,13 +239,27 @@ If you need to make changes to functionality, create new files instead of modify
 
   userMessage += `
 ---
-template import is done, and you can now use the imported files,
-edit only the files that need to be changed, and you can create new files as needed.
-NO NOT EDIT/WRITE ANY FILES THAT ALREADY EXIST IN THE PROJECT AND DOES NOT NEED TO BE MODIFIED
+Template import complete. You may use these files as a starting point, editing only what needs to change.
+Do NOT modify files that don't require changes.
 ---
-Now that the Template is imported please continue with my original request
+Continue with the original request.
 
-IMPORTANT: Dont Forget to install the dependencies before running the app by using \`npm install && npm run dev\`
+FOR x402 RESOURCES: After creating all files (index.ts, package.json, Dockerfile, README.md), deploy via the Deployment API:
+\`\`\`typescript
+const response = await fetch('/api/deploy', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    name: 'resource-name',
+    description: 'What this resource does',
+    type: 'api',
+    basePriceUsdc: 0.01,
+    pricingModel: 'per-request',
+    files: { 'index.ts': '...', 'package.json': '...', 'Dockerfile': '...', 'README.md': '...' }
+  })
+});
+\`\`\`
+DO NOT use npm run dev or npm start for x402 resources - use the deployment API above.
 `;
 
   return {
