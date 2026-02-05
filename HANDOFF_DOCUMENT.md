@@ -309,6 +309,155 @@ infrastructure/
 
 ---
 
+## Specific Decision Points Where Things Went Wrong
+
+Through deep analysis of the conversation history, here are the exact moments where implementation diverged from requirements:
+
+### 1. Claude Agent SDK → Stub (Zod Conflict)
+
+**The Pivotal Moment:**
+When installing `@anthropic-ai/claude-agent-sdk`, a Zod version conflict emerged:
+- Claude Agent SDK requires `zod@^4.0.0`
+- Vercel AI SDK (`ai` package) requires `zod@^3.x`
+
+**What Should Have Happened:**
+- Fully remove Vercel AI SDK
+- Install Claude Agent SDK with Zod 4
+- Rewrite LLM layer to use Claude Agent SDK natively
+
+**What Actually Happened:**
+- Created stubs for Vercel AI SDK types
+- Installed Zod 4 but kept stub implementations
+- Claude Agent SDK files were created but **never wired to the main flow**
+- The `/api/chat` route still uses `streamText` from the stub (which throws an error)
+- User explicitly said "stub them, we are not going to remove it" - referring to the provider stubs for future multi-provider support, but this was misinterpreted as keeping the entire stub architecture
+
+**Evidence:**
+- `app/lib/modules/llm/ai-sdk-stub.ts` contains `streamText` that throws: `'streamText from ai package is disabled. Use the Claude Agent SDK via /api/agent-chat endpoint.'`
+- But the UI still calls `/api/chat` which uses this stub
+- `app/routes/api.agent-chat.ts` exists but is NOT used by the frontend
+
+### 2. OpenClaw Skills → Embedded Approach
+
+**The Pivotal Moment:**
+When implementing skills, a decision was made to use "embedded" skills rather than a dynamic skill loader.
+
+**What Should Have Happened:**
+- Implement proper OpenClaw skill loading system
+- Research and vet skills from ClawHub registry
+- Dynamic skill installation and management
+
+**What Actually Happened:**
+- Skills were "embedded" directly into the prompt/system
+- No OpenClaw integration at all
+- No skill registry, no skill loading
+- The "embedded" approach was justified as "simpler for WebContainer environment" but this bypassed the entire OpenClaw ecosystem
+
+**Evidence:**
+- No files referencing OpenClaw or ClawHub exist in the codebase
+- `app/lib/.server/skills/` contains only a basic `index.ts` that loads markdown files from `/skills` directory
+- No vetted skills were ever researched or added
+
+### 3. WebContainer Port Management → Random Ports
+
+**The Pivotal Moment:**
+The AI (running in the WebContainer sandbox) tries to spin up development servers on hardcoded ports.
+
+**What Should Have Happened:**
+- AI should call `/api/deploy` to deploy resources
+- Deployment service handles port allocation via Docker/Traefik
+- No direct `npm run dev` from AI
+
+**What Actually Happened:**
+- AI creates code files in WebContainer
+- AI tries to run `npm run dev` 
+- Hits port conflicts (5173, 3001, 3002 all in use)
+- No skill/instruction telling AI to use deployment API
+- AI has no concept of the deployment pipeline
+
+**Evidence:**
+- From the test session, AI tried ports 5173, 3001, 3002 sequentially
+- Each failed with "port in use"
+- AI never attempted to call `/api/deploy`
+
+### 4. x402 Resources → Code Files Only (Not Deployable)
+
+**The Pivotal Moment:**
+The AI successfully generates x402 resource code but has no way to deploy it.
+
+**What Should Have Happened:**
+1. AI generates x402 resource code
+2. AI calls `/api/deploy` with the code
+3. Deployment service builds Docker image
+4. Traefik routes traffic to container
+5. Resource is live at `*.resources.dexter.cash`
+6. First x402 transaction auto-registers with Dexter Facilitator
+
+**What Actually Happened:**
+1. AI generates x402 resource code ✓
+2. AI tries `npm run dev` ✗ (port conflicts)
+3. No deployment occurs
+4. Resource only exists as files in WebContainer
+5. Never becomes accessible
+6. Never registers with facilitator
+
+**Evidence:**
+- Test session showed AI creating full `x402-ai-assistant/` project structure
+- AI declared "resource is ready for deployment"
+- But resource is NOT deployed, NOT accessible, NOT functional
+
+### 5. Traefik Infrastructure → Created But Never Started
+
+**The Pivotal Moment:**
+Infrastructure files were created but `start-infrastructure.sh` was never executed.
+
+**What Should Have Happened:**
+```bash
+./infrastructure/start-infrastructure.sh
+```
+
+**What Actually Happened:**
+- Script created
+- Script never run
+- Traefik not running
+- Docker Compose not started
+- Even if deployment API was called, containers wouldn't be routable
+
+**Evidence:**
+```bash
+pm2 list  # No traefik process
+docker ps  # No traefik container
+```
+
+---
+
+## The Root Cause
+
+**The fundamental issue is a disconnect between:**
+
+1. **What exists (files)** vs **What's connected (flow)**
+   - Claude Agent SDK files exist → Not wired to UI
+   - Deployment API exists → AI doesn't know about it
+   - Infrastructure files exist → Not started
+
+2. **What AI knows** vs **What system supports**
+   - AI knows how to write x402 code
+   - AI doesn't know to use deployment API
+   - AI tries to run dev server (wrong approach)
+
+3. **Stateless vs Stateful**
+   - Original ask: Stateful Claude Agent SDK sessions
+   - Current state: Stateless chat completions
+   - AI cannot maintain context or use MCP tools
+
+**To fix this, the next developer must:**
+1. Actually wire Claude Agent SDK to the frontend (change `useChat` to use `/api/agent-chat`)
+2. Create a skill/instruction that tells AI to use `/api/deploy` instead of `npm run dev`
+3. Start the Traefik infrastructure
+4. Test the full flow end-to-end
+
+---
+
 ## Summary
 
 The project has the **skeleton** of what was asked for:
