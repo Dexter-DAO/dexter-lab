@@ -7,6 +7,7 @@ export async function request(url: string, init?: CommonRequest) {
       const nodeFetch = await import('node-fetch');
 
       // Dynamic import to avoid TS errors in browser context
+      // eslint-disable-next-line no-eval
       const https = await (eval('import("node:https")') as Promise<typeof import('https')>);
 
       const agent = url.startsWith('https') ? new https.Agent({ rejectUnauthorized: false }) : undefined;

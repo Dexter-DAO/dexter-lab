@@ -299,7 +299,7 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
                 }
 
                 setData((prev) => [...(prev || []), parsed as JSONValue]);
-              } catch (e) {
+              } catch {
                 // Ignore parse errors for malformed chunks
               }
             }
@@ -332,7 +332,7 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
   );
 
   const handleSubmit = useCallback(
-    (e?: React.FormEvent<HTMLFormElement>, options?: { data?: Record<string, string> }) => {
+    (e?: React.FormEvent<HTMLFormElement>, _options?: { data?: Record<string, string> }) => {
       e?.preventDefault();
       sendMessage(input, messagesRef.current);
       setInput('');
@@ -359,7 +359,7 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
   );
 
   const reload = useCallback(
-    async (options?: ChatRequestOptions) => {
+    async (_options?: ChatRequestOptions) => {
       // Use ref for latest messages (avoids stale closure issue when called right after setMessages)
       const currentMessages = messagesRef.current;
 

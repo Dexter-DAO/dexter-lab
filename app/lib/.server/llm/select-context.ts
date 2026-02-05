@@ -2,8 +2,10 @@ import { generateText } from '~/lib/modules/llm/ai-sdk-stub';
 import type { Message } from '~/types/chat';
 
 // Stub types for AI SDK compatibility
-type CoreTool<T = any, R = any> = { execute?: (args: T) => Promise<R> };
-type GenerateTextResult<T = Record<string, CoreTool>, R = never> = {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/naming-convention
+type CoreTool<_T = unknown, _R = unknown> = { execute?: (args: unknown) => Promise<unknown> };
+// eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/naming-convention
+type GenerateTextResult<_T = unknown, _R = unknown> = {
   text: string;
   usage?: { completionTokens?: number; promptTokens?: number; totalTokens?: number };
 };

@@ -10,9 +10,9 @@
  * - Dexter Lab identity and x402 expertise
  */
 
-import { query, type SDKMessage } from '@anthropic-ai/claude-agent-sdk';
+import { query } from '@anthropic-ai/claude-agent-sdk';
 import { createDexterMcpServer } from './mcp-tools';
-import { getSkillsPromptSection } from '../skills';
+import { getSkillsPromptSection } from '~/lib/.server/skills';
 import type { DexterAgentOptions, DexterAgentResult, StreamMessage } from './types';
 
 /**

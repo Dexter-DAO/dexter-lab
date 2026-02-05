@@ -50,7 +50,7 @@ export function createStubModel(provider: string, modelId: string): LanguageMode
 /**
  * Stub for createOpenAI from @ai-sdk/openai
  */
-export function createOpenAI(options: { baseURL?: string; apiKey?: string }) {
+export function createOpenAI(_options: { baseURL?: string; apiKey?: string }) {
   return (model: string): LanguageModelV1 => {
     return createStubModel('openai', model);
   };
@@ -59,7 +59,7 @@ export function createOpenAI(options: { baseURL?: string; apiKey?: string }) {
 /**
  * Stub for createAnthropic from @ai-sdk/anthropic
  */
-export function createAnthropic(options: { apiKey?: string; headers?: Record<string, string> }) {
+export function createAnthropic(_options: { apiKey?: string; headers?: Record<string, string> }) {
   return (model: string): LanguageModelV1 => {
     return createStubModel('anthropic', model);
   };
@@ -68,7 +68,7 @@ export function createAnthropic(options: { apiKey?: string; headers?: Record<str
 /**
  * Stub for createGoogleGenerativeAI from @ai-sdk/google
  */
-export function createGoogleGenerativeAI(options: { baseURL?: string; apiKey?: string }) {
+export function createGoogleGenerativeAI(_options: { baseURL?: string; apiKey?: string }) {
   return (model: string): LanguageModelV1 => {
     return createStubModel('google', model);
   };
@@ -77,7 +77,7 @@ export function createGoogleGenerativeAI(options: { baseURL?: string; apiKey?: s
 /**
  * Stub for createMistral from @ai-sdk/mistral
  */
-export function createMistral(options: { baseURL?: string; apiKey?: string }) {
+export function createMistral(_options: { baseURL?: string; apiKey?: string }) {
   return (model: string): LanguageModelV1 => {
     return createStubModel('mistral', model);
   };
@@ -86,7 +86,7 @@ export function createMistral(options: { baseURL?: string; apiKey?: string }) {
 /**
  * Stub for createCohere from @ai-sdk/cohere
  */
-export function createCohere(options: { baseURL?: string; apiKey?: string }) {
+export function createCohere(_options: { baseURL?: string; apiKey?: string }) {
   return (model: string): LanguageModelV1 => {
     return createStubModel('cohere', model);
   };
@@ -95,7 +95,7 @@ export function createCohere(options: { baseURL?: string; apiKey?: string }) {
 /**
  * Stub for createAmazonBedrock from @ai-sdk/amazon-bedrock
  */
-export function createAmazonBedrock(options: { region?: string; accessKeyId?: string; secretAccessKey?: string }) {
+export function createAmazonBedrock(_options: { region?: string; accessKeyId?: string; secretAccessKey?: string }) {
   return (model: string): LanguageModelV1 => {
     return createStubModel('amazon-bedrock', model);
   };
@@ -104,7 +104,7 @@ export function createAmazonBedrock(options: { region?: string; accessKeyId?: st
 /**
  * Stub for xai from @ai-sdk/xai
  */
-export function createXai(options: { apiKey?: string }) {
+export function createXai(_options: { apiKey?: string }) {
   return (model: string): LanguageModelV1 => {
     return createStubModel('xai', model);
   };
@@ -113,7 +113,7 @@ export function createXai(options: { apiKey?: string }) {
 /**
  * Stub for createOllama (if it existed)
  */
-export function createOllama(options: { baseURL?: string }) {
+export function createOllama(_options: { baseURL?: string }) {
   return (model: string): LanguageModelV1 => {
     return createStubModel('ollama', model);
   };
@@ -185,7 +185,15 @@ export async function streamText(options: StreamTextOptions): Promise<{
   text: Promise<string>;
   mergeIntoDataStream: (stream: unknown) => void;
 }> {
-  const { model, messages, system, maxTokens = 4096, temperature = 0.7, onFinish, onStepFinish } = options;
+  const {
+    model,
+    messages,
+    system,
+    maxTokens = 4096,
+
+    // temperature and onStepFinish are part of the API but not yet used in our Anthropic integration
+    onFinish,
+  } = options;
 
   // Get API key from environment
   const apiKey = process.env.ANTHROPIC_API_KEY;

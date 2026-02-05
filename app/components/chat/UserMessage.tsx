@@ -6,15 +6,7 @@ import { MODEL_REGEX, PROVIDER_REGEX } from '~/utils/constants';
 import { Markdown } from './Markdown';
 import { useStore } from '@nanostores/react';
 import { profileStore } from '~/lib/stores/profile';
-import type {
-  TextUIPart,
-  ReasoningUIPart,
-  ToolInvocationUIPart,
-  SourceUIPart,
-  FileUIPart,
-  StepStartUIPart,
-  ImageUIPart,
-} from '~/types/ui-utils';
+import type { FileUIPart } from '~/types/ui-utils';
 import type { MessagePart } from '~/types/chat';
 
 interface UserMessageProps {

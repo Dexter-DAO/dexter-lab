@@ -54,8 +54,10 @@ async function makeProxyRequest(
 
 /**
  * Validate x402 resource structure
+ * @internal - Will be used when filesystem validation is implemented
  */
-function validateX402Resource(resourcePath: string): X402ResourceValidation {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function validateX402Resource(_resourcePath: string): X402ResourceValidation {
   /*
    * This would normally check the filesystem
    * For now, return a placeholder that the agent can use
