@@ -17,7 +17,7 @@ entryPoints:
   
   # Traefik dashboard (internal only)
   traefik:
-    address: ":8081"
+    address: ":8082"
 
 providers:
   # Docker provider - automatically discovers containers with labels

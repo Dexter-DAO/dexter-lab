@@ -62,7 +62,7 @@ create_network() {
 # Start infrastructure services
 start_services() {
     log_info "Starting Traefik and Redis..."
-    docker compose -f "$COMPOSE_FILE" up -d
+    docker-compose -f "$COMPOSE_FILE" up -d
     
     # Wait for services to be healthy
     log_info "Waiting for services to be healthy..."
@@ -100,7 +100,7 @@ stop_services() {
 show_status() {
     log_info "Infrastructure Status:"
     echo ""
-    docker compose -f "$COMPOSE_FILE" ps
+    docker-compose -f "$COMPOSE_FILE" ps
     echo ""
     
     log_info "Resource Containers:"
@@ -118,7 +118,7 @@ case "${1:-start}" in
         create_network
         start_services
         log_info "Infrastructure is ready!"
-        log_info "Traefik dashboard: http://localhost:8081"
+        log_info "Traefik dashboard: http://localhost:8082"
         log_info "Resource traffic: port 8090 -> Traefik -> containers"
         ;;
     stop)

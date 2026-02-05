@@ -19,7 +19,7 @@ services:
       # HTTP - receives traffic from Cloudflare
       - "8090:80"
       # Traefik dashboard (internal access only)
-      - "127.0.0.1:8081:8081"
+      - "127.0.0.1:8082:8082"
     volumes:
       # Traefik configuration
       - ./traefik/traefik.yaml:/etc/traefik/traefik.yaml:ro
