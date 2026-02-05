@@ -28,6 +28,7 @@ import type { ElementInfo } from '~/components/workbench/Inspector';
 import type { TextUIPart, FileUIPart, Attachment } from '~/types/ui-utils';
 import { useMCPStore } from '~/lib/stores/mcp';
 import type { LlmErrorAlertType } from '~/types/actions';
+import * as chatDebug from '~/utils/chatDebugger';
 
 const logger = createScopedLogger('Chat');
 
@@ -389,12 +390,25 @@ export const ChatImpl = memo(
     const sendMessage = async (_event: React.UIEvent, messageInput?: string) => {
       const messageContent = messageInput || input;
 
+      // Debug: User submit
+      chatDebug.debugUserSubmit({
+        input: messageContent || '',
+        chatStarted,
+        isLoading,
+        model,
+        provider: provider.name,
+        hasSelectedElement: !!selectedElement,
+      });
+
       if (!messageContent?.trim()) {
+        logger.debug('sendMessage: Empty message, returning');
         return;
       }
 
       if (isLoading) {
+        logger.debug('sendMessage: Already loading, aborting previous');
         abort();
+
         return;
       }
 
@@ -413,14 +427,28 @@ export const ChatImpl = memo(
         setFakeLoading(true);
 
         if (autoSelectTemplate) {
+          logger.info('=== TEMPLATE SELECTION START ===');
+          logger.info('User message:', finalMessageContent.substring(0, 100) + '...');
+
           const { template, title } = await selectStarterTemplate({
             message: finalMessageContent,
             model,
             provider,
           });
 
+          logger.info('Selected template:', template, 'Title:', title);
+
+          // Debug: Template selection
+          chatDebug.debugTemplateSelection({
+            template,
+            title,
+            hasAssistantMessage: false, // Will be updated if template is loaded
+          });
+
           if (template !== 'blank') {
             const temResp = await getTemplates(template, title).catch((e) => {
+              logger.error('Template fetch error:', e.message);
+
               if (e.message.includes('rate limit')) {
                 toast.warning('Rate limit exceeded. Skipping starter template\n Continuing with blank template');
               } else {
@@ -432,27 +460,66 @@ export const ChatImpl = memo(
 
             if (temResp) {
               const { assistantMessage, userMessage } = temResp;
+
+              logger.info('=== TEMPLATE MESSAGES ===');
+              logger.info('Assistant message length:', assistantMessage.length);
+              logger.info('Assistant message preview:', assistantMessage.substring(0, 200) + '...');
+              logger.info('User message (from template):', userMessage);
+
               const userMessageText = `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${finalMessageContent}`;
 
-              setMessages([
+              /*
+               * Build the continuation message - include original request so AI doesn't forget it
+               * userMessage from template is now just "[CONTINUE]" - we add the original request reminder
+               */
+              const continuationContent = `${userMessage}\n\nOriginal user request: ${finalMessageContent}`;
+
+              logger.info('=== SETTING MESSAGES ===');
+              logger.info('Message 1 (user original):', userMessageText.substring(0, 100) + '...');
+              logger.info('Message 2 (assistant template):', assistantMessage.substring(0, 100) + '...');
+              logger.info('Message 3 (hidden continuation):', continuationContent.substring(0, 100) + '...');
+
+              const messagesToSet = [
                 {
                   id: `1-${new Date().getTime()}`,
-                  role: 'user',
+                  role: 'user' as const,
                   content: userMessageText,
                   parts: createMessageParts(userMessageText, imageDataList),
                 },
                 {
                   id: `2-${new Date().getTime()}`,
-                  role: 'assistant',
+                  role: 'assistant' as const,
                   content: assistantMessage,
                 },
                 {
                   id: `3-${new Date().getTime()}`,
-                  role: 'user',
-                  content: `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${userMessage}`,
+                  role: 'user' as const,
+                  content: `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${continuationContent}`,
                   annotations: ['hidden'],
                 },
-              ]);
+              ];
+
+              logger.info(
+                'Messages to set:',
+                messagesToSet.map((m) => ({
+                  id: m.id,
+                  role: m.role,
+                  hasHiddenAnnotation: m.annotations?.includes('hidden'),
+                  contentPreview: m.content.substring(0, 50) + '...',
+                })),
+              );
+
+              // Debug: Messages being set with template
+              chatDebug.debugMessagesSet(messagesToSet as chatDebug.DebugMessage[], 'template-init');
+              chatDebug.debugTemplateSelection({
+                template,
+                title,
+                hasAssistantMessage: true,
+                assistantMessageLength: assistantMessage.length,
+                userMessage,
+              });
+
+              setMessages(messagesToSet);
 
               const reloadOptions =
                 uploadedFiles.length > 0

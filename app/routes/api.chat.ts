@@ -14,6 +14,7 @@ import { extractPropertiesFromMessage } from '~/lib/.server/llm/utils';
 import type { DesignScheme } from '~/types/design-scheme';
 import { MCPService } from '~/lib/services/mcpService';
 import { StreamRecoveryManager } from '~/lib/.server/llm/stream-recovery';
+import * as chatDebug from '~/utils/chatDebugger';
 
 export async function action(args: ActionFunctionArgs) {
   return chatAction(args);
@@ -87,6 +88,33 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
     const mcpService = MCPService.getInstance();
     const totalMessageContent = messages.reduce((acc, message) => acc + message.content, '');
     logger.debug(`Total message length: ${totalMessageContent.split(' ').length}, words`);
+
+    // Debug: Server receipt of messages
+    chatDebug.debugServerReceipt({
+      messages: messages as chatDebug.DebugMessage[],
+      hasApiKeys: Object.keys(apiKeys).length > 0,
+      chatMode,
+      contextOptimization,
+    });
+
+    // Detailed message logging for debugging
+    logger.info('=== INCOMING MESSAGES TO API ===');
+    logger.info('Message count:', messages.length);
+    messages.forEach((msg, idx) => {
+      const contentPreview =
+        typeof msg.content === 'string'
+          ? msg.content.substring(0, 150).replace(/\n/g, '\\n') + '...'
+          : '[complex content]';
+      logger.info(
+        `Message ${idx}: role=${msg.role}, id=${msg.id}, annotations=${JSON.stringify(msg.annotations || [])}`,
+      );
+      logger.info(`  Content preview: ${contentPreview}`);
+
+      // Check for hidden messages specifically
+      if (msg.annotations?.includes('hidden')) {
+        logger.info(`  ⚠️ This is a HIDDEN message - should not be shown to user in UI`);
+      }
+    });
 
     let lastChunk: string | undefined = undefined;
 

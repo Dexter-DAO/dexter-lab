@@ -2,6 +2,9 @@ import ignore from 'ignore';
 import type { ProviderInfo } from '~/types/model';
 import type { Template } from '~/types/template';
 import { STARTER_TEMPLATES } from './constants';
+import { createScopedLogger } from '~/utils/logger';
+
+const templateLogger = createScopedLogger('selectStarterTemplate');
 
 const starterTemplateSelectionPrompt = (templates: Template[]) => `
 You are an experienced developer who helps people choose the best starter template for their projects.
@@ -237,38 +240,23 @@ If you need to make changes to functionality, create new files instead of modify
 `;
   }
 
-  userMessage += `
----
-template import is done, and you can now use the imported files, edit only the files that need to be changed, and you can create new files as needed. NO NOT EDIT/WRITE ANY FILES THAT ALREADY EXIST IN THE PROJECT AND DOES NOT NEED TO BE MODIFIED
-Now that the Template is imported please continue with my original request
-`;
+  /*
+   * Hidden continuation signal - MUST be minimal to avoid AI echoing
+   * All x402 instructions are in the SYSTEM prompt, not here
+   * Do NOT add instructions here - they will be echoed by the AI
+   */
+  userMessage += `[CONTINUE]`;
 
-  // x402 deployment instructions go in assistant context (not visible to user, but guides the AI)
-  const x402DeploymentContext = `
----
-IMPORTANT: x402 RESOURCE DEPLOYMENT INSTRUCTIONS (internal context, do not repeat to user)
-
-For x402 paid API resources, after creating all files (index.ts, package.json, Dockerfile, README.md), 
-you MUST deploy via the Deployment API. DO NOT run npm run dev or npm start locally.
-
-Deployment example:
-const response = await fetch('/api/deploy', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    name: 'resource-name',
-    description: 'What this resource does',
-    type: 'api',
-    basePriceUsdc: 0.01,
-    pricingModel: 'per-request',
-    files: { 'index.ts': '...content...', 'package.json': '...content...', 'Dockerfile': '...content...', 'README.md': '...content...' }
-  })
-});
----
-`;
+  templateLogger.info('=== TEMPLATE OUTPUT ===');
+  templateLogger.info('Template name:', template.name);
+  templateLogger.info('Assistant message preview:', assistantMessage.substring(0, 200) + '...');
+  templateLogger.info('User message (full):', userMessage);
+  templateLogger.info('Files count:', filesToImport.files.length);
+  templateLogger.info('Has template prompt file:', !!templatePromptFile);
+  templateLogger.info('Has ignore files:', filesToImport.ignoreFile.length > 0);
 
   return {
-    assistantMessage: assistantMessage + x402DeploymentContext,
+    assistantMessage,
     userMessage,
   };
 }

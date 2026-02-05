@@ -10,6 +10,9 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import type { Message } from '~/types/chat';
 import { generateId } from '~/types/chat';
 import type { JSONValue } from '~/types/json';
+import { createScopedLogger } from '~/utils/logger';
+
+const chatHookLogger = createScopedLogger('useChat');
 
 /**
  * Response metadata from chat completion
@@ -363,18 +366,28 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
       // Use ref for latest messages (avoids stale closure issue when called right after setMessages)
       const currentMessages = messagesRef.current;
 
+      chatHookLogger.info('=== RELOAD CALLED ===');
+      chatHookLogger.info('Current message count:', currentMessages.length);
+      currentMessages.forEach((msg, idx) => {
+        chatHookLogger.info(
+          `  Message ${idx}: role=${msg.role}, hasHiddenAnnotation=${msg.annotations?.includes('hidden')}, content=${msg.content.substring(0, 60)}...`,
+        );
+      });
+
       // Get the last user message and resend
       const lastUserMessageIndex = currentMessages.findLastIndex((m) => m.role === 'user');
 
       if (lastUserMessageIndex === -1) {
-        console.warn('[useChat.reload] No user message found to reload');
+        chatHookLogger.warn('No user message found to reload');
         return;
       }
 
       const lastUserMessage = currentMessages[lastUserMessageIndex];
       const previousMessages = currentMessages.slice(0, lastUserMessageIndex);
 
-      console.log('[useChat.reload] Reloading message:', lastUserMessage.content.slice(0, 100) + '...');
+      chatHookLogger.info('Last user message index:', lastUserMessageIndex);
+      chatHookLogger.info('Last user message content:', lastUserMessage.content.slice(0, 100) + '...');
+      chatHookLogger.info('Previous messages count:', previousMessages.length);
 
       setMessages(previousMessages);
 

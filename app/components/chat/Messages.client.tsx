@@ -7,9 +7,12 @@ import { useLocation } from '@remix-run/react';
 import { db, chatId } from '~/lib/persistence/useChatHistory';
 import { forkChat } from '~/lib/persistence/db';
 import { toast } from 'react-toastify';
-import { forwardRef } from 'react';
+import { forwardRef, useEffect } from 'react';
 import type { ForwardedRef } from 'react';
 import type { ProviderInfo } from '~/types/model';
+import { createScopedLogger } from '~/utils/logger';
+
+const messagesLogger = createScopedLogger('Messages.client');
 
 interface MessagesProps {
   id?: string;
@@ -49,6 +52,29 @@ export const Messages = forwardRef<HTMLDivElement, MessagesProps>(
       }
     };
 
+    // Log messages when they change
+    useEffect(() => {
+      messagesLogger.info('=== MESSAGES RENDER ===');
+      messagesLogger.info('Total messages:', messages.length);
+      messages.forEach((msg, idx) => {
+        const isHidden = msg.annotations?.some(
+          (annotation) =>
+            annotation === 'hidden' ||
+            (typeof annotation === 'object' &&
+              annotation !== null &&
+              (annotation as { type?: string }).type === 'hidden'),
+        );
+        messagesLogger.info(`Message ${idx}:`, {
+          id: msg.id,
+          role: msg.role,
+          contentPreview: typeof msg.content === 'string' ? msg.content.substring(0, 80) + '...' : '[complex content]',
+          annotations: msg.annotations,
+          isHidden,
+          willRender: !isHidden,
+        });
+      });
+    }, [messages]);
+
     return (
       <div id={id} className={props.className} ref={ref}>
         {messages.length > 0
@@ -56,9 +82,18 @@ export const Messages = forwardRef<HTMLDivElement, MessagesProps>(
               const { role, content, id: messageId, annotations, parts } = message;
               const isUserMessage = role === 'user';
               const isFirst = index === 0;
-              const isHidden = annotations?.includes('hidden');
+
+              // Check if message should be hidden - handle both string and object annotation formats
+              const isHidden = annotations?.some(
+                (annotation) =>
+                  annotation === 'hidden' ||
+                  (typeof annotation === 'object' &&
+                    annotation !== null &&
+                    (annotation as { type?: string }).type === 'hidden'),
+              );
 
               if (isHidden) {
+                messagesLogger.debug(`Skipping hidden message ${index}:`, messageId);
                 return <Fragment key={index} />;
               }
 
