@@ -5,12 +5,34 @@
  * - proxy_api: Access external APIs through Dexter's proxy layer
  * - validate_x402: Validate x402 resource structure
  * - test_x402: Test an x402 resource locally
- * - deploy_x402: Deploy an x402 resource
+ * - deploy_x402: Deploy an x402 resource to the Dexter platform
  */
 
 import { tool, createSdkMcpServer } from '@anthropic-ai/claude-agent-sdk';
 import { z } from 'zod';
 import type { ProxyApiRequest, X402ResourceValidation } from './types';
+import {
+  tracer,
+  traceProxyCall,
+  traceProxyResult,
+  traceX402CreateStart,
+  traceX402DeployStep,
+  traceX402DeployComplete,
+} from '~/lib/.server/tracing';
+
+/*
+ * Deployment API URL - must be a full URL for server-side fetch
+ * Uses lab.dexter.cash since that's where the deploy API lives
+ */
+const DEPLOY_API_URL = process.env.DEPLOY_API_URL || 'https://lab.dexter.cash/api/deploy';
+
+// Get trace context from current execution (simplified - could be passed through)
+function getTraceContext() {
+  return {
+    traceId: tracer.generateTraceId(),
+    sessionId: 'mcp-tool',
+  };
+}
 
 // Proxy base URL - uses environment or defaults to production
 const PROXY_BASE_URL = process.env.DEXTER_PROXY_URL || 'https://x402.dexter.cash/proxy';
@@ -21,7 +43,11 @@ const PROXY_BASE_URL = process.env.DEXTER_PROXY_URL || 'https://x402.dexter.cash
 async function makeProxyRequest(
   request: ProxyApiRequest,
 ): Promise<{ success: boolean; data?: unknown; error?: string }> {
+  const { traceId, sessionId } = getTraceContext();
   const url = `${PROXY_BASE_URL}/${request.provider}${request.endpoint}`;
+  const startTime = Date.now();
+
+  traceProxyCall(traceId, sessionId, request.provider, request.endpoint, request.method);
 
   try {
     const response = await fetch(url, {
@@ -33,8 +59,12 @@ async function makeProxyRequest(
       body: request.body ? JSON.stringify(request.body) : undefined,
     });
 
+    const durationMs = Date.now() - startTime;
+
     if (!response.ok) {
       const errorText = await response.text();
+      traceProxyResult(traceId, sessionId, request.provider, false, response.status, durationMs);
+
       return {
         success: false,
         error: `HTTP ${response.status}: ${errorText}`,
@@ -42,9 +72,18 @@ async function makeProxyRequest(
     }
 
     const data = await response.json();
+    traceProxyResult(traceId, sessionId, request.provider, true, response.status, durationMs);
 
     return { success: true, data };
   } catch (error) {
+    const durationMs = Date.now() - startTime;
+    tracer.error('PROXY_API', `Proxy request failed: ${request.provider}`, {
+      traceId,
+      sessionId,
+      error: error instanceof Error ? error : new Error(String(error)),
+      durationMs,
+    });
+
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error',
@@ -164,7 +203,7 @@ This tool checks the structure and reports issues.`,
                 text: `To validate the x402 resource at "${args.resourcePath}", check:
 
 1. **package.json** - Must contain:
-   - "dependencies": { "@dexterai/x402": "^2.0.0" }
+   - "dependencies": { "@dexterai/x402": "^1.4.0" }
    - "main": pointing to entry file
    
 2. **Entry point** (index.ts/index.js) - Must:
@@ -348,6 +387,238 @@ if (result.valid) {
               },
             ],
           };
+        },
+      ),
+
+      // Deploy x402 resource
+      tool(
+        'deploy_x402',
+        `Deploy an x402 resource to the Dexter platform.
+        
+This tool takes the resource files and configuration, builds a Docker image,
+deploys it to Dexter's infrastructure, and returns the public URL.
+
+Requirements before deploying:
+1. index.ts/index.js - Express app with x402 middleware
+2. package.json - With @dexterai/x402 dependency
+
+NOTE: Do NOT include a Dockerfile - the deployment service generates it automatically.
+
+The resource will be deployed at: https://{resourceId}.resources.dexter.cash`,
+        {
+          name: z.string().describe('Resource name (e.g., "cover-letter-generator")'),
+          description: z.string().describe('Brief description of what the resource does'),
+          creatorWallet: z.string().describe('Solana wallet address to receive payments'),
+          type: z.enum(['api', 'webhook', 'stream']).describe('Resource type'),
+          basePriceUsdc: z.number().describe('Base price in USDC (e.g., 0.05 for $0.05)'),
+          pricingModel: z
+            .enum(['per-request', 'per-token', 'per-minute', 'flat'])
+            .describe('How pricing is calculated'),
+          tags: z.array(z.string()).describe('Tags for discovery (e.g., ["ai", "writing"])'),
+          endpoints: z
+            .array(
+              z.object({
+                path: z.string().describe('Endpoint path (e.g., "/generate")'),
+                method: z.enum(['GET', 'POST', 'PUT', 'DELETE']).describe('HTTP method'),
+                description: z.string().describe('What this endpoint does'),
+                priceUsdc: z.number().optional().describe('Override price for this endpoint'),
+              }),
+            )
+            .describe('List of endpoints exposed by the resource'),
+          files: z
+            .record(z.string(), z.string())
+            .describe('Map of filename to file content (e.g., {"index.ts": "...", "package.json": "..."})'),
+          envVars: z.record(z.string(), z.string()).optional().describe('Optional environment variables'),
+        },
+        async (args) => {
+          const { traceId, sessionId } = getTraceContext();
+          const startTime = Date.now();
+
+          // Trace the start of x402 resource creation
+          traceX402CreateStart(traceId, sessionId, {
+            name: args.name,
+            type: args.type,
+            pricingModel: args.pricingModel,
+            basePriceUsdc: args.basePriceUsdc,
+            endpoints: args.endpoints.map((e) => ({ path: e.path, method: e.method })),
+          });
+
+          try {
+            // Build the deployment request
+            const deployRequest = {
+              name: args.name,
+              description: args.description,
+              creatorWallet: args.creatorWallet,
+              type: args.type,
+              basePriceUsdc: args.basePriceUsdc,
+              pricingModel: args.pricingModel,
+              tags: args.tags,
+              endpoints: args.endpoints,
+              files: args.files,
+              envVars: args.envVars || {},
+            };
+
+            traceX402DeployStep(traceId, sessionId, 'Sending to deployment API', 'start', {
+              fileCount: Object.keys(args.files).length,
+              fileNames: Object.keys(args.files),
+            });
+
+            // Call the deployment API
+            const response = await fetch(DEPLOY_API_URL, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(deployRequest),
+            });
+
+            const result = (await response.json()) as {
+              success?: boolean;
+              error?: string;
+              resourceId?: string;
+              publicUrl?: string;
+              containerId?: string;
+            };
+
+            const durationMs = Date.now() - startTime;
+
+            if (!response.ok || !result.success) {
+              traceX402DeployComplete(traceId, sessionId, {
+                success: false,
+                error: result.error || `HTTP ${response.status}`,
+                durationMs,
+              });
+
+              return {
+                content: [
+                  {
+                    type: 'text' as const,
+                    text: `Deployment failed: ${result.error || 'Unknown error'}\n\nPlease check:\n1. All required files are included\n2. package.json has @dexterai/x402 dependency\n3. index.ts exports an Express app on port 3000`,
+                  },
+                ],
+                isError: true,
+              };
+            }
+
+            traceX402DeployComplete(traceId, sessionId, {
+              success: true,
+              resourceId: result.resourceId,
+              publicUrl: result.publicUrl,
+              durationMs,
+            });
+
+            return {
+              content: [
+                {
+                  type: 'text' as const,
+                  text: `🚀 Deployment successful!\n\n**Resource ID:** ${result.resourceId}\n**Public URL:** ${result.publicUrl}\n**Container ID:** ${result.containerId || 'N/A'}\n\nYour x402 resource is now live and accepting USDC payments.\n\nTest it with:\n\`\`\`bash\ncurl ${result.publicUrl}\n\`\`\`\n\nThe first request will return a 402 Payment Required response with payment details.`,
+                },
+              ],
+            };
+          } catch (error) {
+            const durationMs = Date.now() - startTime;
+            tracer.error('X402_DEPLOY', 'Deployment threw exception', {
+              traceId,
+              sessionId,
+              error: error instanceof Error ? error : new Error(String(error)),
+              durationMs,
+            });
+
+            return {
+              content: [
+                {
+                  type: 'text' as const,
+                  text: `Deployment error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                },
+              ],
+              isError: true,
+            };
+          }
+        },
+      ),
+
+      // Get deployment status
+      tool(
+        'deployment_status',
+        `Check the status of a deployed x402 resource.
+        
+Returns the resource status, health, request count, revenue, and logs.`,
+        {
+          resourceId: z.string().describe('The resource ID to check (e.g., "res-abc123-xyz")'),
+          includeLogs: z.boolean().optional().describe('Include recent container logs'),
+        },
+        async (args) => {
+          try {
+            const url = `${DEPLOY_API_URL}?id=${args.resourceId}`;
+
+            const response = await fetch(url);
+            const resource = (await response.json()) as {
+              error?: string;
+              config?: { name?: string };
+              status?: string;
+              healthy?: boolean;
+              publicUrl?: string;
+              requestCount?: number;
+              revenueUsdc?: number;
+              deployedAt?: string;
+              containerId?: string;
+            };
+
+            if (!response.ok || resource.error) {
+              return {
+                content: [
+                  {
+                    type: 'text' as const,
+                    text: `Resource not found: ${args.resourceId}`,
+                  },
+                ],
+                isError: true,
+              };
+            }
+
+            let statusText = `**Resource:** ${resource.config?.name || args.resourceId}\n`;
+            statusText += `**Status:** ${resource.status}\n`;
+            statusText += `**Healthy:** ${resource.healthy ? '✅ Yes' : '❌ No'}\n`;
+            statusText += `**URL:** ${resource.publicUrl}\n`;
+            statusText += `**Requests:** ${resource.requestCount || 0}\n`;
+            statusText += `**Revenue:** $${(resource.revenueUsdc || 0).toFixed(4)} USDC\n`;
+            statusText += `**Deployed:** ${resource.deployedAt}\n`;
+
+            // Get logs if requested
+            if (args.includeLogs && resource.containerId) {
+              try {
+                const logsResponse = await fetch(`${DEPLOY_API_URL}?id=${args.resourceId}&action=logs&tail=20`, {
+                  method: 'POST',
+                });
+                const logsResult = (await logsResponse.json()) as { logs?: string };
+
+                if (logsResult.logs) {
+                  statusText += `\n**Recent Logs:**\n\`\`\`\n${logsResult.logs}\n\`\`\``;
+                }
+              } catch {
+                statusText += '\n**Logs:** Unable to retrieve';
+              }
+            }
+
+            return {
+              content: [
+                {
+                  type: 'text' as const,
+                  text: statusText,
+                },
+              ],
+            };
+          } catch (error) {
+            return {
+              content: [
+                {
+                  type: 'text' as const,
+                  text: `Error checking status: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                },
+              ],
+              isError: true,
+            };
+          }
         },
       ),
     ],

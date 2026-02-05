@@ -2,16 +2,19 @@
  * Docker Client
  *
  * Handles Docker operations for x402 resource deployment.
- * Uses Docker Engine API via HTTP socket.
+ * Uses Docker Engine API via Unix socket at /var/run/docker.sock.
  */
 
+import * as tar from 'tar-stream';
+import { Agent, request } from 'undici';
 import type { ContainerOptions, BuildContext, DeploymentResult } from './types';
 
 /*
  * Docker API configuration
- * Note: In production, would use unix socket at /var/run/docker.sock
+ * Uses Unix socket for direct Docker daemon communication
  */
 const DOCKER_API_VERSION = 'v1.43';
+const DOCKER_SOCKET_PATH = '/var/run/docker.sock';
 
 // Network for x402 resources
 const RESOURCE_NETWORK = 'dexter-resources';
@@ -19,31 +22,46 @@ const RESOURCE_NETWORK = 'dexter-resources';
 // Base domain for resources (configured via env)
 const RESOURCE_BASE_DOMAIN = process.env.RESOURCE_BASE_DOMAIN || 'resources.dexter.cash';
 
+// Create a reusable undici agent for Unix socket connections
+const dockerAgent = new Agent({
+  connect: {
+    socketPath: DOCKER_SOCKET_PATH,
+  },
+});
+
 /**
  * Execute a Docker API request via Unix socket
  */
 async function dockerRequest<T>(method: string, path: string, body?: unknown): Promise<T> {
+  // undici requires a valid URL, but the host is ignored when using socketPath
   const url = `http://localhost${path}`;
 
-  /*
-   * In production, this would use a proper Docker client library
-   * For now, we use fetch with the socket adapter
-   */
-  const response = await fetch(url, {
-    method,
+  const response = await request(url, {
+    method: method as 'GET' | 'POST' | 'PUT' | 'DELETE',
+    dispatcher: dockerAgent,
     headers: {
       'Content-Type': 'application/json',
-      Host: 'docker',
     },
     body: body ? JSON.stringify(body) : undefined,
   });
 
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Docker API error: ${response.status} - ${error}`);
+  if (response.statusCode >= 400) {
+    const error = await response.body.text();
+    throw new Error(`Docker API error: ${response.statusCode} - ${error}`);
   }
 
-  return response.json() as Promise<T>;
+  // Handle 204 No Content and other empty responses
+  if (response.statusCode === 204) {
+    return undefined as T;
+  }
+
+  const text = await response.body.text();
+
+  if (!text || text.trim() === '') {
+    return undefined as T;
+  }
+
+  return JSON.parse(text) as T;
 }
 
 /**
@@ -83,66 +101,53 @@ export async function buildImage(resourceId: string, context: BuildContext): Pro
 
   /*
    * Create a tar archive of the build context
-   * In production, this would use a proper tar library
    */
   const buildContextData = await createBuildContextTar(context);
 
   /*
-   * Build the image
-   * Note: In production with real Docker, this would send a proper tar archive
-   * For now, we send JSON which won't work with real Docker API
-   * TODO: Install 'tar-stream' package and create proper tar archive
+   * Build the image using Docker Engine API via Unix socket
+   * Sends proper tar archive as build context
    */
-  const buildResponse = await fetch(`http://localhost/${DOCKER_API_VERSION}/build?t=${encodeURIComponent(imageName)}`, {
+  const buildUrl = `http://localhost/${DOCKER_API_VERSION}/build?t=${encodeURIComponent(imageName)}`;
+
+  const buildResponse = await request(buildUrl, {
     method: 'POST',
+    dispatcher: dockerAgent,
     headers: {
       'Content-Type': 'application/x-tar',
-      Host: 'docker',
+      'Content-Length': String(buildContextData.length),
     },
     body: buildContextData,
   });
 
-  if (!buildResponse.ok) {
-    const error = await buildResponse.text();
+  if (buildResponse.statusCode >= 400) {
+    const error = await buildResponse.body.text();
     throw new Error(`Docker build failed: ${error}`);
   }
 
   // Stream build output and wait for completion
-  const reader = buildResponse.body?.getReader();
+  const bodyText = await buildResponse.body.text();
+  const lines = bodyText.split('\n').filter(Boolean);
+  let lastLine = '';
 
-  if (reader) {
-    const decoder = new TextDecoder();
-    let lastLine = '';
+  for (const line of lines) {
+    try {
+      const parsed = JSON.parse(line);
 
-    while (true) {
-      const { done, value } = await reader.read();
-
-      if (done) {
-        break;
+      if (parsed.error) {
+        throw new Error(`Build error: ${parsed.error}`);
       }
 
-      const chunk = decoder.decode(value);
-      const lines = chunk.split('\n').filter(Boolean);
-
-      for (const line of lines) {
-        try {
-          const parsed = JSON.parse(line);
-
-          if (parsed.error) {
-            throw new Error(`Build error: ${parsed.error}`);
-          }
-
-          if (parsed.stream) {
-            lastLine = parsed.stream.trim();
-          }
-        } catch {
-          // Ignore parse errors for partial lines
-        }
+      if (parsed.stream) {
+        lastLine = parsed.stream.trim();
+        console.log(`[Docker Build] ${parsed.stream.trim()}`);
       }
+    } catch {
+      // Ignore parse errors for partial lines
     }
-
-    console.log(`[Docker] Build completed: ${lastLine}`);
   }
+
+  console.log(`[Docker] Build completed: ${lastLine}`);
 
   return imageName;
 }
@@ -251,21 +256,18 @@ export async function getContainerStatus(containerId: string): Promise<{
  * Get container logs
  */
 export async function getContainerLogs(containerId: string, tail = 100): Promise<string> {
-  const response = await fetch(
-    `http://localhost/${DOCKER_API_VERSION}/containers/${containerId}/logs?stdout=true&stderr=true&tail=${tail}`,
-    {
-      method: 'GET',
-      headers: {
-        Host: 'docker',
-      },
-    },
-  );
+  const url = `http://localhost/${DOCKER_API_VERSION}/containers/${containerId}/logs?stdout=true&stderr=true&tail=${tail}`;
 
-  if (!response.ok) {
-    throw new Error(`Failed to get logs: ${response.status}`);
+  const response = await request(url, {
+    method: 'GET',
+    dispatcher: dockerAgent,
+  });
+
+  if (response.statusCode >= 400) {
+    throw new Error(`Failed to get logs: ${response.statusCode}`);
   }
 
-  return response.text();
+  return response.body.text();
 }
 
 /**
@@ -303,28 +305,31 @@ export async function listResourceContainers(): Promise<
 
 /**
  * Create a tar archive for Docker build context
- * (Simplified implementation - production would use proper tar library)
+ * Uses tar-stream to create a proper tar archive for Docker API
  */
-async function createBuildContextTar(context: BuildContext): Promise<string> {
-  /*
-   * This is a simplified placeholder
-   * In production, use a proper tar library like 'tar-stream' or 'archiver'
-   */
+async function createBuildContextTar(context: BuildContext): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    const pack = tar.pack();
+    const chunks: Buffer[] = [];
 
-  const files: Array<{ name: string; content: string }> = [
-    { name: 'Dockerfile', content: context.dockerfile },
-    ...Array.from(context.files.entries()).map(([name, content]) => ({
-      name,
-      content,
-    })),
-  ];
+    // Collect tar data
+    pack.on('data', (chunk: Buffer) => chunks.push(chunk));
+    pack.on('end', () => resolve(Buffer.concat(chunks)));
+    pack.on('error', reject);
 
-  /*
-   * For now, return JSON representation
-   * The actual implementation would create a proper tar archive
-   * When integrating with real Docker, install 'tar-stream' or 'archiver' package
-   */
-  return JSON.stringify(files);
+    // Add Dockerfile first
+    const dockerfileContent = Buffer.from(context.dockerfile, 'utf8');
+    pack.entry({ name: 'Dockerfile', size: dockerfileContent.length }, dockerfileContent);
+
+    // Add all other files from the build context
+    for (const [name, content] of context.files.entries()) {
+      const fileContent = Buffer.from(content, 'utf8');
+      pack.entry({ name, size: fileContent.length }, fileContent);
+    }
+
+    // Finalize the archive
+    pack.finalize();
+  });
 }
 
 /**

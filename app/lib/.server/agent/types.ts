@@ -23,8 +23,11 @@ export interface DexterAgentOptions {
   /** Maximum budget in USD for this query */
   maxBudgetUsd?: number;
 
-  /** Model to use (defaults to claude-opus-4-20250514, Claude 4 Opus flagship) */
+  /** Model to use (defaults to claude-opus-4-5, Claude 4.5 Opus flagship) */
   model?: string;
+
+  /** User ID for cost attribution (Supabase UUID) */
+  userId?: string;
 }
 
 export interface DexterAgentResult {
@@ -48,10 +51,10 @@ export interface DexterAgentResult {
 
   /** Token usage statistics */
   usage?: {
-    inputTokens: number;
-    outputTokens: number;
-    cacheReadInputTokens: number;
-    cacheCreationInputTokens: number;
+    input_tokens: number;
+    output_tokens: number;
+    cache_read_input_tokens?: number;
+    cache_creation_input_tokens?: number;
   };
 }
 

@@ -14,6 +14,9 @@ interface ChatRequest {
   forkSession?: boolean;
   maxTurns?: number;
   additionalInstructions?: string;
+
+  /** User ID for cost attribution (Supabase UUID) */
+  userId?: string;
 }
 
 /**
@@ -114,6 +117,7 @@ export async function action({ request }: ActionFunctionArgs) {
     forkSession: body.forkSession,
     maxTurns: body.maxTurns,
     additionalInstructions: body.additionalInstructions,
+    userId: body.userId, // For cost attribution
   });
 
   // Return streaming response
@@ -145,6 +149,7 @@ export async function loader() {
           forkSession: 'boolean (optional) - Fork instead of continue',
           maxTurns: 'number (optional) - Maximum conversation turns',
           additionalInstructions: 'string (optional) - Extra system context',
+          userId: 'string (optional) - Supabase user ID for cost attribution',
         },
         response: 'Server-Sent Events stream',
       },

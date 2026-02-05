@@ -21,9 +21,7 @@ import {
   getContainerLogs,
   listResourceContainers,
 } from './docker-client';
-
-// In-memory resource registry (production would use Redis/DB)
-const resourceRegistry = new Map<string, DeployedResource>();
+import { resourceRegistry } from './redis-client';
 
 // Base domain for resources
 const RESOURCE_BASE_DOMAIN = process.env.RESOURCE_BASE_DOMAIN || 'resources.dexter.cash';
@@ -50,27 +48,30 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Install dependencies
-COPY package*.json ./
-RUN npm ci --only=production
-
-# Copy source
+# Copy source files
 COPY . .
+
+# Install all dependencies (including devDependencies for build)
+RUN npm install
 
 # Build TypeScript if present
 RUN if [ -f "tsconfig.json" ]; then npm run build 2>/dev/null || true; fi
+
+# Remove devDependencies after build
+RUN npm prune --omit=dev
 
 # Health check
 RUN apk add --no-cache curl
 HEALTHCHECK --interval=10s --timeout=5s --start-period=10s --retries=3 \\
   CMD curl -f http://localhost:3000/health || exit 1
 
-# Run
+# Run - check for compiled output first, then fallback to source
 ENV NODE_ENV=production
 ENV PORT=3000
 EXPOSE 3000
 
-CMD ["node", "index.js"]
+# Start script that handles both compiled (dist/) and direct (index.js) setups
+CMD ["sh", "-c", "if [ -f dist/index.js ]; then node dist/index.js; else node index.js; fi"]
 `;
 }
 
@@ -78,6 +79,13 @@ CMD ["node", "index.js"]
  * Create build context from resource files
  */
 function createBuildContext(files: Map<string, string>, config: ResourceConfig): BuildContext {
+  /*
+   * Remove any agent-provided Dockerfile - we always generate our own
+   * This ensures consistent containerization and prevents outdated templates
+   */
+  files.delete('Dockerfile');
+  files.delete('dockerfile');
+
   // Ensure health endpoint exists in the main file
   const indexContent = files.get('index.ts') || files.get('index.js') || '';
 
@@ -175,12 +183,13 @@ export async function deploy(
     revenueUsdc: 0,
   };
 
-  resourceRegistry.set(resourceId, resource);
+  await resourceRegistry.set(resourceId, resource);
 
   try {
     // Update status to building
     resource.status = 'building';
     resource.updatedAt = new Date();
+    await resourceRegistry.set(resourceId, resource);
 
     // Create build context
     const context = createBuildContext(files, fullConfig);
@@ -188,6 +197,7 @@ export async function deploy(
     // Update status to deploying
     resource.status = 'deploying';
     resource.updatedAt = new Date();
+    await resourceRegistry.set(resourceId, resource);
 
     // Deploy the resource
     const result = await deployResource(resourceId, context, {
@@ -201,6 +211,7 @@ export async function deploy(
       resource.status = 'failed';
       resource.error = result.error;
       resource.updatedAt = new Date();
+      await resourceRegistry.set(resourceId, resource);
 
       return result;
     }
@@ -211,6 +222,7 @@ export async function deploy(
     resource.publicUrl = result.publicUrl || resource.publicUrl;
     resource.healthy = true;
     resource.updatedAt = new Date();
+    await resourceRegistry.set(resourceId, resource);
 
     // Register with facilitator (async, non-blocking)
     registerWithFacilitator(resource).catch(console.error);
@@ -226,6 +238,7 @@ export async function deploy(
     resource.status = 'failed';
     resource.error = errorMessage;
     resource.updatedAt = new Date();
+    await resourceRegistry.set(resourceId, resource);
 
     return {
       success: false,
@@ -239,7 +252,7 @@ export async function deploy(
  * Stop a deployed resource
  */
 export async function stop(resourceId: string): Promise<boolean> {
-  const resource = resourceRegistry.get(resourceId);
+  const resource = await resourceRegistry.get(resourceId);
 
   if (!resource) {
     throw new Error(`Resource not found: ${resourceId}`);
@@ -254,6 +267,7 @@ export async function stop(resourceId: string): Promise<boolean> {
     resource.status = 'stopped';
     resource.healthy = false;
     resource.updatedAt = new Date();
+    await resourceRegistry.set(resourceId, resource);
 
     return true;
   } catch (error) {
@@ -266,7 +280,7 @@ export async function stop(resourceId: string): Promise<boolean> {
  * Remove a deployed resource completely
  */
 export async function remove(resourceId: string): Promise<boolean> {
-  const resource = resourceRegistry.get(resourceId);
+  const resource = await resourceRegistry.get(resourceId);
 
   if (!resource) {
     throw new Error(`Resource not found: ${resourceId}`);
@@ -277,7 +291,7 @@ export async function remove(resourceId: string): Promise<boolean> {
       await removeContainer(resource.containerId, true);
     }
 
-    resourceRegistry.delete(resourceId);
+    await resourceRegistry.delete(resourceId);
 
     return true;
   } catch (error) {
@@ -290,7 +304,7 @@ export async function remove(resourceId: string): Promise<boolean> {
  * Get resource status
  */
 export async function getStatus(resourceId: string): Promise<DeployedResource | null> {
-  const resource = resourceRegistry.get(resourceId);
+  const resource = await resourceRegistry.get(resourceId);
 
   if (!resource) {
     return null;
@@ -305,6 +319,9 @@ export async function getStatus(resourceId: string): Promise<DeployedResource | 
       if (!status.running && resource.status === 'running') {
         resource.status = status.exitCode === 0 ? 'stopped' : 'failed';
       }
+
+      // Persist updated status
+      await resourceRegistry.set(resourceId, resource);
     } catch {
       // Container may not exist anymore
       resource.healthy = false;
@@ -318,7 +335,7 @@ export async function getStatus(resourceId: string): Promise<DeployedResource | 
  * Get logs for a resource
  */
 export async function getLogs(resourceId: string, tail = 100): Promise<string> {
-  const resource = resourceRegistry.get(resourceId);
+  const resource = await resourceRegistry.get(resourceId);
 
   if (!resource?.containerId) {
     throw new Error(`Resource has no container: ${resourceId}`);
@@ -334,9 +351,12 @@ export async function list(): Promise<DeployedResource[]> {
   // Sync with Docker to get actual container states
   const containers = await listResourceContainers();
 
+  // Get all resources from registry
+  const resources = await resourceRegistry.list();
+
   // Update registry with container states
   for (const container of containers) {
-    const resource = resourceRegistry.get(container.resourceId);
+    const resource = resources.find((r) => r.config.id === container.resourceId);
 
     if (resource) {
       resource.containerId = container.id;
@@ -348,17 +368,20 @@ export async function list(): Promise<DeployedResource[]> {
         created: 'pending',
       };
       resource.status = statusMap[container.status] || 'stopped';
+
+      // Persist the updated state
+      await resourceRegistry.set(container.resourceId, resource);
     }
   }
 
-  return Array.from(resourceRegistry.values());
+  return resources;
 }
 
 /**
  * Get resource metrics
  */
 export async function getMetrics(resourceId: string): Promise<ResourceMetrics | null> {
-  const resource = resourceRegistry.get(resourceId);
+  const resource = await resourceRegistry.get(resourceId);
 
   if (!resource) {
     return null;
@@ -384,13 +407,14 @@ export async function getMetrics(resourceId: string): Promise<ResourceMetrics | 
 /**
  * Update resource metrics (called by payment webhook)
  */
-export function updateMetrics(resourceId: string, requests: number, revenueUsdc: number): void {
-  const resource = resourceRegistry.get(resourceId);
+export async function updateMetrics(resourceId: string, requests: number, revenueUsdc: number): Promise<void> {
+  const resource = await resourceRegistry.get(resourceId);
 
   if (resource) {
     resource.requestCount += requests;
     resource.revenueUsdc += revenueUsdc;
     resource.updatedAt = new Date();
+    await resourceRegistry.set(resourceId, resource);
   }
 }
 
@@ -398,7 +422,7 @@ export function updateMetrics(resourceId: string, requests: number, revenueUsdc:
  * Restart a resource
  */
 export async function restart(resourceId: string): Promise<boolean> {
-  const resource = resourceRegistry.get(resourceId);
+  const resource = await resourceRegistry.get(resourceId);
 
   if (!resource?.containerId) {
     throw new Error(`Resource has no container: ${resourceId}`);
@@ -415,12 +439,14 @@ export async function restart(resourceId: string): Promise<boolean> {
 
     resource.status = 'running';
     resource.updatedAt = new Date();
+    await resourceRegistry.set(resourceId, resource);
 
     return true;
   } catch (error) {
     console.error(`[Restart] Failed to restart ${resourceId}:`, error);
     resource.status = 'failed';
     resource.error = error instanceof Error ? error.message : 'Restart failed';
+    await resourceRegistry.set(resourceId, resource);
 
     return false;
   }

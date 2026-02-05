@@ -154,7 +154,7 @@ export interface UseChatReturn {
  */
 export function useChat(options: UseChatOptions = {}): UseChatReturn {
   const {
-    api = '/api/chat', // Default to existing chat endpoint for backward compatibility
+    api = '/api/agent-chat', // Use Claude Agent SDK endpoint for stateful sessions
     initialMessages = [],
     initialInput = '',
     onFinish,

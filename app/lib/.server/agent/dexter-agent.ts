@@ -70,9 +70,10 @@ Every x402 resource follows this structure:
 my-resource/
 ├── package.json      # Must include @dexterai/x402
 ├── index.ts          # Express app with x402 middleware
-├── Dockerfile        # For deployment
-└── README.md         # Documentation
+└── README.md         # Documentation (optional)
 \`\`\`
+
+**IMPORTANT: Do NOT create a Dockerfile.** The deployment service automatically generates the correct Dockerfile for containerization. Only provide the source code files.
 
 **package.json template:**
 \`\`\`json
@@ -86,21 +87,10 @@ my-resource/
     "start": "node dist/index.js"
   },
   "dependencies": {
-    "@dexterai/x402": "^2.0.0",
+    "@dexterai/x402": "^1.4.0",
     "express": "^4.18.0"
   }
 }
-\`\`\`
-
-**Dockerfile template:**
-\`\`\`dockerfile
-FROM node:20-alpine
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci --only=production
-COPY dist/ ./dist/
-EXPOSE 3000
-CMD ["node", "dist/index.js"]
 \`\`\`
 </x402_resource_structure>
 
@@ -167,6 +157,8 @@ function createAgentOptions(options: DexterAgentOptions) {
       'mcp__dexter-x402__proxy_api',
       'mcp__dexter-x402__validate_x402',
       'mcp__dexter-x402__x402_sdk_docs',
+      'mcp__dexter-x402__deploy_x402',
+      'mcp__dexter-x402__deployment_status',
     ],
 
     // MCP servers
@@ -189,10 +181,10 @@ function createAgentOptions(options: DexterAgentOptions) {
     maxBudgetUsd: options.maxBudgetUsd,
 
     /*
-     * Model - Use Claude 4 Opus for code generation (flagship model)
-     * claude-opus-4-20250514 is the API name for Claude 4 Opus
+     * Model - Use Claude Opus 4.5 for code generation (flagship model)
+     * claude-opus-4-5 aliases to the latest dated version (currently 20251101)
      */
-    model: options.model || 'claude-opus-4-20250514',
+    model: options.model || 'claude-opus-4-5',
   };
 }
 
@@ -206,14 +198,29 @@ export async function* streamDexterAgent(
   prompt: string,
   options: DexterAgentOptions = {},
 ): AsyncGenerator<StreamMessage, DexterAgentResult, undefined> {
+  // Import tracing (dynamic to avoid circular deps)
+  const { tracer, createTraceContext, traceAgentPrompt, traceAgentComplete, traceToolCall, traceToolResult } =
+    await import('~/lib/.server/tracing');
+
+  const startTime = Date.now();
+  const { traceId, sessionId: initialSessionId } = createTraceContext(options.sessionId);
+
   const agentOptions = createAgentOptions(options);
-  let sessionId = options.sessionId || '';
+  let sessionId = options.sessionId || initialSessionId;
   let result = '';
   let success = true;
   let error: string | undefined;
   let totalCostUsd: number | undefined;
   let numTurns: number | undefined;
   let usage: DexterAgentResult['usage'] | undefined;
+  let toolCallStartTime: number | undefined;
+  let currentToolName: string | undefined;
+
+  // Log the incoming prompt
+  traceAgentPrompt(traceId, sessionId, prompt, {
+    model: agentOptions.model,
+    additionalInstructions: options.additionalInstructions,
+  });
 
   try {
     /*
@@ -232,13 +239,27 @@ export async function* streamDexterAgent(
       };
     }
 
+    tracer.debug('AGENT', 'Starting agent query loop', { traceId, sessionId });
+
     for await (const message of query({
       prompt: generateInput(),
       options: agentOptions,
     })) {
+      // Log every message type for comprehensive tracing
+      tracer.trace('AGENT', `Message received: ${message.type}`, {
+        traceId,
+        sessionId,
+        data: { messageType: message.type, hasSubtype: 'subtype' in message },
+      });
+
       // Extract session ID from system init message
       if (message.type === 'system' && 'subtype' in message && message.subtype === 'init') {
         sessionId = message.session_id;
+        tracer.info('SESSION', `Session initialized: ${sessionId}`, {
+          traceId,
+          sessionId,
+          data: { forkedFrom: options.forkSession ? options.sessionId : undefined },
+        });
         yield {
           type: 'system',
           content: `Session started: ${sessionId}`,
@@ -251,6 +272,11 @@ export async function* streamDexterAgent(
       else if (message.type === 'assistant') {
         for (const block of message.message.content) {
           if ('text' in block && block.text) {
+            tracer.trace('AGENT', 'Text response chunk', {
+              traceId,
+              sessionId,
+              data: { textLength: block.text.length },
+            });
             yield {
               type: 'text',
               content: block.text,
@@ -258,15 +284,45 @@ export async function* streamDexterAgent(
               timestamp: Date.now(),
             };
           } else if ('name' in block) {
+            // Tool call started
+            currentToolName = block.name;
+            toolCallStartTime = Date.now();
+
+            const toolInput = 'input' in block ? block.input : {};
+
+            traceToolCall(traceId, sessionId, block.name, toolInput as Record<string, unknown>);
+
             yield {
               type: 'tool_use',
               content: `Using tool: ${block.name}`,
               toolName: block.name,
-              toolInput: 'input' in block ? block.input : undefined,
+              toolInput,
               sessionId,
               timestamp: Date.now(),
             };
           }
+        }
+      }
+
+      // Handle tool result messages
+      else if (message.type === 'user' && 'tool_result' in (message as any)) {
+        const toolResult = (message as any).tool_result;
+
+        if (currentToolName && toolCallStartTime) {
+          const toolDuration = Date.now() - toolCallStartTime;
+          traceToolResult(
+            traceId,
+            sessionId,
+            currentToolName,
+            {
+              success: !toolResult.is_error,
+              data: toolResult.content,
+              error: toolResult.is_error ? String(toolResult.content) : undefined,
+            },
+            toolDuration,
+          );
+          currentToolName = undefined;
+          toolCallStartTime = undefined;
         }
       }
 
@@ -278,9 +334,24 @@ export async function* streamDexterAgent(
             totalCostUsd = (message as any).total_cost_usd;
             numTurns = (message as any).num_turns;
             usage = (message as any).usage;
+
+            tracer.info('AGENT', 'Agent completed successfully', {
+              traceId,
+              sessionId,
+              data: {
+                resultLength: result.length,
+                resultPreview: result.substring(0, 300),
+              },
+            });
           } else {
             success = false;
             error = (message as any).errors?.join(', ') || message.subtype;
+
+            tracer.warn('AGENT', `Agent completed with status: ${message.subtype}`, {
+              traceId,
+              sessionId,
+              data: { subtype: message.subtype, errors: (message as any).errors },
+            });
           }
         }
 
@@ -296,6 +367,12 @@ export async function* streamDexterAgent(
     success = false;
     error = err instanceof Error ? err.message : 'Unknown error occurred';
 
+    tracer.error('AGENT', 'Agent threw exception', {
+      traceId,
+      sessionId,
+      error: err instanceof Error ? err : new Error(String(err)),
+    });
+
     yield {
       type: 'error',
       content: error,
@@ -303,6 +380,40 @@ export async function* streamDexterAgent(
       timestamp: Date.now(),
     };
   }
+
+  // Final completion trace with all metrics
+  const totalDuration = Date.now() - startTime;
+  traceAgentComplete(traceId, sessionId, {
+    success,
+    totalCostUsd,
+    numTurns,
+    usage: usage as Record<string, unknown>,
+    durationMs: totalDuration,
+  });
+
+  /*
+   * Persist the agent run to dexter-api for cost tracking
+   * Fire-and-forget - don't block the response
+   */
+  const { persistAgentRunAsync } = await import('~/lib/.server/persistence/agent-runs');
+  persistAgentRunAsync({
+    sessionId,
+    traceId,
+    userId: options.userId, // Will be undefined if not authenticated
+    prompt,
+    model: agentOptions.model,
+    additionalInstructions: options.additionalInstructions,
+    success,
+    errorMessage: error,
+    result: result ? result.substring(0, 10000) : undefined, // Truncate large results
+    costUsd: totalCostUsd || 0,
+    inputTokens: usage?.input_tokens,
+    outputTokens: usage?.output_tokens,
+    cacheCreationTokens: usage?.cache_creation_input_tokens,
+    cacheReadTokens: usage?.cache_read_input_tokens,
+    numTurns,
+    durationMs: totalDuration,
+  });
 
   return {
     result,
