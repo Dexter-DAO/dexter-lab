@@ -68,14 +68,14 @@ const response = await fetch('/api/deploy', {
   }),
 });
 const result = await response.json();
-// { success: true, resourceId: 'res-xxx', publicUrl: 'https://res-xxx.resources.dexter.cash' }
+// { success: true, resourceId: 'res-xxx', publicUrl: 'https://res-xxx.dexter.cash' }
 \`\`\`
 
 ## Deployment Flow
 1. Create all resource files
 2. Call /api/deploy with file contents
 3. Resource is containerized and deployed automatically
-4. Live URL provided: https://{resourceId}.resources.dexter.cash
+4. Live URL provided: https://{resourceId}.dexter.cash
 5. Payments automatically route to creator's wallet
 
 NEVER use \`npm run dev\`, \`npm start\`, or any local server command for x402 resources.

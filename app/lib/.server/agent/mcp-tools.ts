@@ -404,7 +404,7 @@ Requirements before deploying:
 
 NOTE: Do NOT include a Dockerfile - the deployment service generates it automatically.
 
-The resource will be deployed at: https://{resourceId}.resources.dexter.cash`,
+The resource will be deployed at: https://{resourceId}.dexter.cash`,
         {
           name: z.string().describe('Resource name (e.g., "cover-letter-generator")'),
           description: z.string().describe('Brief description of what the resource does'),

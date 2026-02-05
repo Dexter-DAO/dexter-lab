@@ -23,8 +23,8 @@ import {
 } from './docker-client';
 import { resourceRegistry } from './redis-client';
 
-// Base domain for resources
-const RESOURCE_BASE_DOMAIN = process.env.RESOURCE_BASE_DOMAIN || 'resources.dexter.cash';
+// Base domain for resources (wildcard *.dexter.cash)
+const RESOURCE_BASE_DOMAIN = process.env.RESOURCE_BASE_DOMAIN || 'dexter.cash';
 
 // Dexter Facilitator URL
 const FACILITATOR_URL = process.env.FACILITATOR_URL || 'https://dexter.cash';

@@ -19,8 +19,8 @@ const DOCKER_SOCKET_PATH = '/var/run/docker.sock';
 // Network for x402 resources
 const RESOURCE_NETWORK = 'dexter-resources';
 
-// Base domain for resources (configured via env)
-const RESOURCE_BASE_DOMAIN = process.env.RESOURCE_BASE_DOMAIN || 'resources.dexter.cash';
+// Base domain for resources (wildcard *.dexter.cash)
+const RESOURCE_BASE_DOMAIN = process.env.RESOURCE_BASE_DOMAIN || 'dexter.cash';
 
 // Create a reusable undici agent for Unix socket connections
 const dockerAgent = new Agent({
