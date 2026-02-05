@@ -76,6 +76,29 @@ CMD ["sh", "-c", "if [ -f dist/index.js ]; then node dist/index.js; else node in
 }
 
 /**
+ * Default tsconfig.json for x402 resources
+ */
+const DEFAULT_TSCONFIG = JSON.stringify(
+  {
+    compilerOptions: {
+      target: 'ES2020',
+      module: 'ESNext',
+      moduleResolution: 'node',
+      esModuleInterop: true,
+      strict: true,
+      skipLibCheck: true,
+      outDir: './dist',
+      rootDir: '.',
+      declaration: false,
+    },
+    include: ['*.ts'],
+    exclude: ['node_modules'],
+  },
+  null,
+  2,
+);
+
+/**
  * Create build context from resource files
  */
 function createBuildContext(files: Map<string, string>, config: ResourceConfig): BuildContext {
@@ -85,6 +108,14 @@ function createBuildContext(files: Map<string, string>, config: ResourceConfig):
    */
   files.delete('Dockerfile');
   files.delete('dockerfile');
+
+  // Auto-generate tsconfig.json if TypeScript files exist but no tsconfig
+  const hasTypeScript = Array.from(files.keys()).some((f) => f.endsWith('.ts'));
+  const hasTsConfig = files.has('tsconfig.json');
+
+  if (hasTypeScript && !hasTsConfig) {
+    files.set('tsconfig.json', DEFAULT_TSCONFIG);
+  }
 
   // Ensure health endpoint exists in the main file
   const indexContent = files.get('index.ts') || files.get('index.js') || '';
