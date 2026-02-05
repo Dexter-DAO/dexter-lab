@@ -1,28 +1,28 @@
 /**
  * Dexter Lab Agent - Type Definitions
- * 
+ *
  * Core types for the Claude Agent SDK integration.
  */
 
 export interface DexterAgentOptions {
   /** Session ID to resume a previous conversation */
   sessionId?: string;
-  
+
   /** Fork the session instead of continuing it */
   forkSession?: boolean;
-  
+
   /** Working directory for file operations */
   cwd?: string;
-  
+
   /** Additional system prompt to append to the Dexter Lab identity */
   additionalInstructions?: string;
-  
+
   /** Maximum number of conversation turns */
   maxTurns?: number;
-  
+
   /** Maximum budget in USD for this query */
   maxBudgetUsd?: number;
-  
+
   /** Model to use (defaults to claude-opus-4-20250514, Claude 4 Opus flagship) */
   model?: string;
 }
@@ -30,22 +30,22 @@ export interface DexterAgentOptions {
 export interface DexterAgentResult {
   /** The final result text from the agent */
   result: string;
-  
+
   /** Session ID for continuing this conversation */
   sessionId: string;
-  
+
   /** Whether the operation completed successfully */
   success: boolean;
-  
+
   /** Error message if success is false */
   error?: string;
-  
+
   /** Total cost in USD */
   totalCostUsd?: number;
-  
+
   /** Number of turns taken */
   numTurns?: number;
-  
+
   /** Token usage statistics */
   usage?: {
     inputTokens: number;

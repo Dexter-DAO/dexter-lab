@@ -2,6 +2,7 @@ import type { DesignScheme } from '~/types/design-scheme';
 import { WORK_DIR } from '~/utils/constants';
 import { allowedHTMLElements } from '~/utils/markdown';
 import { stripIndents } from '~/utils/stripIndent';
+
 // Skills are injected server-side in stream-text.ts to avoid client bundling issues
 
 export const getSystemPrompt = (
@@ -12,7 +13,7 @@ export const getSystemPrompt = (
     credentials?: { anonKey?: string; supabaseUrl?: string };
   },
   designScheme?: DesignScheme,
-  skills?: string,  // Skills prompt section, injected server-side
+  skills?: string, // Skills prompt section, injected server-side
 ) => `
 You are Dexter Lab, an expert AI assistant specialized in building **x402 paid API resources**. You are an exceptional senior software developer with deep expertise in the x402 payment protocol, Solana blockchain, API monetization, and full-stack development.
 

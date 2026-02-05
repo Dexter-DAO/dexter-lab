@@ -1,6 +1,6 @@
 /**
  * Dexter Lab Agent - Custom MCP Tools
- * 
+ *
  * Custom tools for building x402 resources:
  * - proxy_api: Access external APIs through Dexter's proxy layer
  * - validate_x402: Validate x402 resource structure
@@ -18,9 +18,11 @@ const PROXY_BASE_URL = process.env.DEXTER_PROXY_URL || 'https://x402.dexter.cash
 /**
  * Make a proxied API request
  */
-async function makeProxyRequest(request: ProxyApiRequest): Promise<{ success: boolean; data?: unknown; error?: string }> {
+async function makeProxyRequest(
+  request: ProxyApiRequest,
+): Promise<{ success: boolean; data?: unknown; error?: string }> {
   const url = `${PROXY_BASE_URL}/${request.provider}${request.endpoint}`;
-  
+
   try {
     const response = await fetch(url, {
       method: request.method,
@@ -40,6 +42,7 @@ async function makeProxyRequest(request: ProxyApiRequest): Promise<{ success: bo
     }
 
     const data = await response.json();
+
     return { success: true, data };
   } catch (error) {
     return {
@@ -53,8 +56,10 @@ async function makeProxyRequest(request: ProxyApiRequest): Promise<{ success: bo
  * Validate x402 resource structure
  */
 function validateX402Resource(resourcePath: string): X402ResourceValidation {
-  // This would normally check the filesystem
-  // For now, return a placeholder that the agent can use
+  /*
+   * This would normally check the filesystem
+   * For now, return a placeholder that the agent can use
+   */
   return {
     isValid: false,
     errors: ['Validation requires filesystem access - use Read tool to check files'],
@@ -92,14 +97,12 @@ Available providers and their capabilities:
 
 The proxy handles authentication - no API keys needed in your requests.`,
         {
-          provider: z.enum(['openai', 'anthropic', 'gemini', 'helius', 'jupiter', 'solscan', 'birdeye'])
+          provider: z
+            .enum(['openai', 'anthropic', 'gemini', 'helius', 'jupiter', 'solscan', 'birdeye'])
             .describe('The API provider to call'),
-          endpoint: z.string()
-            .describe('The API endpoint path (e.g., "/v1/chat/completions" for OpenAI)'),
-          method: z.enum(['GET', 'POST', 'PUT', 'DELETE'])
-            .describe('HTTP method'),
-          body: z.any().optional()
-            .describe('Request body for POST/PUT requests'),
+          endpoint: z.string().describe('The API endpoint path (e.g., "/v1/chat/completions" for OpenAI)'),
+          method: z.enum(['GET', 'POST', 'PUT', 'DELETE']).describe('HTTP method'),
+          body: z.any().optional().describe('Request body for POST/PUT requests'),
         },
         async (args) => {
           const result = await makeProxyRequest({
@@ -111,21 +114,25 @@ The proxy handles authentication - no API keys needed in your requests.`,
 
           if (result.success) {
             return {
-              content: [{
-                type: 'text' as const,
-                text: JSON.stringify(result.data, null, 2),
-              }],
+              content: [
+                {
+                  type: 'text' as const,
+                  text: JSON.stringify(result.data, null, 2),
+                },
+              ],
             };
           } else {
             return {
-              content: [{
-                type: 'text' as const,
-                text: `API Error: ${result.error}`,
-              }],
+              content: [
+                {
+                  type: 'text' as const,
+                  text: `API Error: ${result.error}`,
+                },
+              ],
               isError: true,
             };
           }
-        }
+        },
       ),
 
       // Validate x402 resource structure
@@ -141,16 +148,18 @@ A valid x402 resource must have:
 
 This tool checks the structure and reports issues.`,
         {
-          resourcePath: z.string()
-            .describe('Path to the x402 resource directory'),
+          resourcePath: z.string().describe('Path to the x402 resource directory'),
         },
         async (args) => {
-          // For now, provide guidance since we can't directly access filesystem
-          // The agent should use Read/Glob tools to check files
+          /*
+           * For now, provide guidance since we can't directly access filesystem
+           * The agent should use Read/Glob tools to check files
+           */
           return {
-            content: [{
-              type: 'text' as const,
-              text: `To validate the x402 resource at "${args.resourcePath}", check:
+            content: [
+              {
+                type: 'text' as const,
+                text: `To validate the x402 resource at "${args.resourcePath}", check:
 
 1. **package.json** - Must contain:
    - "dependencies": { "@dexterai/x402": "^2.0.0" }
@@ -168,9 +177,10 @@ This tool checks the structure and reports issues.`,
    - Run the entry point
 
 Use the Read and Glob tools to inspect these files.`,
-            }],
+              },
+            ],
           };
-        }
+        },
       ),
 
       // x402 SDK documentation
@@ -184,8 +194,7 @@ Returns detailed documentation on:
 - Payment verification
 - Error handling`,
         {
-          topic: z.enum(['pricing', 'middleware', 'verification', 'all'])
-            .describe('Documentation topic to retrieve'),
+          topic: z.enum(['pricing', 'middleware', 'verification', 'all']).describe('Documentation topic to retrieve'),
         },
         async (args) => {
           const docs: Record<string, string> = {
@@ -320,20 +329,24 @@ if (result.valid) {
 
           if (args.topic === 'all') {
             return {
-              content: [{
-                type: 'text' as const,
-                text: Object.values(docs).join('\n\n---\n\n'),
-              }],
+              content: [
+                {
+                  type: 'text' as const,
+                  text: Object.values(docs).join('\n\n---\n\n'),
+                },
+              ],
             };
           }
 
           return {
-            content: [{
-              type: 'text' as const,
-              text: docs[args.topic] || 'Documentation not found',
-            }],
+            content: [
+              {
+                type: 'text' as const,
+                text: docs[args.topic] || 'Documentation not found',
+              },
+            ],
           };
-        }
+        },
       ),
     ],
   });

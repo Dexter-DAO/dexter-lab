@@ -88,11 +88,11 @@
     "@radix-ui/react-switch": "^1.1.1",
     "@radix-ui/react-tabs": "^1.1.2",
     "@radix-ui/react-tooltip": "^1.1.4",
-    "@remix-run/cloudflare": "^2.15.2",
-    "@remix-run/cloudflare-pages": "^2.15.2",
+    "@remix-run/cloudflare": "^2.17.4",
+    "@remix-run/cloudflare-pages": "^2.17.4",
     "@remix-run/express": "^2.17.4",
-    "@remix-run/node": "^2.15.2",
-    "@remix-run/react": "^2.15.2",
+    "@remix-run/node": "^2.17.4",
+    "@remix-run/react": "^2.17.4",
     "@tanstack/react-virtual": "^3.13.0",
     "@types/react-beautiful-dnd": "^13.1.8",
     "@uiw/codemirror-theme-vscode": "^4.23.6",
@@ -160,8 +160,8 @@
     "@electron/notarize": "^2.5.0",
     "@iconify-json/ph": "^1.2.1",
     "@iconify/types": "^2.0.0",
-    "@remix-run/dev": "^2.15.2",
-    "@remix-run/serve": "^2.15.2",
+    "@remix-run/dev": "^2.17.4",
+    "@remix-run/serve": "^2.17.4",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.2.0",
     "@types/diff": "^5.2.3",
@@ -174,6 +174,7 @@
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@types/react-window": "^1.8.8",
+    "@types/unist": "^3.0.3",
     "@vitejs/plugin-react": "^4.3.4",
     "concurrently": "^8.2.2",
     "cross-env": "^7.0.3",
@@ -204,6 +205,11 @@
   },
   "resolutions": {
     "@typescript-eslint/utils": "^8.0.0-alpha.30"
+  },
+  "pnpm": {
+    "overrides": {
+      "@remix-run/server-runtime": "2.17.4"
+    }
   },
   "packageManager": "pnpm@9.14.4"
 }

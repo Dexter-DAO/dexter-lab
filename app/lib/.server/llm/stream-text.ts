@@ -22,49 +22,49 @@ export type Messages = Message[];
 export interface StreamingOptions {
   /** System prompt */
   system?: string;
-  
+
   /** Tool choice mode */
   toolChoice?: 'auto' | 'none' | 'required' | { type: 'tool'; toolName: string };
-  
+
   /** Available tools */
   tools?: Record<string, unknown>;
-  
+
   /** Max number of tool use steps */
   maxSteps?: number;
-  
+
   /** Temperature for generation */
   temperature?: number;
-  
+
   /** Top P sampling */
   topP?: number;
-  
+
   /** Presence penalty */
   presencePenalty?: number;
-  
+
   /** Frequency penalty */
   frequencyPenalty?: number;
-  
+
   /** Callback on each step finish */
-  onStepFinish?: (event: { 
-    toolCalls: Array<{ 
-      type: 'tool-call'; 
-      toolCallId: string; 
-      toolName: string; 
-      args: Record<string, unknown>; 
+  onStepFinish?: (event: {
+    toolCalls: Array<{
+      type: 'tool-call';
+      toolCallId: string;
+      toolName: string;
+      args: Record<string, unknown>;
     }>;
   }) => void;
-  
+
   /** Callback on completion */
-  onFinish?: (event: { 
-    text: string; 
-    finishReason: string; 
-    usage?: { 
-      promptTokens?: number; 
-      completionTokens?: number; 
-      totalTokens?: number; 
+  onFinish?: (event: {
+    text: string;
+    finishReason: string;
+    usage?: {
+      promptTokens?: number;
+      completionTokens?: number;
+      totalTokens?: number;
     };
   }) => void | Promise<void>;
-  
+
   /** Supabase connection info */
   supabaseConnection?: {
     isConnected: boolean;

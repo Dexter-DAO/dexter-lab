@@ -1,6 +1,6 @@
 /**
  * Dexter Lab Agent - Main Agent Wrapper
- * 
+ *
  * This is the core of Dexter Lab's AI system, powered by the Claude Agent SDK.
  * It provides:
  * - Stateful session management
@@ -141,63 +141,70 @@ Always use \`{{USER_WALLET}}\` for payTo - it's replaced at deploy time.
 function createAgentOptions(options: DexterAgentOptions) {
   // Load skills from /skills directory
   const skillsPrompt = getSkillsPromptSection();
-  
+
   // Combine system prompt with skills and any additional instructions
   let fullSystemPrompt = DEXTER_LAB_SYSTEM_PROMPT;
-  
+
   if (skillsPrompt) {
     fullSystemPrompt += `\n\n${skillsPrompt}`;
   }
-  
+
   if (options.additionalInstructions) {
     fullSystemPrompt += `\n\n<additional_instructions>\n${options.additionalInstructions}\n</additional_instructions>`;
   }
 
   return {
     systemPrompt: fullSystemPrompt,
-    
+
     // Tools configuration
     allowedTools: [
-      'Read', 'Edit', 'Write', 'Glob', 'Grep', 'Bash',
+      'Read',
+      'Edit',
+      'Write',
+      'Glob',
+      'Grep',
+      'Bash',
       'mcp__dexter-x402__proxy_api',
       'mcp__dexter-x402__validate_x402',
       'mcp__dexter-x402__x402_sdk_docs',
     ],
-    
+
     // MCP servers
     mcpServers: {
       'dexter-x402': createDexterMcpServer(),
     },
-    
+
     // Permission mode - auto-approve file edits
     permissionMode: 'acceptEdits' as const,
-    
+
     // Session management
     resume: options.sessionId,
     forkSession: options.forkSession,
-    
+
     // Working directory
     cwd: options.cwd || process.cwd(),
-    
+
     // Limits
     maxTurns: options.maxTurns || 50,
     maxBudgetUsd: options.maxBudgetUsd,
-    
-    // Model - Use Claude 4 Opus for code generation (flagship model)
-    // claude-opus-4-20250514 is the API name for Claude 4 Opus
+
+    /*
+     * Model - Use Claude 4 Opus for code generation (flagship model)
+     * claude-opus-4-20250514 is the API name for Claude 4 Opus
+     */
     model: options.model || 'claude-opus-4-20250514',
   };
 }
 
 /**
  * Stream messages from the Dexter Lab agent
- * 
+ *
  * This is an async generator that yields StreamMessage objects
  * as the agent works. Use this for real-time UI updates.
  */
 export async function* streamDexterAgent(
   prompt: string,
-  options: DexterAgentOptions = {}
+  options: DexterAgentOptions = {},
 ): AsyncGenerator<StreamMessage, DexterAgentResult, undefined> {
   const agentOptions = createAgentOptions(options);
   let sessionId = options.sessionId || '';
@@ -209,8 +216,10 @@ export async function* streamDexterAgent(
   let usage: DexterAgentResult['usage'] | undefined;
 
   try {
-    // Create streaming input for MCP support
-    // SDKUserMessage requires parent_tool_use_id (string | null) and session_id
+    /*
+     * Create streaming input for MCP support
+     * SDKUserMessage requires parent_tool_use_id (string | null) and session_id
+     */
     async function* generateInput() {
       yield {
         type: 'user' as const,
@@ -237,7 +246,7 @@ export async function* streamDexterAgent(
           timestamp: Date.now(),
         };
       }
-      
+
       // Handle assistant messages (Claude's responses)
       else if (message.type === 'assistant') {
         for (const block of message.message.content) {
@@ -260,7 +269,7 @@ export async function* streamDexterAgent(
           }
         }
       }
-      
+
       // Handle result messages
       else if (message.type === 'result') {
         if ('subtype' in message) {
@@ -274,7 +283,7 @@ export async function* streamDexterAgent(
             error = (message as any).errors?.join(', ') || message.subtype;
           }
         }
-        
+
         yield {
           type: 'result',
           content: result || error || 'Completed',
@@ -286,7 +295,7 @@ export async function* streamDexterAgent(
   } catch (err) {
     success = false;
     error = err instanceof Error ? err.message : 'Unknown error occurred';
-    
+
     yield {
       type: 'error',
       content: error,
@@ -308,33 +317,33 @@ export async function* streamDexterAgent(
 
 /**
  * Run the Dexter Lab agent and return the final result
- * 
+ *
  * This is a convenience function that collects all messages
  * and returns only the final result. Use streamDexterAgent
  * for real-time updates.
  */
-export async function runDexterAgent(
-  prompt: string,
-  options: DexterAgentOptions = {}
-): Promise<DexterAgentResult> {
+export async function runDexterAgent(prompt: string, options: DexterAgentOptions = {}): Promise<DexterAgentResult> {
   const stream = streamDexterAgent(prompt, options);
   let result: DexterAgentResult | undefined;
-  
+
   // Consume the stream
   while (true) {
     const { done, value } = await stream.next();
+
     if (done) {
       result = value;
       break;
     }
   }
-  
-  return result || {
-    result: '',
-    sessionId: '',
-    success: false,
-    error: 'No result returned',
-  };
+
+  return (
+    result || {
+      result: '',
+      sessionId: '',
+      success: false,
+      error: 'No result returned',
+    }
+  );
 }
 
 /**
@@ -343,7 +352,7 @@ export async function runDexterAgent(
 export async function* continueDexterAgent(
   prompt: string,
   sessionId: string,
-  options: Omit<DexterAgentOptions, 'sessionId'> = {}
+  options: Omit<DexterAgentOptions, 'sessionId'> = {},
 ): AsyncGenerator<StreamMessage, DexterAgentResult, undefined> {
   return yield* streamDexterAgent(prompt, { ...options, sessionId });
 }
@@ -354,7 +363,7 @@ export async function* continueDexterAgent(
 export async function* forkDexterAgent(
   prompt: string,
   sessionId: string,
-  options: Omit<DexterAgentOptions, 'sessionId' | 'forkSession'> = {}
+  options: Omit<DexterAgentOptions, 'sessionId' | 'forkSession'> = {},
 ): AsyncGenerator<StreamMessage, DexterAgentResult, undefined> {
   return yield* streamDexterAgent(prompt, { ...options, sessionId, forkSession: true });
 }

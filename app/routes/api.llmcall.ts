@@ -94,10 +94,12 @@ async function llmCallAction({ context, request }: ActionFunctionArgs) {
   const apiKeys = getApiKeysFromCookie(cookieHeader);
   const providerSettings = getProviderSettingsFromCookie(cookieHeader);
 
-  // Always use streaming for Anthropic models (required by their SDK)
-  // and fallback to streaming for other providers since our generateText stub is disabled
-  // Note: generateText now uses streaming internally for Anthropic (to avoid timeout errors)
-  // So we don't need to force streaming here - only use streaming when explicitly requested
+  /*
+   * Always use streaming for Anthropic models (required by their SDK)
+   * and fallback to streaming for other providers since our generateText stub is disabled
+   * Note: generateText now uses streaming internally for Anthropic (to avoid timeout errors)
+   * So we don't need to force streaming here - only use streaming when explicitly requested
+   */
   const forceStreaming = false;
 
   if (streamOutput || forceStreaming) {

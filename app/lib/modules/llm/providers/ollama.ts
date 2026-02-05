@@ -5,7 +5,7 @@ import type { LanguageModelV1 } from '~/lib/modules/llm/ai-sdk-stub';
 import { createStubModel } from '~/lib/modules/llm/ai-sdk-stub';
 
 // Stub for Ollama - returns a placeholder model
-function ollama(model: string, options?: { numCtx?: number }): LanguageModelV1 {
+function ollama(model: string, _options?: { numCtx?: number }): LanguageModelV1 {
   return createStubModel('ollama', model);
 }
 import { logger } from '~/utils/logger';

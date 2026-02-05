@@ -38,7 +38,7 @@ export async function action({ request }: ActionFunctionArgs) {
         return json({ error: 'Failed to create site' }, { status: 400 });
       }
 
-      const newSite = (await createSitejson()) as any;
+      const newSite = (await createSiteResponse.json()) as any;
       targetSiteId = newSite.id;
       siteInfo = {
         id: newSite.id,
@@ -56,7 +56,7 @@ export async function action({ request }: ActionFunctionArgs) {
         });
 
         if (siteResponse.ok) {
-          const existingSite = (await sitejson()) as any;
+          const existingSite = (await siteResponse.json()) as any;
           siteInfo = {
             id: existingSite.id,
             name: existingSite.name,
@@ -87,7 +87,7 @@ export async function action({ request }: ActionFunctionArgs) {
           return json({ error: 'Failed to create site' }, { status: 400 });
         }
 
-        const newSite = (await createSitejson()) as any;
+        const newSite = (await createSiteResponse.json()) as any;
         targetSiteId = newSite.id;
         siteInfo = {
           id: newSite.id,
@@ -130,7 +130,7 @@ export async function action({ request }: ActionFunctionArgs) {
       return json({ error: 'Failed to create deployment' }, { status: 400 });
     }
 
-    const deploy = (await deployjson()) as any;
+    const deploy = (await deployResponse.json()) as any;
     let retryCount = 0;
     const maxRetries = 60;
 
@@ -142,7 +142,7 @@ export async function action({ request }: ActionFunctionArgs) {
         },
       });
 
-      const status = (await statusjson()) as any;
+      const status = (await statusResponse.json()) as any;
 
       if (status.state === 'prepared' || status.state === 'uploaded') {
         // Upload all files regardless of required array

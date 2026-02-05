@@ -1,6 +1,7 @@
 import type { PathWatcherEvent, WebContainer } from '@webcontainer/api';
 import { getEncoding } from 'istextorbinary';
 import { map, type MapStore } from 'nanostores';
+
 // Use buffer package which provides browser-compatible Buffer
 import { Buffer } from 'buffer';
 import { path } from '~/utils/path';

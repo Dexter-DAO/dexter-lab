@@ -1,6 +1,6 @@
 /**
  * UI Utils Types
- * 
+ *
  * These types replace @ai-sdk/ui-utils types for compatibility.
  */
 
@@ -66,21 +66,29 @@ export interface StepStartUIPart {
   stepId: string;
 }
 
-export type UIPart = 
-  | TextUIPart 
-  | FileUIPart 
-  | ImageUIPart 
-  | ToolCallUIPart 
-  | ToolResultUIPart 
-  | ReasoningUIPart 
-  | ToolInvocationUIPart 
-  | SourceUIPart 
+export type UIPart =
+  | TextUIPart
+  | FileUIPart
+  | ImageUIPart
+  | ToolCallUIPart
+  | ToolResultUIPart
+  | ReasoningUIPart
+  | ToolInvocationUIPart
+  | SourceUIPart
   | StepStartUIPart;
 
 /**
  * Parts type alias that includes ImageUIPart for component compatibility
  */
-export type MessageParts = (TextUIPart | FileUIPart | ImageUIPart | ReasoningUIPart | ToolInvocationUIPart | SourceUIPart | StepStartUIPart)[];
+export type MessageParts = (
+  | TextUIPart
+  | FileUIPart
+  | ImageUIPart
+  | ReasoningUIPart
+  | ToolInvocationUIPart
+  | SourceUIPart
+  | StepStartUIPart
+)[];
 
 export interface Attachment {
   name?: string;

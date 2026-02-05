@@ -200,6 +200,7 @@ export class LLMManager {
   getDefaultProvider(): BaseProvider {
     // Prefer Anthropic as default provider (Claude models)
     const anthropic = this._providers.get('Anthropic');
+
     if (anthropic) {
       return anthropic;
     }

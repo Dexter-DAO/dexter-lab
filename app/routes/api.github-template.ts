@@ -31,7 +31,7 @@ async function fetchRepoContentsCloudflare(repo: string, githubToken?: string) {
     throw new Error(`Repository not found: ${repo}`);
   }
 
-  const repoData = (await repojson()) as any;
+  const repoData = (await repoResponse.json()) as any;
   const defaultBranch = repoData.default_branch;
 
   // Get the tree recursively
@@ -47,7 +47,7 @@ async function fetchRepoContentsCloudflare(repo: string, githubToken?: string) {
     throw new Error(`Failed to fetch repository tree: ${treeResponse.status}`);
   }
 
-  const treeData = (await treejson()) as any;
+  const treeData = (await treeResponse.json()) as any;
 
   // Filter for files only (not directories) and limit size
   const files = treeData.tree.filter((item: any) => {
@@ -94,7 +94,7 @@ async function fetchRepoContentsCloudflare(repo: string, githubToken?: string) {
           return null;
         }
 
-        const contentData = (await contentjson()) as any;
+        const contentData = (await contentResponse.json()) as any;
         const content = atob(contentData.content.replace(/\s/g, ''));
 
         return {

@@ -1,19 +1,12 @@
 /**
  * Dexter Lab Agent - Public API
- * 
+ *
  * Export the main agent functions and types.
  */
 
-export {
-  streamDexterAgent,
-  runDexterAgent,
-  continueDexterAgent,
-  forkDexterAgent,
-} from './dexter-agent';
+export { streamDexterAgent, runDexterAgent, continueDexterAgent, forkDexterAgent } from './dexter-agent';
 
-export {
-  createDexterMcpServer,
-} from './mcp-tools';
+export { createDexterMcpServer } from './mcp-tools';
 
 export type {
   DexterAgentOptions,

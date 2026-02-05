@@ -16,7 +16,7 @@ export interface PromptOptions {
       supabaseUrl?: string;
     };
   };
-  skills?: string;  // Skills prompt section, injected server-side
+  skills?: string; // Skills prompt section, injected server-side
 }
 
 export class PromptLibrary {

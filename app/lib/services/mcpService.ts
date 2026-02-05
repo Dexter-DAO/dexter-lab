@@ -22,8 +22,12 @@ interface DataStreamWriter {
 
 /**
  * Stub for MCP client - will be replaced with Claude Agent SDK's MCP support
+ * Naming matches the original ai package API for compatibility
  */
-function experimental_createMCPClient(_options: unknown): Promise<{ tools: () => Promise<ToolSet>; close: () => Promise<void> }> {
+// eslint-disable-next-line @typescript-eslint/naming-convention
+function experimental_createMCPClient(
+  _options: unknown,
+): Promise<{ tools: () => Promise<ToolSet>; close: () => Promise<void> }> {
   return Promise.resolve({
     tools: () => Promise.resolve({}),
     close: () => Promise.resolve(),
@@ -39,7 +43,9 @@ function formatDataStreamPart(type: string, data: unknown): string {
 
 /**
  * Stub transport - will be replaced with actual MCP transport
+ * Naming matches the original ai package API for compatibility
  */
+// eslint-disable-next-line @typescript-eslint/naming-convention
 class Experimental_StdioMCPTransport {
   constructor(_options: unknown) {}
 }
@@ -190,9 +196,7 @@ export class MCPService {
       if (validationError instanceof z.ZodError) {
         // Zod 4 uses 'issues' instead of 'errors'
         const issues = validationError.issues || [];
-        const errorMessages = issues.map((err) => 
-          `${err.path.map(String).join('.')}: ${err.message}`
-        ).join('; ');
+        const errorMessages = issues.map((err) => `${err.path.map(String).join('.')}: ${err.message}`).join('; ');
         throw new Error(`Invalid configuration for server "${serverName}": ${errorMessages}`);
       }
 
@@ -431,15 +435,15 @@ export class MCPService {
         }
 
         // Type guard for tool-invocation parts
-        const toolInvocationPart = part as { 
-          type: 'tool-invocation'; 
-          toolInvocation: { 
+        const toolInvocationPart = part as {
+          type: 'tool-invocation';
+          toolInvocation: {
             state: 'partial-call' | 'call' | 'result';
             toolCallId: string;
             toolName: string;
             args?: unknown;
             result?: unknown;
-          } 
+          };
         };
         const { toolInvocation } = toolInvocationPart;
         const { toolName, toolCallId } = toolInvocation;
@@ -458,7 +462,7 @@ export class MCPService {
             logger.debug(`calling tool "${toolName}" with args: ${JSON.stringify(toolInvocation.args)}`);
 
             try {
-              result = await toolInstance.execute(toolInvocation.args as Record<string, unknown> || {}, {
+              result = await toolInstance.execute((toolInvocation.args as Record<string, unknown>) || {}, {
                 messages: convertToCoreMessages(messages),
                 toolCallId,
               });

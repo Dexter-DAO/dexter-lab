@@ -3,7 +3,10 @@ import type { Message } from '~/types/chat';
 
 // Stub types for AI SDK compatibility
 type CoreTool<T = any, R = any> = { execute?: (args: T) => Promise<R> };
-type GenerateTextResult<T = Record<string, CoreTool>, R = never> = { text: string; usage?: { completionTokens?: number; promptTokens?: number; totalTokens?: number } };
+type GenerateTextResult<T = Record<string, CoreTool>, R = never> = {
+  text: string;
+  usage?: { completionTokens?: number; promptTokens?: number; totalTokens?: number };
+};
 import type { IProviderSetting } from '~/types/model';
 import { DEFAULT_MODEL, DEFAULT_PROVIDER, PROVIDER_LIST } from '~/utils/constants';
 import { extractCurrentContext, extractPropertiesFromMessage, simplifyBoltActions } from './utils';

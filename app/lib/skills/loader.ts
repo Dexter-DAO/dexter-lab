@@ -44,7 +44,10 @@ function parseFrontmatter(content: string): { meta: Record<string, any>; body: s
   for (const line of lines) {
     // Check for array item (indented with -)
     if (line.match(/^\s+-\s+/)) {
-      const item = line.replace(/^\s+-\s+/, '').trim().replace(/^['"]|['"]$/g, '');
+      const item = line
+        .replace(/^\s+-\s+/, '')
+        .trim()
+        .replace(/^['"]|['"]$/g, '');
       arrayItems.push(item);
       continue;
     }
@@ -57,7 +60,10 @@ function parseFrontmatter(content: string): { meta: Record<string, any>; body: s
     }
 
     const colonIndex = line.indexOf(':');
-    if (colonIndex === -1) continue;
+
+    if (colonIndex === -1) {
+      continue;
+    }
 
     const key = line.slice(0, colonIndex).trim();
     let value = line.slice(colonIndex + 1).trim();
@@ -71,11 +77,10 @@ function parseFrontmatter(content: string): { meta: Record<string, any>; body: s
     // Handle inline arrays [item1, item2]
     if (value.startsWith('[') && value.endsWith(']')) {
       value = value.slice(1, -1);
-      meta[key] = value.split(',').map(v => v.trim().replace(/^['"]|['"]$/g, ''));
+      meta[key] = value.split(',').map((v) => v.trim().replace(/^['"]|['"]$/g, ''));
     }
     // Handle quoted strings
-    else if ((value.startsWith('"') && value.endsWith('"')) ||
-             (value.startsWith("'") && value.endsWith("'"))) {
+    else if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
       meta[key] = value.slice(1, -1);
     }
     // Plain value
@@ -121,8 +126,10 @@ export function loadSkill(skillPath: string): Skill | null {
  * Load all skills from the skills directory
  */
 export function loadAllSkills(skillsDir?: string): Skill[] {
-  // Default to project root /skills directory
-  // Use __dirname to resolve relative to this file, then go up to project root
+  /*
+   * Default to project root /skills directory
+   * Use __dirname to resolve relative to this file, then go up to project root
+   */
   const dir = skillsDir || resolve(__dirname, '../../../../skills');
 
   if (!existsSync(dir)) {
@@ -139,8 +146,10 @@ export function loadAllSkills(skillsDir?: string): Skill[] {
       if (entry.isDirectory()) {
         // Look for SKILL.md in subdirectory
         const skillFile = join(dir, entry.name, 'SKILL.md');
+
         if (existsSync(skillFile)) {
           const skill = loadSkill(skillFile);
+
           if (skill) {
             skills.push(skill);
           }
@@ -148,6 +157,7 @@ export function loadAllSkills(skillsDir?: string): Skill[] {
       } else if (entry.name.endsWith('.md') && entry.name !== 'README.md') {
         // Load standalone skill file
         const skill = loadSkill(join(dir, entry.name));
+
         if (skill) {
           skills.push(skill);
         }
@@ -157,7 +167,11 @@ export function loadAllSkills(skillsDir?: string): Skill[] {
     console.error(`[skills] Failed to read skills directory:`, error);
   }
 
-  console.log(`[skills] Loaded ${skills.length} skills:`, skills.map(s => s.meta.name));
+  console.log(
+    `[skills] Loaded ${skills.length} skills:`,
+    skills.map((s) => s.meta.name),
+  );
+
   return skills;
 }
 
@@ -169,7 +183,7 @@ export function formatSkillsForPrompt(skills: Skill[]): string {
     return '';
   }
 
-  const sections = skills.map(skill => {
+  const sections = skills.map((skill) => {
     return `
 <skill name="${skill.meta.name}" description="${skill.meta.description}">
 ${skill.content}
@@ -195,6 +209,7 @@ export function getSkills(): Skill[] {
   if (cachedSkills === null) {
     cachedSkills = loadAllSkills();
   }
+
   return cachedSkills;
 }
 

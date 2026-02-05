@@ -1,6 +1,6 @@
 /**
  * Dexter Lab - Server Entry Point
- * 
+ *
  * This runs in Node.js via PM2, so we use native Node.js APIs.
  * Buffer, stream, and other Node.js built-ins are available natively.
  */
@@ -39,6 +39,7 @@ function handleBotRequest(
       {
         onAllReady() {
           shellRendered = true;
+
           const head = renderHeadToString({ request, remixContext, Head });
           const body = new PassThrough();
 
@@ -47,13 +48,15 @@ function handleBotRequest(
           responseHeaders.set('Cross-Origin-Opener-Policy', 'same-origin');
 
           // Write the opening HTML
-          body.write(`<!DOCTYPE html><html lang="en" data-theme="${themeStore.value}"><head>${head}</head><body><div id="root" class="w-full h-full">`);
-          
+          body.write(
+            `<!DOCTYPE html><html lang="en" data-theme="${themeStore.value}"><head>${head}</head><body><div id="root" class="w-full h-full">`,
+          );
+
           resolve(
             new Response(body as unknown as BodyInit, {
               headers: responseHeaders,
               status: responseStatusCode,
-            })
+            }),
           );
 
           pipe(body);
@@ -64,11 +67,12 @@ function handleBotRequest(
         },
         onError(error: unknown) {
           responseStatusCode = 500;
+
           if (shellRendered) {
             console.error(error);
           }
         },
-      }
+      },
     );
 
     setTimeout(abort, ABORT_DELAY);
@@ -88,6 +92,7 @@ function handleBrowserRequest(
       {
         onShellReady() {
           shellRendered = true;
+
           const head = renderHeadToString({ request, remixContext, Head });
           const body = new PassThrough();
 
@@ -96,16 +101,19 @@ function handleBrowserRequest(
           responseHeaders.set('Cross-Origin-Opener-Policy', 'same-origin');
 
           // Write the opening HTML
-          body.write(`<!DOCTYPE html><html lang="en" data-theme="${themeStore.value}"><head>${head}</head><body><div id="root" class="w-full h-full">`);
-          
+          body.write(
+            `<!DOCTYPE html><html lang="en" data-theme="${themeStore.value}"><head>${head}</head><body><div id="root" class="w-full h-full">`,
+          );
+
           resolve(
             new Response(body as unknown as BodyInit, {
               headers: responseHeaders,
               status: responseStatusCode,
-            })
+            }),
           );
 
           pipe(body);
+
           // Note: The closing tags are written after streaming completes
         },
         onShellError(error: unknown) {
@@ -113,11 +121,12 @@ function handleBrowserRequest(
         },
         onError(error: unknown) {
           responseStatusCode = 500;
+
           if (shellRendered) {
             console.error(error);
           }
         },
-      }
+      },
     );
 
     setTimeout(abort, ABORT_DELAY);

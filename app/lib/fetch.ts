@@ -5,6 +5,7 @@ export async function request(url: string, init?: CommonRequest) {
     // Server-side only: use node-fetch with custom HTTPS agent
     try {
       const nodeFetch = await import('node-fetch');
+
       // Dynamic import to avoid TS errors in browser context
       const https = await (eval('import("node:https")') as Promise<typeof import('https')>);
 

@@ -1,6 +1,6 @@
 /**
  * Dexter Lab Chat Types
- * 
+ *
  * These types replace the 'ai' package types for chat messages.
  * Compatible with both the old Vercel AI SDK format and Claude Agent SDK.
  */
@@ -18,6 +18,7 @@ export interface ImagePart {
   type: 'image';
   image: string | Uint8Array | Buffer | ArrayBuffer | URL;
   mimeType?: string;
+
   /** Base64 or URL data for UI compatibility */
   data?: string;
 }
@@ -73,15 +74,15 @@ export interface StepStartPart {
   stepId: string;
 }
 
-export type MessagePart = 
-  | TextPart 
-  | ImagePart 
-  | FilePart 
-  | ToolCallPart 
-  | ToolResultPart 
-  | ReasoningPart 
-  | ToolInvocationPart 
-  | SourcePart 
+export type MessagePart =
+  | TextPart
+  | ImagePart
+  | FilePart
+  | ToolCallPart
+  | ToolResultPart
+  | ReasoningPart
+  | ToolInvocationPart
+  | SourcePart
   | StepStartPart;
 
 /**
@@ -97,16 +98,16 @@ export interface Message {
   role: MessageRole;
   content: string;
   createdAt?: Date;
-  
+
   // Multi-modal content parts (optional)
   parts?: MessagePart[];
-  
+
   // Tool invocations for assistant messages
   toolInvocations?: ToolInvocation[];
-  
+
   // Experimental attachments
   experimental_attachments?: Attachment[];
-  
+
   // Annotations for metadata
   annotations?: MessageAnnotation[];
 }
@@ -131,7 +132,7 @@ export interface Attachment {
   url: string;
 }
 
-import type { JSONValue, JSONObject } from './json';
+import type { JSONValue } from './json';
 
 /**
  * Message annotations for metadata
@@ -202,12 +203,12 @@ export function extractTextContent(message: Message): string {
   if (typeof message.content === 'string') {
     return message.content;
   }
-  
+
   if (Array.isArray(message.parts)) {
     const textPart = message.parts.find((p): p is TextPart => p.type === 'text');
     return textPart?.text || '';
   }
-  
+
   return '';
 }
 
@@ -222,11 +223,5 @@ export function isStringContent(content: unknown): content is string {
  * Type guard for Message
  */
 export function isMessage(obj: unknown): obj is Message {
-  return (
-    typeof obj === 'object' &&
-    obj !== null &&
-    'id' in obj &&
-    'role' in obj &&
-    'content' in obj
-  );
+  return typeof obj === 'object' && obj !== null && 'id' in obj && 'role' in obj && 'content' in obj;
 }

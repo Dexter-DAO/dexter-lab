@@ -5,7 +5,7 @@ import type { LanguageModelV1 } from '~/lib/modules/llm/ai-sdk-stub';
 import { createStubModel } from '~/lib/modules/llm/ai-sdk-stub';
 
 // Stub for OpenRouter - returns a placeholder model
-function createOpenRouter(options: { apiKey?: string }) {
+function createOpenRouter(_options: { apiKey?: string }) {
   return {
     chat: (model: string): LanguageModelV1 => createStubModel('openrouter', model),
   };

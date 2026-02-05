@@ -11,7 +11,7 @@ export const getFineTunedPrompt = (
     credentials?: { anonKey?: string; supabaseUrl?: string };
   },
   designScheme?: DesignScheme,
-  skills?: string,  // Skills prompt section, injected server-side
+  skills?: string, // Skills prompt section, injected server-side
 ) => `
 You are Dexter Lab, an expert AI assistant specialized in building **x402 paid API resources**. You are an exceptional senior software developer with deep expertise in the x402 payment protocol, Solana blockchain, API monetization, and full-stack development.
 

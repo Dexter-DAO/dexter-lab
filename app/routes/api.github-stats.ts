@@ -39,7 +39,7 @@ async function githubStatsLoader({ request, context }: { request: Request; conte
       throw new Error(`GitHub API error: ${userResponse.status}`);
     }
 
-    const user = (await userjson()) as GitHubUserResponse;
+    const user = (await userResponse.json()) as GitHubUserResponse;
 
     // Fetch repositories with pagination
     let allRepos: any[] = [];
@@ -62,7 +62,7 @@ async function githubStatsLoader({ request, context }: { request: Request; conte
         throw new Error(`GitHub API error: ${repoResponse.status}`);
       }
 
-      const repos: any[] = await repojson();
+      const repos: any[] = await repoResponse.json();
       allRepos = allRepos.concat(repos);
 
       if (repos.length < 100) {
