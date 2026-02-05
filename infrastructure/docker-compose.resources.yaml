@@ -1,0 +1,68 @@
+# Docker Compose for Dexter Lab x402 Resource Infrastructure
+# This manages Traefik and provides the network for resource containers
+#
+# Usage:
+#   docker compose -f infrastructure/docker-compose.resources.yaml up -d
+#
+# Individual x402 resources are deployed via the deployment service,
+# which creates containers with appropriate Traefik labels.
+
+services:
+  # Traefik Reverse Proxy
+  traefik:
+    image: traefik:v3.0
+    container_name: dexter-traefik
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    ports:
+      # HTTP - receives traffic from Cloudflare
+      - "8090:80"
+      # Traefik dashboard (internal access only)
+      - "127.0.0.1:8081:8081"
+    volumes:
+      # Traefik configuration
+      - ./traefik/traefik.yaml:/etc/traefik/traefik.yaml:ro
+      - ./traefik/dynamic:/etc/traefik/dynamic:ro
+      # Docker socket for container discovery
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - dexter-resources
+    labels:
+      # Traefik dashboard routing (optional, for internal use)
+      - "traefik.enable=true"
+      - "traefik.http.routers.traefik-dashboard.rule=Host(`traefik.localhost`)"
+      - "traefik.http.routers.traefik-dashboard.entrypoints=traefik"
+      - "traefik.http.routers.traefik-dashboard.service=api@internal"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD", "traefik", "healthcheck", "--ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Redis for resource state and session management
+  redis:
+    image: redis:7-alpine
+    container_name: dexter-redis
+    restart: unless-stopped
+    volumes:
+      - redis-data:/data
+    networks:
+      - dexter-resources
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    command: redis-server --appendonly yes
+
+networks:
+  dexter-resources:
+    name: dexter-resources
+    driver: bridge
+
+volumes:
+  redis-data:
+    name: dexter-redis-data

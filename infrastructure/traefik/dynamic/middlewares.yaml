@@ -1,0 +1,56 @@
+# Traefik Dynamic Configuration - Middlewares
+# These middlewares are applied to x402 resource routes
+
+http:
+  middlewares:
+    # Rate limiting per resource
+    resource-ratelimit:
+      rateLimit:
+        average: 100
+        burst: 200
+        period: 1s
+    
+    # Add x402 headers for payment protocol
+    x402-headers:
+      headers:
+        customRequestHeaders:
+          X-Forwarded-Proto: "https"
+        customResponseHeaders:
+          X-Powered-By: "Dexter Lab"
+          Access-Control-Allow-Origin: "*"
+          Access-Control-Allow-Methods: "GET, POST, PUT, DELETE, OPTIONS"
+          Access-Control-Allow-Headers: "Content-Type, Authorization, X-Payment-Token, X-Self-Fee-Payer, X-Self-Fee-Payer-Address"
+          Access-Control-Expose-Headers: "X-Payment-Required, X-Payment-Address, X-Payment-Amount, X-Payment-Token"
+    
+    # Retry middleware for transient failures
+    resource-retry:
+      retry:
+        attempts: 3
+        initialInterval: 100ms
+    
+    # Circuit breaker for resource protection
+    resource-circuitbreaker:
+      circuitBreaker:
+        expression: "ResponseCodeRatio(500, 600, 0, 600) > 0.30"
+    
+    # Compress responses
+    resource-compress:
+      compress:
+        excludedContentTypes:
+          - "text/event-stream"
+    
+    # Strip prefix for resource paths (if using path-based routing)
+    strip-resource-prefix:
+      stripPrefix:
+        prefixes:
+          - "/resource"
+
+    # Combined middleware chain for x402 resources
+    x402-resource-chain:
+      chain:
+        middlewares:
+          - x402-headers
+          - resource-ratelimit
+          - resource-retry
+          - resource-circuitbreaker
+          - resource-compress

@@ -1,0 +1,56 @@
+# Traefik Static Configuration
+# This file configures Traefik as a reverse proxy for x402 resources
+# Works with Cloudflare - SSL termination happens at Cloudflare edge
+
+api:
+  dashboard: true
+  insecure: false  # Dashboard only accessible via authenticated entrypoint
+
+entryPoints:
+  # Main web entrypoint - receives traffic from Cloudflare
+  web:
+    address: ":80"
+  
+  # Internal entrypoint for resource containers (not exposed externally)
+  resources:
+    address: ":8080"
+  
+  # Traefik dashboard (internal only)
+  traefik:
+    address: ":8081"
+
+providers:
+  # Docker provider - automatically discovers containers with labels
+  docker:
+    endpoint: "unix:///var/run/docker.sock"
+    exposedByDefault: false  # Only expose containers with explicit labels
+    network: dexter-resources  # Network for x402 resource containers
+    watch: true
+  
+  # File provider for dynamic configuration
+  file:
+    directory: "/etc/traefik/dynamic"
+    watch: true
+
+# Logging configuration
+log:
+  level: INFO
+  format: json
+
+accessLog:
+  format: json
+  filters:
+    statusCodes:
+      - "400-599"
+
+# Health check
+ping:
+  entryPoint: web
+
+# Metrics for monitoring (optional - can integrate with Prometheus)
+metrics:
+  prometheus:
+    entryPoint: traefik
+    addEntryPointsLabels: true
+    addRoutersLabels: true
+    addServicesLabels: true

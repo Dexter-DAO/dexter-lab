@@ -1,0 +1,33 @@
+# Traefik Dynamic Configuration - Default Routers
+# Individual resource containers add their own routers via Docker labels
+
+http:
+  routers:
+    # Health check endpoint
+    health:
+      rule: "Path(`/health`) || Path(`/ping`)"
+      entryPoints:
+        - web
+      service: ping@internal
+      priority: 100
+
+    # API endpoint for resource management (internal)
+    resource-api:
+      rule: "PathPrefix(`/api/resources`)"
+      entryPoints:
+        - web
+      middlewares:
+        - x402-headers
+      service: dexter-lab-api
+      priority: 50
+
+  services:
+    # Main Dexter Lab application
+    dexter-lab-api:
+      loadBalancer:
+        servers:
+          - url: "http://host.docker.internal:5173"
+        healthCheck:
+          path: /
+          interval: 30s
+          timeout: 5s
