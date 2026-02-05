@@ -403,6 +403,168 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
     [api, body, headers, onFinish, onError, onResponse],
   );
 
+  /**
+   * Send a message to the API without creating a new user message.
+   * Used for hidden continuation messages (like template prompts) where we want
+   * to trigger the AI response without adding a new visible message.
+   */
+  const sendMessageWithoutNewUserMessage = useCallback(
+    async (content: string, existingMessages: Message[]) => {
+      if (!content.trim()) {
+        console.warn('[useChat.sendMessageWithoutNewUserMessage] Empty content, skipping');
+        return;
+      }
+
+      console.log('[useChat.sendMessageWithoutNewUserMessage] Sending to API (no new user message)');
+      console.log('[useChat.sendMessageWithoutNewUserMessage] Existing messages count:', existingMessages.length);
+
+      setError(undefined);
+      setIsLoading(true);
+
+      /*
+       * Don't add a new user message - just use the existing messages
+       * Create abort controller
+       */
+      abortControllerRef.current = new AbortController();
+
+      try {
+        const response = await fetch(api, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...headers,
+          },
+          body: JSON.stringify({
+            prompt: content,
+            sessionId: sessionIdRef.current,
+            ...body,
+          }),
+          signal: abortControllerRef.current.signal,
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error: ${response.status}`);
+        }
+
+        onResponse?.(response);
+
+        // Handle SSE stream
+        const reader = response.body?.getReader();
+
+        if (!reader) {
+          throw new Error('No response body');
+        }
+
+        const decoder = new TextDecoder();
+        let assistantContent = '';
+        const assistantMessageId = generateId();
+
+        // Add placeholder assistant message
+        flushSync(() => {
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: assistantMessageId,
+              role: 'assistant',
+              content: '',
+              createdAt: new Date(),
+            },
+          ]);
+        });
+
+        // Create throttled updater for smooth streaming
+        const throttledUpdate = createThrottledUpdater((updatedContent: string) => {
+          setMessages((prev) => prev.map((m) => (m.id === assistantMessageId ? { ...m, content: updatedContent } : m)));
+        }, 16);
+
+        let sseBuffer = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+
+          if (done) {
+            break;
+          }
+
+          const chunk = decoder.decode(value, { stream: true });
+          sseBuffer += chunk;
+
+          const lines = sseBuffer.split('\n');
+          sseBuffer = lines.pop() || '';
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const data = line.slice(6);
+
+              if (data === '[DONE]') {
+                continue;
+              }
+
+              try {
+                const parsed = JSON.parse(data);
+
+                if (parsed.type === 'text') {
+                  assistantContent += parsed.content;
+                  throttledUpdate(assistantContent);
+                } else if (parsed.type === 'system' && parsed.sessionId) {
+                  sessionIdRef.current = parsed.sessionId;
+                } else if (parsed.type === 'final' && parsed.result) {
+                  if (parsed.result.result) {
+                    assistantContent = parsed.result.result;
+                    flushSync(() => {
+                      setMessages((prev) =>
+                        prev.map((m) => (m.id === assistantMessageId ? { ...m, content: assistantContent } : m)),
+                      );
+                    });
+                  }
+
+                  sessionIdRef.current = parsed.result.sessionId;
+
+                  if (parsed.result.usage) {
+                    responseMetaRef.current = {
+                      usage: {
+                        promptTokens: parsed.result.usage.inputTokens,
+                        completionTokens: parsed.result.usage.outputTokens,
+                        totalTokens: (parsed.result.usage.inputTokens || 0) + (parsed.result.usage.outputTokens || 0),
+                      },
+                    };
+                  }
+                } else if (parsed.type === 'error') {
+                  throw new Error(parsed.content);
+                }
+
+                setData((prev) => [...(prev || []), parsed]);
+              } catch {
+                // Ignore parse errors for malformed chunks
+              }
+            }
+          }
+        }
+
+        // Call onFinish with the final assistant message
+        const finalMessage: Message = {
+          id: assistantMessageId,
+          role: 'assistant',
+          content: assistantContent,
+          createdAt: new Date(),
+        };
+        onFinish?.(finalMessage, responseMetaRef.current);
+      } catch (err) {
+        if (err instanceof Error && err.name === 'AbortError') {
+          return;
+        }
+
+        const error = err instanceof Error ? err : new Error('Unknown error');
+        setError(error);
+        onError?.(error);
+      } finally {
+        setIsLoading(false);
+        abortControllerRef.current = null;
+      }
+    },
+    [api, body, headers, onFinish, onError, onResponse, setMessages],
+  );
+
   const handleSubmit = useCallback(
     (e?: React.FormEvent<HTMLFormElement>, _options?: { data?: Record<string, string> }) => {
       e?.preventDefault();
@@ -443,7 +605,10 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
         );
       });
 
-      // Get the last user message and resend
+      /*
+       * Get the last user message and resend
+       * For hidden messages (like template continuations), we send the content but keep the message hidden
+       */
       const lastUserMessageIndex = currentMessages.findLastIndex((m) => m.role === 'user');
 
       if (lastUserMessageIndex === -1) {
@@ -452,10 +617,27 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
       }
 
       const lastUserMessage = currentMessages[lastUserMessageIndex];
-      const previousMessages = currentMessages.slice(0, lastUserMessageIndex);
+      const isHiddenMessage = lastUserMessage.annotations?.includes('hidden');
 
       chatHookLogger.info('Last user message index:', lastUserMessageIndex);
+      chatHookLogger.info('Is hidden message:', isHiddenMessage);
       chatHookLogger.info('Last user message content:', lastUserMessage.content.slice(0, 100) + '...');
+
+      /*
+       * If this is a hidden message (like template continuation), don't replace it
+       * Just send to API and add the response
+       */
+      if (isHiddenMessage) {
+        chatHookLogger.info('Handling hidden continuation message - sending to API without replacing');
+
+        // Send all messages to API (hidden message included for context)
+        await sendMessageWithoutNewUserMessage(lastUserMessage.content, currentMessages);
+
+        return;
+      }
+
+      // For visible messages, proceed with normal reload behavior
+      const previousMessages = currentMessages.slice(0, lastUserMessageIndex);
       chatHookLogger.info('Previous messages count:', previousMessages.length);
 
       setMessages(previousMessages);
@@ -463,7 +645,7 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
       // Options could include attachments for the reload
       await sendMessage(lastUserMessage.content, previousMessages);
     },
-    [sendMessage, setMessages],
+    [sendMessage, sendMessageWithoutNewUserMessage, setMessages],
   );
 
   /**
