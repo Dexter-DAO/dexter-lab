@@ -646,18 +646,105 @@ if (hasSubscription) {
 
 ## Deployment
 
+### CRITICAL: DO NOT run `npm run dev` or `npm start` locally
+
+x402 resources are **NOT** meant to run inside the WebContainer. They must be deployed via the Dexter Lab deployment API.
+
+### Proper Deployment Flow
+
 When your resource is ready:
 
-1. Ensure `{{USER_WALLET}}` is used for the `payTo` address
-2. Test locally with the preview
-3. Click Deploy
-4. Your resource will be:
-   - Packaged into a container
-   - Deployed to Dexter infrastructure
-   - Registered in the Dexter Bazaar
-   - Accessible at a live URL
+1. **Ensure `{{USER_WALLET}}` is used** for the `payTo` address
+2. **Verify all files are created** (index.ts, package.json, Dockerfile, README.md)
+3. **Call the deployment API** to deploy the resource
 
-The user's wallet will receive all payments automatically via the x402 protocol.
+### Deployment API
+
+```typescript
+// POST /api/deploy
+const response = await fetch('/api/deploy', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    name: 'my-x402-resource',
+    description: 'Description of what this resource does',
+    type: 'api',  // 'api' | 'webhook' | 'stream'
+    creatorWallet: '{{USER_WALLET}}',  // Will be replaced with actual wallet
+    basePriceUsdc: 0.01,  // Minimum price
+    pricingModel: 'dynamic',  // 'fixed' | 'dynamic' | 'token'
+    endpoints: [
+      {
+        path: '/api/generate',
+        method: 'POST',
+        description: 'Generate content',
+        priceUsdc: 0.05,
+      }
+    ],
+    tags: ['ai', 'writing', 'generation'],
+    files: {
+      'index.ts': '... file contents ...',
+      'package.json': '... file contents ...',
+      'Dockerfile': '... file contents ...',
+      'README.md': '... file contents ...',
+    },
+  }),
+});
+
+const result = await response.json();
+// {
+//   success: true,
+//   resourceId: 'res-abc123',
+//   publicUrl: 'https://res-abc123.resources.dexter.cash',
+//   containerId: 'docker-id'
+// }
+```
+
+### After Deployment
+
+Your resource will be:
+- **Containerized** - Built into a Docker container
+- **Auto-routed** - Traefik automatically discovers and routes traffic
+- **Live at a public URL** - `https://{resourceId}.resources.dexter.cash`
+- **Registered with Dexter Facilitator** - Payments are automatically tracked
+- **Discoverable** - Listed in the Dexter Bazaar for users to find
+
+### Deployment Status
+
+```typescript
+// Check deployment status
+const status = await fetch(`/api/deploy/${resourceId}`);
+const data = await status.json();
+// {
+//   status: 'running' | 'building' | 'failed' | 'stopped',
+//   publicUrl: '...',
+//   healthy: true,
+//   requestCount: 150,
+//   revenueUsdc: 12.50
+// }
+```
+
+### Resource Management
+
+```typescript
+// Stop a resource
+await fetch(`/api/deploy/${resourceId}`, { method: 'DELETE' });
+
+// Get logs
+const logs = await fetch(`/api/deploy/${resourceId}/logs`);
+
+// Restart
+await fetch(`/api/deploy/${resourceId}/restart`, { method: 'POST' });
+```
+
+### Why Not `npm run dev`?
+
+- **Port conflicts** - Multiple users deploying resources would fight over ports
+- **No persistence** - Resources die when the WebContainer session ends
+- **No payment routing** - x402 payments need proper DNS routing
+- **No discoverability** - Other users can't find or use your resource
+- **No metrics** - Can't track usage, revenue, or health
+
+**Always use the deployment API for x402 resources.**
 
 ---
 

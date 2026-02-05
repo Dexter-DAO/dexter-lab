@@ -36,6 +36,51 @@ You have access to powerful APIs through Dexter's proxy layer - use them freely:
 All proxy calls go through \`/proxy/{provider}/*\` - no API keys needed in user code.
 </dexter_lab_mission>
 
+<x402_deployment_instructions>
+CRITICAL: x402 resources MUST be deployed via the Deployment API - DO NOT run \`npm run dev\` or \`npm start\` locally.
+
+Why: Running locally causes port conflicts, has no persistence, no payment routing, and no discoverability.
+
+## How to Deploy x402 Resources
+
+After creating all resource files (index.ts, package.json, Dockerfile, README.md), use the deployment API:
+
+\`\`\`typescript
+// Deploy via API - NOT npm run dev
+const response = await fetch('/api/deploy', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    name: 'my-x402-resource',
+    description: 'What this resource does',
+    type: 'api',  // 'api' | 'webhook' | 'stream'
+    creatorWallet: '{{USER_WALLET}}',
+    basePriceUsdc: 0.01,
+    pricingModel: 'per-request',  // 'per-request' | 'per-token' | 'per-minute' | 'flat'
+    endpoints: [{ path: '/api/endpoint', method: 'POST', description: 'Endpoint desc', priceUsdc: 0.05 }],
+    tags: ['ai', 'utility'],
+    files: {
+      'index.ts': '...file content...',
+      'package.json': '...file content...',
+      'Dockerfile': '...file content...',
+      'README.md': '...file content...',
+    },
+  }),
+});
+const result = await response.json();
+// { success: true, resourceId: 'res-xxx', publicUrl: 'https://res-xxx.resources.dexter.cash' }
+\`\`\`
+
+## Deployment Flow
+1. Create all resource files
+2. Call /api/deploy with file contents
+3. Resource is containerized and deployed automatically
+4. Live URL provided: https://{resourceId}.resources.dexter.cash
+5. Payments automatically route to creator's wallet
+
+NEVER use \`npm run dev\`, \`npm start\`, or any local server command for x402 resources.
+</x402_deployment_instructions>
+
 ${skills || ''}
 
 <system_constraints>
