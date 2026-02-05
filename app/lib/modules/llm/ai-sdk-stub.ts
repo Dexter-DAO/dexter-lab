@@ -183,7 +183,7 @@ export async function streamText(options: StreamTextOptions): Promise<{
   textStream: ReadableStream<string>;
   fullStream: AsyncIterable<StreamPart>;
   text: Promise<string>;
-  mergeIntoDataStream: (stream: unknown) => void;
+  mergeIntoDataStream: (stream: DataStreamWriter) => void;
 }> {
   const {
     model,
@@ -305,11 +305,43 @@ export async function streamText(options: StreamTextOptions): Promise<{
     textStream,
     fullStream: createFullStream(),
     text: textPromise,
-    mergeIntoDataStream: () => {
-      /*
-       * This would merge into a Vercel AI SDK data stream
-       * For now, this is a no-op since we're using direct streaming
-       */
+
+    /**
+     * Merge the text stream into a Vercel AI SDK-style data stream
+     * This writes text deltas as SSE events for real-time streaming to the frontend
+     *
+     * Format: { type: 'text', content: 'chunk' } - matches useChat hook expectations
+     */
+    mergeIntoDataStream: (dataStream: DataStreamWriter) => {
+      // Create a background async task to pipe the stream
+      (async () => {
+        try {
+          const reader = textStream.getReader();
+
+          while (true) {
+            const { done, value } = await reader.read();
+
+            if (done) {
+              break;
+            }
+
+            /*
+             * Write each text chunk - format matches what useChat hook expects
+             * useChat parses: if (parsed.type === 'text') { assistantContent += parsed.content; }
+             */
+            dataStream.writeData({
+              type: 'text',
+              content: value,
+            });
+          }
+        } catch (error) {
+          // Write error to stream - useChat parses: else if (parsed.type === 'error')
+          dataStream.writeData({
+            type: 'error',
+            content: error instanceof Error ? error.message : String(error),
+          });
+        }
+      })();
     },
   };
 }

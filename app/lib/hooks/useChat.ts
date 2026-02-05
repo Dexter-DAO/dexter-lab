@@ -7,12 +7,42 @@
  */
 
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { flushSync } from 'react-dom';
 import type { Message } from '~/types/chat';
 import { generateId } from '~/types/chat';
 import type { JSONValue } from '~/types/json';
 import { createScopedLogger } from '~/utils/logger';
 
 const chatHookLogger = createScopedLogger('useChat');
+
+/**
+ * Throttle function for streaming updates
+ * Ensures UI updates happen at a reasonable rate for smooth animation
+ */
+function createThrottledUpdater(updateFn: (content: string) => void, minInterval = 16) {
+  let lastUpdate = 0;
+  let pendingContent = '';
+  let rafId: number | null = null;
+
+  return (content: string) => {
+    pendingContent = content;
+
+    const now = Date.now();
+
+    if (now - lastUpdate >= minInterval) {
+      // Immediate update if enough time has passed
+      lastUpdate = now;
+      updateFn(pendingContent);
+    } else if (!rafId) {
+      // Schedule update on next animation frame
+      rafId = requestAnimationFrame(() => {
+        rafId = null;
+        lastUpdate = Date.now();
+        updateFn(pendingContent);
+      });
+    }
+  };
+}
 
 /**
  * Response metadata from chat completion
@@ -236,16 +266,26 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
         let assistantContent = '';
         const assistantMessageId = generateId();
 
-        // Add placeholder assistant message
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: assistantMessageId,
-            role: 'assistant',
-            content: '',
-            createdAt: new Date(),
-          },
-        ]);
+        // Add placeholder assistant message with flushSync for immediate render
+        flushSync(() => {
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: assistantMessageId,
+              role: 'assistant',
+              content: '',
+              createdAt: new Date(),
+            },
+          ]);
+        });
+
+        // Create throttled updater for smooth streaming animation (~60fps)
+        const throttledUpdate = createThrottledUpdater((content: string) => {
+          setMessages((prev) => prev.map((m) => (m.id === assistantMessageId ? { ...m, content } : m)));
+        }, 16); // 16ms = ~60fps
+
+        // Buffer for partial SSE lines
+        let sseBuffer = '';
 
         while (true) {
           const { done, value } = await reader.read();
@@ -254,8 +294,15 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
             break;
           }
 
+          // Decode chunk and add to buffer
           const chunk = decoder.decode(value, { stream: true });
-          const lines = chunk.split('\n');
+          sseBuffer += chunk;
+
+          // Process complete lines from buffer
+          const lines = sseBuffer.split('\n');
+
+          // Keep the last potentially incomplete line in buffer
+          sseBuffer = lines.pop() || '';
 
           for (const line of lines) {
             if (line.startsWith('data: ')) {
@@ -271,18 +318,20 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
                 // Handle different message types
                 if (parsed.type === 'text') {
                   assistantContent += parsed.content;
-                  setMessages((prev) =>
-                    prev.map((m) => (m.id === assistantMessageId ? { ...m, content: assistantContent } : m)),
-                  );
+
+                  // Use throttled updater for smooth streaming display
+                  throttledUpdate(assistantContent);
                 } else if (parsed.type === 'system' && parsed.sessionId) {
                   sessionIdRef.current = parsed.sessionId;
                 } else if (parsed.type === 'final' && parsed.result) {
-                  // Update with final result
+                  // Final update - use flushSync for immediate render
                   if (parsed.result.result) {
                     assistantContent = parsed.result.result;
-                    setMessages((prev) =>
-                      prev.map((m) => (m.id === assistantMessageId ? { ...m, content: assistantContent } : m)),
-                    );
+                    flushSync(() => {
+                      setMessages((prev) =>
+                        prev.map((m) => (m.id === assistantMessageId ? { ...m, content: assistantContent } : m)),
+                      );
+                    });
                   }
 
                   sessionIdRef.current = parsed.result.sessionId;
@@ -308,6 +357,26 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
             }
           }
         }
+
+        // Ensure final content is displayed (process any remaining buffer)
+        if (sseBuffer.startsWith('data: ')) {
+          try {
+            const parsed = JSON.parse(sseBuffer.slice(6));
+
+            if (parsed.type === 'text') {
+              assistantContent += parsed.content;
+            }
+          } catch {
+            // Ignore
+          }
+        }
+
+        // Final sync to ensure all content is displayed
+        flushSync(() => {
+          setMessages((prev) =>
+            prev.map((m) => (m.id === assistantMessageId ? { ...m, content: assistantContent } : m)),
+          );
+        });
 
         // Call onFinish with the final assistant message and response meta
         const finalMessage: Message = {

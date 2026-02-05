@@ -451,8 +451,11 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
       headers: {
         'Content-Type': 'text/event-stream; charset=utf-8',
         Connection: 'keep-alive',
-        'Cache-Control': 'no-cache',
-        'Text-Encoding': 'chunked',
+        'Cache-Control': 'no-cache, no-transform',
+        'Transfer-Encoding': 'chunked',
+
+        // Critical: Prevent Nginx/proxy buffering for real-time SSE
+        'X-Accel-Buffering': 'no',
       },
     });
   } catch (error: any) {
