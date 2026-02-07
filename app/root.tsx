@@ -17,6 +17,9 @@ import xtermStyles from '@xterm/xterm/css/xterm.css?url';
 
 import 'virtual:uno.css';
 
+// Initialize Reown AppKit (wallet connection)
+import '~/lib/wallet/appkit';
+
 const toastAnimation = cssTransition({
   enter: 'animated fadeInRight',
   exit: 'animated fadeOutRight',
@@ -113,6 +116,18 @@ export function Layout({ children }: { children: React.ReactNode }) {
 }
 
 import { logStore } from './lib/stores/logs';
+import { useWalletSync } from './lib/hooks/useWalletSync';
+
+/**
+ * Isolated wallet sync component.
+ * Renders nothing -- just syncs AppKit state with nanostore.
+ * Separated so its re-renders don't cascade to the entire app tree.
+ */
+function WalletSync() {
+  useWalletSync();
+
+  return null;
+}
 
 export default function App() {
   const theme = useStore(themeStore);
@@ -146,6 +161,7 @@ export default function App() {
 
   return (
     <Layout>
+      <ClientOnly>{() => <WalletSync />}</ClientOnly>
       <Outlet />
     </Layout>
   );

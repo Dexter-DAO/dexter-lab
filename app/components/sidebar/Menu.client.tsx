@@ -4,7 +4,7 @@ import { toast } from 'react-toastify';
 import { Dialog, DialogButton, DialogDescription, DialogRoot, DialogTitle } from '~/components/ui/Dialog';
 import { ThemeSwitch } from '~/components/ui/ThemeSwitch';
 import { ControlPanel } from '~/components/@settings/core/ControlPanel';
-import { SettingsButton, HelpButton } from '~/components/ui/SettingsButton';
+import { SettingsButton } from '~/components/ui/SettingsButton';
 import { Button } from '~/components/ui/Button';
 import { db, deleteById, getAll, chatId, type ChatHistoryItem, useChatHistory } from '~/lib/persistence';
 import { cubicEasingFn } from '~/utils/easings';
@@ -13,7 +13,9 @@ import { binDates } from './date-binning';
 import { useSearchFilter } from '~/lib/hooks/useSearchFilter';
 import { classNames } from '~/utils/classNames';
 import { useStore } from '@nanostores/react';
-import { profileStore } from '~/lib/stores/profile';
+import { $sidebarOpen, closeSidebar } from '~/lib/stores/sidebar';
+import { $walletAddress, $walletDisplay, $walletConnected } from '~/lib/stores/wallet';
+import { useAppKit } from '@reown/appkit/react';
 
 const menuVariants = {
   closed: {
@@ -67,10 +69,13 @@ export const Menu = () => {
   const { duplicateCurrentChat, exportChat } = useChatHistory();
   const menuRef = useRef<HTMLDivElement>(null);
   const [list, setList] = useState<ChatHistoryItem[]>([]);
-  const [open, setOpen] = useState(false);
+  const open = useStore($sidebarOpen);
   const [dialogContent, setDialogContent] = useState<DialogContent>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const profile = useStore(profileStore);
+  const walletAddress = useStore($walletAddress);
+  const walletDisplay = useStore($walletDisplay);
+  const walletConnected = useStore($walletConnected);
+  const appKit = useAppKit();
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
 
@@ -278,30 +283,33 @@ export const Menu = () => {
     }
   }, [open, selectionMode]);
 
+  /*
+   * Click outside to dismiss sidebar.
+   * Only active when sidebar is open and settings panel is closed.
+   */
   useEffect(() => {
-    const enterThreshold = 20;
-    const exitThreshold = 20;
+    if (!open || isSettingsOpen) {
+      return;
+    }
 
-    function onMouseMove(event: MouseEvent) {
-      if (isSettingsOpen) {
-        return;
-      }
-
-      if (event.pageX < enterThreshold) {
-        setOpen(true);
-      }
-
-      if (menuRef.current && event.clientX > menuRef.current.getBoundingClientRect().right + exitThreshold) {
-        setOpen(false);
+    function onClickOutside(event: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        closeSidebar();
       }
     }
 
-    window.addEventListener('mousemove', onMouseMove);
+    /*
+     * Use a short delay so the toggle click doesn't immediately close.
+     */
+    const timer = setTimeout(() => {
+      document.addEventListener('mousedown', onClickOutside);
+    }, 50);
 
     return () => {
-      window.removeEventListener('mousemove', onMouseMove);
+      clearTimeout(timer);
+      document.removeEventListener('mousedown', onClickOutside);
     };
-  }, [isSettingsOpen]);
+  }, [open, isSettingsOpen]);
 
   const handleDuplicate = async (id: string) => {
     await duplicateCurrentChat(id);
@@ -310,7 +318,7 @@ export const Menu = () => {
 
   const handleSettingsClick = () => {
     setIsSettingsOpen(true);
-    setOpen(false);
+    closeSidebar();
   };
 
   const handleSettingsClose = () => {
@@ -338,26 +346,35 @@ export const Menu = () => {
         )}
       >
         <div className="h-12 flex items-center justify-between px-4 border-b border-gray-100 dark:border-gray-800/50 bg-gray-50/50 dark:bg-gray-900/50 rounded-tr-2xl">
-          <div className="text-gray-900 dark:text-white font-medium"></div>
-          <div className="flex items-center gap-3">
-            <HelpButton onClick={() => window.open('https://stackblitz-labs.github.io/bolt.diy/', '_blank')} />
-            <span className="font-medium text-sm text-gray-900 dark:text-white truncate">
-              {profile?.username || 'Guest User'}
-            </span>
-            <div className="flex items-center justify-center w-[32px] h-[32px] overflow-hidden bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-500 rounded-full shrink-0">
-              {profile?.avatar ? (
-                <img
-                  src={profile.avatar}
-                  alt={profile?.username || 'User'}
-                  className="w-full h-full object-cover"
-                  loading="eager"
-                  decoding="sync"
-                />
-              ) : (
-                <div className="i-ph:user-fill text-lg" />
-              )}
-            </div>
+          <div className="flex items-center gap-2">
+            {walletConnected ? (
+              <button
+                onClick={() => appKit.open()}
+                style={{ background: 'rgba(16,185,129,0.1)' }}
+                className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-emerald-400 hover:bg-emerald-500/20 transition-colors text-sm"
+              >
+                <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                <span className="font-medium">{walletDisplay}</span>
+              </button>
+            ) : (
+              <button
+                onClick={() => appKit.open()}
+                style={{ color: '#a3a3a3', background: 'none' }}
+                className="flex items-center gap-2 px-3 py-1.5 hover:text-orange-400 transition-colors text-sm"
+              >
+                <div className="i-ph:wallet text-base" />
+                <span className="font-medium">Connect</span>
+              </button>
+            )}
           </div>
+          <button
+            onClick={() => closeSidebar()}
+            style={{ color: '#737373', background: 'none' }}
+            className="flex items-center justify-center w-8 h-8 rounded-lg hover:text-white hover:bg-white/10 transition-colors"
+            aria-label="Close sidebar"
+          >
+            <div className="i-ph:x text-lg" />
+          </button>
         </div>
         <CurrentDateTime />
         <div className="flex-1 flex flex-col h-full w-full overflow-hidden">

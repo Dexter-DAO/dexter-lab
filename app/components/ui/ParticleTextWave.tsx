@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useCallback, useState } from 'react';
+import { useEffect, useRef, useCallback, useState, memo } from 'react';
 
 interface ParticleTextWaveProps {
   text: string;
@@ -60,7 +60,7 @@ function interpolateColor(colors: string[], t: number): string {
   return `rgb(${r}, ${g}, ${b})`;
 }
 
-export default function ParticleTextWave({
+export default memo(function ParticleTextWave({
   text,
   fontSize = 72,
   fontFamily = 'Orbitron, system-ui, sans-serif',
@@ -498,4 +498,4 @@ export default function ParticleTextWave({
       <canvas ref={canvasRef} aria-hidden="true" style={{ display: 'block', maxWidth: '100%', height: 'auto' }} />
     </div>
   );
-}
+});

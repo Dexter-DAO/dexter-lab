@@ -2,6 +2,46 @@ import { globSync } from 'fast-glob';
 import fs from 'node:fs/promises';
 import { basename } from 'node:path';
 import { defineConfig, presetIcons, presetUno, transformerDirectives } from 'unocss';
+import { getIconData, iconToSVG, iconToHTML } from '@iconify/utils';
+import { createRequire } from 'node:module';
+import { readFileSync } from 'node:fs';
+
+const require = createRequire(import.meta.url);
+
+/**
+ * Load an @iconify-json collection and convert it to the
+ * Record<string, string> format that UnoCSS presetIcons expects.
+ */
+function loadIconifyCollection(packageName: string): Record<string, string> {
+  const data = JSON.parse(readFileSync(require.resolve(`${packageName}/icons.json`), 'utf8'));
+  const result: Record<string, string> = {};
+
+  for (const name of Object.keys(data.icons)) {
+    const iconData = getIconData(data, name);
+
+    if (iconData) {
+      const rendered = iconToSVG(iconData);
+      result[name] = iconToHTML(rendered.body, rendered.attributes);
+    }
+  }
+
+  // Also resolve aliases
+  if (data.aliases) {
+    for (const name of Object.keys(data.aliases)) {
+      const iconData = getIconData(data, name);
+
+      if (iconData) {
+        const rendered = iconToSVG(iconData);
+        result[name] = iconToHTML(rendered.body, rendered.attributes);
+      }
+    }
+  }
+
+  return result;
+}
+
+const phIcons = loadIconifyCollection('@iconify-json/ph');
+const svgSpinnerIcons = loadIconifyCollection('@iconify-json/svg-spinners');
 
 const iconPaths = globSync('./icons/*.svg');
 
@@ -98,7 +138,23 @@ const COLOR_PRIMITIVES = {
 };
 
 export default defineConfig({
-  safelist: [...Object.keys(customIconCollection[collectionName] || {}).map((x) => `i-bolt:${x}`)],
+  safelist: [
+    ...Object.keys(customIconCollection[collectionName] || {}).map((x) => `i-bolt:${x}`),
+    // Phosphor icons used in header, sidebar, and throughout the app
+    'i-ph:sidebar-simple-duotone',
+    'i-ph:wallet',
+    'i-ph:x',
+    'i-ph:plus-circle',
+    'i-ph:check-square',
+    'i-ph:magnifying-glass',
+    'i-ph:clock',
+    'i-ph:user-fill',
+    'i-ph:check-bold',
+    'i-ph:warning-circle-bold',
+    'i-ph:bug',
+    'i-ph:download',
+    'i-ph:clipboard-text',
+  ],
   shortcuts: {
     'bolt-ease-cubic-bezier': 'ease-[cubic-bezier(0.4,0,0.2,1)]',
     'transition-theme': 'transition-[background-color,border-color,color] duration-150 bolt-ease-cubic-bezier',
@@ -241,6 +297,8 @@ export default defineConfig({
       warn: true,
       collections: {
         ...customIconCollection,
+        ph: phIcons,
+        'svg-spinners': svgSpinnerIcons,
       },
       unit: 'em',
     }),

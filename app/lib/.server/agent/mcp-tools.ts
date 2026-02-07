@@ -500,6 +500,22 @@ The resource will be deployed at: https://{resourceId}.dexter.cash`,
                 durationMs,
               });
 
+              /*
+               * Special handling for wallet_required: guide the user to connect
+               * instead of showing a generic deployment error.
+               */
+              if (result.error === 'wallet_required') {
+                return {
+                  content: [
+                    {
+                      type: 'text' as const,
+                      text: `Your resource is ready to deploy, but you need to connect your wallet first.\n\nClick the **Connect** button in the top-right corner of the page to link your Solana wallet, then I'll deploy it for you.`,
+                    },
+                  ],
+                  isError: true,
+                };
+              }
+
               return {
                 content: [
                   {

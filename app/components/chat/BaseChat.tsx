@@ -35,6 +35,7 @@ import { LandingContent } from '~/components/landing/LandingContent';
 import ParticleTextWave from '~/components/ui/ParticleTextWave';
 
 const TEXTAREA_MIN_HEIGHT = 76;
+const DEXTER_LAB_GRADIENT = ['#FF8C00', '#FFB42C', '#FFE082'];
 
 interface BaseChatProps {
   textareaRef?: React.RefObject<HTMLTextAreaElement> | undefined;
@@ -366,7 +367,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                     particleSize={1.8}
                     waveRadius={180}
                     waveAmplitude={10}
-                    secondaryGradientColors={['#FF8C00', '#FFB42C', '#FFE082']}
+                    secondaryGradientColors={DEXTER_LAB_GRADIENT}
                     className="mx-auto"
                   />
                 </div>
