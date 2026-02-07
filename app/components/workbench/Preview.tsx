@@ -813,7 +813,7 @@ export const Preview = memo(({ setSelectedElement }: PreviewProps) => {
                         <span className="text-xs text-bolt-elements-textTertiary">Show Device Frame</span>
                         <button
                           className={`w-10 h-5 rounded-full transition-colors duration-200 ${
-                            showDeviceFrame ? 'bg-[#6D28D9]' : 'bg-gray-300 dark:bg-gray-700'
+                            showDeviceFrame ? 'bg-[#F26B1A]' : 'bg-gray-300 dark:bg-gray-700'
                           } relative`}
                           onClick={(e) => {
                             e.stopPropagation();
@@ -831,7 +831,7 @@ export const Preview = memo(({ setSelectedElement }: PreviewProps) => {
                         <span className="text-xs text-bolt-elements-textTertiary">Landscape Mode</span>
                         <button
                           className={`w-10 h-5 rounded-full transition-colors duration-200 ${
-                            isLandscape ? 'bg-[#6D28D9]' : 'bg-gray-300 dark:bg-gray-700'
+                            isLandscape ? 'bg-[#F26B1A]' : 'bg-gray-300 dark:bg-gray-700'
                           } relative`}
                           onClick={(e) => {
                             e.stopPropagation();
@@ -858,13 +858,13 @@ export const Preview = memo(({ setSelectedElement }: PreviewProps) => {
                       }}
                     >
                       <div
-                        className={`${size.icon} w-5 h-5 text-[#6B7280] dark:text-gray-400 group-hover:text-[#6D28D9] dark:group-hover:text-[#6D28D9] transition-colors duration-200`}
+                        className={`${size.icon} w-5 h-5 text-[#6B7280] dark:text-gray-400 group-hover:text-[#F26B1A] dark:group-hover:text-[#F26B1A] transition-colors duration-200`}
                       />
                       <div className="flex-grow flex flex-col">
-                        <span className="font-medium group-hover:text-[#6D28D9] dark:group-hover:text-[#6D28D9] transition-colors duration-200">
+                        <span className="font-medium group-hover:text-[#F26B1A] dark:group-hover:text-[#F26B1A] transition-colors duration-200">
                           {size.name}
                         </span>
-                        <span className="text-xs text-[#6B7280] dark:text-gray-400 group-hover:text-[#6D28D9] dark:group-hover:text-[#6D28D9] transition-colors duration-200">
+                        <span className="text-xs text-[#6B7280] dark:text-gray-400 group-hover:text-[#F26B1A] dark:group-hover:text-[#F26B1A] transition-colors duration-200">
                           {isLandscape && (size.frameType === 'mobile' || size.frameType === 'tablet')
                             ? `${size.height} × ${size.width}`
                             : `${size.width} × ${size.height}`}
@@ -872,7 +872,7 @@ export const Preview = memo(({ setSelectedElement }: PreviewProps) => {
                         </span>
                       </div>
                       {selectedWindowSize.name === size.name && (
-                        <div className="text-[#6D28D9] dark:text-[#6D28D9]">
+                        <div className="text-[#F26B1A] dark:text-[#F26B1A]">
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
                             width="16"

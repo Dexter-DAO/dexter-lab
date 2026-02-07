@@ -6,9 +6,9 @@ export interface DesignScheme {
 
 export const defaultDesignScheme: DesignScheme = {
   palette: {
-    primary: '#9E7FFF',
-    secondary: '#38bdf8',
-    accent: '#f472b6',
+    primary: '#F26B1A',
+    secondary: '#FF6B00',
+    accent: '#FFB42C',
     background: '#171717',
     surface: '#262626',
     text: '#FFFFFF',
