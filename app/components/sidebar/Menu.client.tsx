@@ -16,6 +16,7 @@ import { useStore } from '@nanostores/react';
 import { $sidebarOpen, closeSidebar } from '~/lib/stores/sidebar';
 import { $walletAddress, $walletDisplay, $walletConnected } from '~/lib/stores/wallet';
 import { useAppKit } from '@reown/appkit/react';
+import { ResourceList } from './ResourceList';
 
 const menuVariants = {
   closed: {
@@ -413,6 +414,7 @@ export const Menu = () => {
               />
             </div>
           </div>
+          <ResourceList />
           <div className="flex items-center justify-between text-sm px-4 py-2">
             <div className="font-medium text-gray-600 dark:text-gray-400">Your Chats</div>
             {selectionMode && (
