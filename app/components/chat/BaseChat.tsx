@@ -32,6 +32,7 @@ import type { DesignScheme } from '~/types/design-scheme';
 import type { ElementInfo } from '~/components/workbench/Inspector';
 import LlmErrorAlert from './LLMApiAlert';
 import { LandingContent } from '~/components/landing/LandingContent';
+import ParticleTextWave from '~/components/ui/ParticleTextWave';
 
 const TEXTAREA_MIN_HEIGHT = 76;
 
@@ -349,22 +350,25 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           <div
             className={classNames(styles.Chat, 'flex flex-col flex-grow lg:min-w-[var(--chat-min-width)]', {
               'h-full': chatStarted,
-              'overflow-y-auto': !chatStarted,
+              'overflow-y-auto overflow-x-hidden modern-scrollbar': !chatStarted,
             })}
           >
             {!chatStarted && (
-              <div id="intro" className="mt-[10vh] max-w-2xl mx-auto text-center px-4 lg:px-0">
-                <div className="flex justify-center mb-5 animate-fade-in">
-                  <div className="relative">
-                    <img src="/logo.svg" alt="Dexter" className="w-14 h-14 lg:w-18 lg:h-18 relative z-10" />
-                    <div
-                      className="absolute inset-0 rounded-full opacity-40 blur-xl z-0"
-                      style={{
-                        background: 'radial-gradient(circle, rgba(242, 107, 26, 0.6) 0%, transparent 70%)',
-                        animation: 'pulse 3s ease-in-out infinite',
-                      }}
-                    />
-                  </div>
+              <div id="intro" className="mt-[6vh] max-w-2xl mx-auto text-center px-4 lg:px-0">
+                <div
+                  className="flex justify-center mb-0 animate-fade-in"
+                  style={{ marginTop: '-2rem', marginBottom: '-2.5rem' }}
+                >
+                  <ParticleTextWave
+                    text="DEXTER LAB"
+                    fontSize={64}
+                    particleGap={3}
+                    particleSize={1.8}
+                    waveRadius={180}
+                    waveAmplitude={10}
+                    secondaryGradientColors={['#FF8C00', '#FFB42C', '#FFE082']}
+                    className="mx-auto"
+                  />
                 </div>
                 <h1
                   className="font-display text-3xl lg:text-5xl font-extrabold mb-3 animate-fade-in tracking-tight"
