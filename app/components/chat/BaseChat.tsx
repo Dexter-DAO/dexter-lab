@@ -31,6 +31,7 @@ import { ChatBox } from './ChatBox';
 import type { DesignScheme } from '~/types/design-scheme';
 import type { ElementInfo } from '~/components/workbench/Inspector';
 import LlmErrorAlert from './LLMApiAlert';
+import { LandingContent } from '~/components/landing/LandingContent';
 
 const TEXTAREA_MIN_HEIGHT = 76;
 
@@ -345,7 +346,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       >
         <ClientOnly>{() => <Menu />}</ClientOnly>
         <div className="flex flex-col lg:flex-row overflow-y-auto w-full h-full">
-          <div className={classNames(styles.Chat, 'flex flex-col flex-grow lg:min-w-[var(--chat-min-width)] h-full')}>
+          <div
+            className={classNames(styles.Chat, 'flex flex-col flex-grow lg:min-w-[var(--chat-min-width)]', {
+              'h-full': chatStarted,
+              'overflow-y-auto': !chatStarted,
+            })}
+          >
             {!chatStarted && (
               <div id="intro" className="mt-[10vh] max-w-2xl mx-auto text-center px-4 lg:px-0">
                 <div className="flex justify-center mb-5 animate-fade-in">
@@ -361,7 +367,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   </div>
                 </div>
                 <h1
-                  className="text-3xl lg:text-5xl font-extrabold mb-3 animate-fade-in tracking-tight"
+                  className="font-display text-3xl lg:text-5xl font-extrabold mb-3 animate-fade-in tracking-tight"
                   style={{
                     background: 'linear-gradient(130deg, #d13f00 0%, #ff6b00 42%, #ffb42c 100%)',
                     WebkitBackgroundClip: 'text',
@@ -497,6 +503,18 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 />
               </div>
             </StickToBottom>
+            {!chatStarted && (
+              <LandingContent
+                sendMessage={(event, messageInput) => {
+                  if (isStreaming) {
+                    handleStop?.();
+                    return;
+                  }
+
+                  handleSendMessage?.(event, messageInput);
+                }}
+              />
+            )}
             <div className="flex flex-col justify-center"></div>
           </div>
           <ClientOnly>

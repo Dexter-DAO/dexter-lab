@@ -42,9 +42,9 @@ export function ExamplePrompts({ sendMessage }: ExamplePromptsProps) {
       <button
         onClick={handleClick}
         className={`
-          border border-bolt-elements-borderColor rounded-full
+          border border-accent-500/25 hover:border-accent-500/50 rounded-full
           bg-gray-50 hover:bg-gray-100 dark:bg-gray-950 dark:hover:bg-gray-900
-          text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary
+          text-bolt-elements-textSecondary hover:text-accent-500
           px-4 py-1.5 text-xs
           transition-all duration-300 ease-in-out cursor-pointer
           ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-1'}
