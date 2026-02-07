@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 
 const EXAMPLE_PROMPTS = [
   { text: 'Build me a paid API that generates dad jokes' },
@@ -9,29 +9,49 @@ const EXAMPLE_PROMPTS = [
   { text: 'Make an image generation API with DALL-E' },
 ];
 
-export function ExamplePrompts(sendMessage?: { (event: React.UIEvent, messageInput?: string): void | undefined }) {
+interface ExamplePromptsProps {
+  sendMessage?: (event: React.UIEvent, messageInput?: string) => void;
+}
+
+export function ExamplePrompts({ sendMessage }: ExamplePromptsProps) {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isVisible, setIsVisible] = useState(true);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setIsVisible(false);
+
+      setTimeout(() => {
+        setCurrentIndex((prev) => (prev + 1) % EXAMPLE_PROMPTS.length);
+        setIsVisible(true);
+      }, 400);
+    }, 4000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleClick = useCallback(
+    (event: React.MouseEvent) => {
+      sendMessage?.(event, EXAMPLE_PROMPTS[currentIndex].text);
+    },
+    [sendMessage, currentIndex],
+  );
+
   return (
-    <div id="examples" className="relative flex flex-col gap-9 w-full max-w-3xl mx-auto flex justify-center mt-6">
-      <div
-        className="flex flex-wrap justify-center gap-2"
-        style={{
-          animation: '.25s ease-out 0s 1 _fade-and-move-in_g2ptj_1 forwards',
-        }}
+    <div className="flex justify-center w-full max-w-2xl mx-auto mb-3">
+      <button
+        onClick={handleClick}
+        className={`
+          border border-bolt-elements-borderColor rounded-full
+          bg-gray-50 hover:bg-gray-100 dark:bg-gray-950 dark:hover:bg-gray-900
+          text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary
+          px-4 py-1.5 text-xs
+          transition-all duration-300 ease-in-out cursor-pointer
+          ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-1'}
+        `}
       >
-        {EXAMPLE_PROMPTS.map((examplePrompt, index: number) => {
-          return (
-            <button
-              key={index}
-              onClick={(event) => {
-                sendMessage?.(event, examplePrompt.text);
-              }}
-              className="border border-bolt-elements-borderColor rounded-full bg-gray-50 hover:bg-gray-100 dark:bg-gray-950 dark:hover:bg-gray-900 text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary px-3 py-1 text-xs transition-theme"
-            >
-              {examplePrompt.text}
-            </button>
-          );
-        })}
-      </div>
+        {EXAMPLE_PROMPTS[currentIndex].text}
+      </button>
     </div>
   );
 }

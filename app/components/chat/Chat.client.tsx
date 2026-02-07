@@ -521,6 +521,13 @@ export const ChatImpl = memo(
 
               setMessages(messagesToSet);
 
+              /*
+               * Wait for React to flush the setMessages state update before calling reload.
+               * reload() reads from the messages state - if called synchronously after setMessages,
+               * it sees 0 messages and fails with "No user message found to reload".
+               */
+              await new Promise((resolve) => setTimeout(resolve, 150));
+
               const reloadOptions =
                 uploadedFiles.length > 0
                   ? { experimental_attachments: await filesToAttachments(uploadedFiles) }

@@ -15,11 +15,8 @@ import { getApiKeysFromCookies } from './APIKeyManager';
 import Cookies from 'js-cookie';
 import * as Tooltip from '@radix-ui/react-tooltip';
 import styles from './BaseChat.module.scss';
-import { ImportButtons } from '~/components/chat/chatExportAndImport/ImportButtons';
 import { ExamplePrompts } from '~/components/chat/ExamplePrompts';
-import GitCloneButton from './GitCloneButton';
 import type { ProviderInfo } from '~/types/model';
-import StarterTemplates from './StarterTemplates';
 import type { ActionAlert, SupabaseAlert, DeployAlert, LlmErrorAlertType } from '~/types/actions';
 import DeployChatAlert from '~/components/deploy/DeployAlert';
 import ChatAlert from './ChatAlert';
@@ -105,7 +102,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       enhancePrompt,
       sendMessage,
       handleStop,
-      importChat,
+      importChat: _importChat,
       exportChat,
       uploadedFiles = [],
       setUploadedFiles,
@@ -350,13 +347,31 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         <div className="flex flex-col lg:flex-row overflow-y-auto w-full h-full">
           <div className={classNames(styles.Chat, 'flex flex-col flex-grow lg:min-w-[var(--chat-min-width)] h-full')}>
             {!chatStarted && (
-              <div id="intro" className="mt-[16vh] max-w-2xl mx-auto text-center px-4 lg:px-0">
+              <div id="intro" className="mt-[12vh] max-w-2xl mx-auto text-center px-4 lg:px-0">
+                <div className="flex justify-center mb-6 animate-fade-in">
+                  <img
+                    src="/logo.svg"
+                    alt="Dexter"
+                    className="w-16 h-16 lg:w-20 lg:h-20 animate-pulse"
+                    style={{ animationDuration: '3s' }}
+                  />
+                </div>
                 <h1 className="text-3xl lg:text-6xl font-bold text-bolt-elements-textPrimary mb-4 animate-fade-in">
-                  Build paid APIs in seconds
+                  What do you want to monetize?
                 </h1>
-                <p className="text-md lg:text-xl mb-8 text-bolt-elements-textSecondary animate-fade-in animation-delay-200">
-                  Create, deploy, and monetize x402 resources that accept USDC micropayments.
+                <p className="text-md lg:text-xl mb-4 text-bolt-elements-textSecondary animate-fade-in animation-delay-200">
+                  Describe your idea and Dexter will build, deploy, and monetize it as a paid API with x402.
                 </p>
+                <ExamplePrompts
+                  sendMessage={(event, messageInput) => {
+                    if (isStreaming) {
+                      handleStop?.();
+                      return;
+                    }
+
+                    handleSendMessage?.(event, messageInput);
+                  }}
+                />
               </div>
             )}
             <StickToBottom
@@ -469,26 +484,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 />
               </div>
             </StickToBottom>
-            <div className="flex flex-col justify-center">
-              {!chatStarted && (
-                <div className="flex justify-center gap-2">
-                  {ImportButtons(importChat)}
-                  <GitCloneButton importChat={importChat} />
-                </div>
-              )}
-              <div className="flex flex-col gap-5">
-                {!chatStarted &&
-                  ExamplePrompts((event, messageInput) => {
-                    if (isStreaming) {
-                      handleStop?.();
-                      return;
-                    }
-
-                    handleSendMessage?.(event, messageInput);
-                  })}
-                {!chatStarted && <StarterTemplates />}
-              </div>
-            </div>
+            <div className="flex flex-col justify-center"></div>
           </div>
           <ClientOnly>
             {() => (
