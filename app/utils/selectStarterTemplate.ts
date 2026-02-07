@@ -1,32 +1,107 @@
 import ignore from 'ignore';
 import type { ProviderInfo } from '~/types/model';
+import type { Template } from '~/types/template';
 import { STARTER_TEMPLATES } from './constants';
 import { createScopedLogger } from '~/utils/logger';
 
 const templateLogger = createScopedLogger('selectStarterTemplate');
 
-export const selectStarterTemplate = async (_options: { message: string; model: string; provider: ProviderInfo }) => {
-  /*
-   * Dexter Lab is purpose-built for x402 resources.
-   * Always start blank - the AI builds from skill instructions, not web framework templates.
-   * This eliminates a wasted LLM call that would pick an irrelevant web app template.
-   */
+/**
+ * x402-focused template selection prompt.
+ * Only two choices -- Data API vs AI Resource -- so the LLM decision is fast and deterministic.
+ */
+const x402TemplateSelectionPrompt = (templates: Template[]) => `
+You help choose the right x402 resource template for a user's project.
+
+Available templates:
+${templates
+  .map(
+    (template) => `
+<template>
+  <name>${template.name}</name>
+  <description>${template.description}</description>
+  ${template.tags ? `<tags>${template.tags.join(', ')}</tags>` : ''}
+</template>
+`,
+  )
+  .join('\n')}
+
+Rules:
+- If the user wants AI, LLM, generation, chat, writing, code generation, analysis, translation, or summarization features, pick "x402 AI Resource"
+- For everything else (data serving, quotes, trivia, lookups, weather, games, content libraries, jokes, facts), pick "x402 Data API"
+- When in doubt, pick "x402 Data API" -- it's simpler and the AI can always add complexity
+
+Response Format:
+<selection>
+  <templateName>{exact template name}</templateName>
+  <title>{a short title for the resource}</title>
+</selection>
+
+Important: Respond ONLY with the selection tags. No other text.
+MOST IMPORTANT: YOU DONT HAVE TIME TO THINK JUST START RESPONDING BASED ON HUNCH
+`;
+
+const parseSelectedTemplate = (llmOutput: string): { template: string; title: string } | null => {
+  try {
+    const templateNameMatch = llmOutput.match(/<templateName>(.*?)<\/templateName>/);
+    const titleMatch = llmOutput.match(/<title>(.*?)<\/title>/);
+
+    if (!templateNameMatch) {
+      return null;
+    }
+
+    return { template: templateNameMatch[1].trim(), title: titleMatch?.[1].trim() || 'Untitled Resource' };
+  } catch (error) {
+    console.error('Error parsing template selection:', error);
+    return null;
+  }
+};
+
+export const selectStarterTemplate = async (options: { message: string; model: string; provider: ProviderInfo }) => {
+  const { message, model, provider } = options;
+
+  const requestBody = {
+    message,
+    model,
+    provider,
+    system: x402TemplateSelectionPrompt(STARTER_TEMPLATES),
+  };
+
+  try {
+    const response = await fetch('/api/llmcall', {
+      method: 'POST',
+      body: JSON.stringify(requestBody),
+    });
+    const respJson: { text: string } = await response.json();
+
+    const { text } = respJson;
+    const selectedTemplate = parseSelectedTemplate(text);
+
+    if (selectedTemplate) {
+      templateLogger.info('Selected template:', selectedTemplate.template, '| Title:', selectedTemplate.title);
+      return selectedTemplate;
+    }
+  } catch (error) {
+    templateLogger.error('Template selection failed:', error);
+  }
+
+  // Fallback to Data API (simpler scaffold)
+  templateLogger.info('Falling back to x402 Data API template');
+
   return {
-    template: 'blank',
+    template: 'x402 Data API',
     title: '',
   };
 };
 
 const getGitHubRepoContent = async (repoName: string): Promise<{ name: string; path: string; content: string }[]> => {
   try {
-    // Instead of directly fetching from GitHub, use our own API endpoint as a proxy
     const response = await fetch(`/api/github-template?repo=${encodeURIComponent(repoName)}`);
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
-    // Our API will return the files in the format we need
     const files = (await response.json()) as any;
 
     return files;
@@ -43,32 +118,55 @@ export async function getTemplates(templateName: string, title?: string) {
     return null;
   }
 
+  /*
+   * Inline files: if the template has files embedded directly, use them
+   * instead of fetching from GitHub. This is faster and avoids external deps.
+   */
+  if (template.files) {
+    const inlineFiles = Object.entries(template.files).map(([path, content]) => ({
+      name: path.split('/').pop() || path,
+      path,
+      content,
+    }));
+
+    const assistantMessage = `
+Dexter is initializing your x402 resource with the ${template.name} template.
+<boltArtifact id="imported-files" title="${title || 'Create x402 resource scaffold'}" type="bundled">
+${inlineFiles
+  .map(
+    (file) =>
+      `<boltAction type="file" filePath="${file.path}">
+${file.content}
+</boltAction>`,
+  )
+  .join('\n')}
+</boltArtifact>
+`;
+
+    const userMessage = `[CONTINUE]`;
+
+    templateLogger.info('=== INLINE TEMPLATE OUTPUT ===');
+    templateLogger.info('Template name:', template.name);
+    templateLogger.info('Files count:', inlineFiles.length);
+
+    return {
+      assistantMessage,
+      userMessage,
+    };
+  }
+
+  /*
+   * GitHub-hosted templates: fetch files from the repo.
+   * This path is kept for backwards compatibility with any future GitHub-hosted templates.
+   */
   const githubRepo = template.githubRepo;
   const files = await getGitHubRepoContent(githubRepo);
 
   let filteredFiles = files;
 
-  /*
-   * ignoring common unwanted files
-   * exclude    .git
-   */
   filteredFiles = filteredFiles.filter((x) => x.path.startsWith('.git') == false);
-
-  /*
-   * exclude    lock files
-   * WE NOW INCLUDE LOCK FILES FOR IMPROVED INSTALL TIMES
-   */
-  {
-    /*
-     *const comminLockFiles = ['package-lock.json', 'yarn.lock', 'pnpm-lock.yaml'];
-     *filteredFiles = filteredFiles.filter((x) => comminLockFiles.includes(x.name) == false);
-     */
-  }
-
-  // exclude    .bolt
   filteredFiles = filteredFiles.filter((x) => x.path.startsWith('.bolt') == false);
 
-  // check for ignore file in .bolt folder
   const templateIgnoreFile = files.find((x) => x.path.startsWith('.bolt') && x.name == 'ignore');
 
   const filesToImport = {
@@ -77,11 +175,8 @@ export async function getTemplates(templateName: string, title?: string) {
   };
 
   if (templateIgnoreFile) {
-    // redacting files specified in ignore file
     const ignorepatterns = templateIgnoreFile.content.split('\n').map((x) => x.trim());
     const ig = ignore().add(ignorepatterns);
-
-    // filteredFiles = filteredFiles.filter(x => !ig.ignores(x.path))
     const ignoredFiles = filteredFiles.filter((x) => ig.ignores(x.path));
 
     filesToImport.files = filteredFiles;
@@ -89,8 +184,8 @@ export async function getTemplates(templateName: string, title?: string) {
   }
 
   const assistantMessage = `
-Bolt is initializing your project with the required files using the ${template.name} template.
-<boltArtifact id="imported-files" title="${title || 'Create initial files'}" type="bundled">
+Dexter is initializing your x402 resource with the ${template.name} template.
+<boltArtifact id="imported-files" title="${title || 'Create x402 resource scaffold'}" type="bundled">
 ${filesToImport.files
   .map(
     (file) =>
@@ -142,20 +237,11 @@ If you need to make changes to functionality, create new files instead of modify
 `;
   }
 
-  /*
-   * Hidden continuation signal - MUST be minimal to avoid AI echoing
-   * All x402 instructions are in the SYSTEM prompt, not here
-   * Do NOT add instructions here - they will be echoed by the AI
-   */
   userMessage += `[CONTINUE]`;
 
-  templateLogger.info('=== TEMPLATE OUTPUT ===');
+  templateLogger.info('=== GITHUB TEMPLATE OUTPUT ===');
   templateLogger.info('Template name:', template.name);
-  templateLogger.info('Assistant message preview:', assistantMessage.substring(0, 200) + '...');
-  templateLogger.info('User message (full):', userMessage);
   templateLogger.info('Files count:', filesToImport.files.length);
-  templateLogger.info('Has template prompt file:', !!templatePromptFile);
-  templateLogger.info('Has ignore files:', filesToImport.ignoreFile.length > 0);
 
   return {
     assistantMessage,
