@@ -2,7 +2,6 @@ import React from 'react';
 import { ClientOnly } from 'remix-utils/client-only';
 import { classNames } from '~/utils/classNames';
 import FilePreview from './FilePreview';
-import { WalletInput } from './WalletInput';
 import { ScreenshotStateManager } from './ScreenshotStateManager';
 import { SendButton } from './SendButton.client';
 import { IconButton } from '~/components/ui/IconButton';
@@ -95,7 +94,6 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
         <rect className={classNames(styles.PromptEffectLine)} pathLength="100" strokeLinecap="round"></rect>
         <rect className={classNames(styles.PromptShine)} x="48" y="24" width="70" height="1"></rect>
       </svg>
-      <WalletInput chatStarted={props.chatStarted} />
       <FilePreview
         files={props.uploadedFiles}
         imageDataList={props.imageDataList}
