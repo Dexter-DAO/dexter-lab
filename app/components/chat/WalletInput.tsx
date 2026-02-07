@@ -86,26 +86,21 @@ export function WalletInput({ chatStarted }: WalletInputProps) {
     }
   }, [handleSave]);
 
-  // Don't show once chat has started
   if (chatStarted) {
     return null;
   }
 
-  // Compact saved state -- just show truncated address with edit option
+  // Compact saved state
   if (isSaved && wallet) {
     return (
-      <div className="flex items-center justify-center gap-2 mb-2 max-w-chat mx-auto w-full px-2">
-        <div className="flex items-center gap-1.5 text-xs text-bolt-elements-textTertiary">
-          <div className="i-ph:wallet text-sm text-accent-500" />
-          <span className="font-mono">
-            {wallet.slice(0, 4)}...{wallet.slice(-4)}
-          </span>
-        </div>
+      <div className="flex items-center gap-2 px-4 pb-2 border-b border-bolt-elements-borderColor">
+        <div className="i-ph:wallet text-bolt-elements-textTertiary text-sm" />
+        <span className="text-xs text-bolt-elements-textTertiary font-mono">
+          {wallet.slice(0, 4)}...{wallet.slice(-4)}
+        </span>
         <button
-          onClick={() => {
-            setIsSaved(false);
-          }}
-          className="text-xs text-bolt-elements-textTertiary hover:text-bolt-elements-textSecondary transition-colors"
+          onClick={() => setIsSaved(false)}
+          className="text-xs text-bolt-elements-textTertiary hover:text-bolt-elements-textSecondary transition-colors ml-auto"
         >
           edit
         </button>
@@ -113,36 +108,35 @@ export function WalletInput({ chatStarted }: WalletInputProps) {
     );
   }
 
-  // Input state
+  // Input state -- styled to match the textarea below it
   return (
-    <div className="flex items-center gap-2 mb-3 max-w-chat mx-auto w-full px-2">
-      <div className="flex-1 flex items-center gap-2 border border-bolt-elements-borderColor rounded-lg bg-bolt-elements-background-depth-2 px-3 py-1.5">
-        <div className="i-ph:wallet text-sm text-bolt-elements-textTertiary shrink-0" />
-        <input
-          type="text"
-          value={wallet}
-          onChange={(e) => setWallet(e.target.value)}
-          onBlur={() => {
-            if (wallet.trim()) {
-              handleSave(wallet);
-            }
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && wallet.trim()) {
-              handleSave(wallet);
-            }
-          }}
-          placeholder="Your Solana wallet address"
-          className="flex-1 bg-transparent text-xs text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary outline-none font-mono min-w-0"
-        />
-        <button
-          onClick={handlePaste}
-          className="text-xs text-bolt-elements-textTertiary hover:text-accent-500 transition-colors shrink-0"
-          title="Paste from clipboard"
-        >
-          <div className="i-ph:clipboard text-sm" />
-        </button>
-      </div>
+    <div className="flex items-center gap-2 px-4 py-3 border-b border-bolt-elements-borderColor">
+      <div className="i-ph:wallet text-bolt-elements-textTertiary text-sm shrink-0" />
+      <input
+        type="text"
+        value={wallet}
+        onChange={(e) => setWallet(e.target.value)}
+        onBlur={() => {
+          if (wallet.trim()) {
+            handleSave(wallet);
+          }
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' && wallet.trim()) {
+            handleSave(wallet);
+          }
+        }}
+        placeholder="Paste your Solana wallet to receive payments"
+        className="flex-1 bg-transparent text-sm text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary outline-none font-mono min-w-0"
+      />
+      <button
+        onClick={handlePaste}
+        className="text-xs text-bolt-elements-textTertiary hover:text-accent-500 transition-colors shrink-0 flex items-center gap-1"
+        title="Paste from clipboard"
+      >
+        <div className="i-ph:clipboard text-sm" />
+        <span>Paste</span>
+      </button>
     </div>
   );
 }

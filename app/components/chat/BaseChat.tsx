@@ -347,20 +347,33 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         <div className="flex flex-col lg:flex-row overflow-y-auto w-full h-full">
           <div className={classNames(styles.Chat, 'flex flex-col flex-grow lg:min-w-[var(--chat-min-width)] h-full')}>
             {!chatStarted && (
-              <div id="intro" className="mt-[12vh] max-w-2xl mx-auto text-center px-4 lg:px-0">
-                <div className="flex justify-center mb-6 animate-fade-in">
-                  <img
-                    src="/logo.svg"
-                    alt="Dexter"
-                    className="w-16 h-16 lg:w-20 lg:h-20 animate-pulse"
-                    style={{ animationDuration: '3s' }}
-                  />
+              <div id="intro" className="mt-[10vh] max-w-2xl mx-auto text-center px-4 lg:px-0">
+                <div className="flex justify-center mb-5 animate-fade-in">
+                  <div className="relative">
+                    <img src="/logo.svg" alt="Dexter" className="w-14 h-14 lg:w-18 lg:h-18 relative z-10" />
+                    <div
+                      className="absolute inset-0 rounded-full opacity-40 blur-xl z-0"
+                      style={{
+                        background: 'radial-gradient(circle, rgba(242, 107, 26, 0.6) 0%, transparent 70%)',
+                        animation: 'pulse 3s ease-in-out infinite',
+                      }}
+                    />
+                  </div>
                 </div>
-                <h1 className="text-3xl lg:text-6xl font-bold text-bolt-elements-textPrimary mb-4 animate-fade-in">
+                <h1
+                  className="text-3xl lg:text-5xl font-extrabold mb-3 animate-fade-in tracking-tight"
+                  style={{
+                    background: 'linear-gradient(130deg, #d13f00 0%, #ff6b00 42%, #ffb42c 100%)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    backgroundClip: 'text',
+                  }}
+                >
                   What do you want to monetize?
                 </h1>
-                <p className="text-md lg:text-xl mb-4 text-bolt-elements-textSecondary animate-fade-in animation-delay-200">
-                  Describe your idea and Dexter will build, deploy, and monetize it as a paid API with x402.
+                <p className="text-sm lg:text-lg mb-4 text-bolt-elements-textSecondary animate-fade-in animation-delay-200 leading-relaxed">
+                  Describe your idea and Dexter will build, deploy, and monetize it as a paid API with{' '}
+                  <span className="text-accent-500 font-medium">x402</span>.
                 </p>
                 <ExamplePrompts
                   sendMessage={(event, messageInput) => {
