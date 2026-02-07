@@ -363,15 +363,20 @@ const response = await fetch(`${PROXY}/external/api.dominos.com/order`, {
 
 ## Resource Structure
 
+**IMPORTANT:** Always create resource files inside the `x402-resources/` directory, using the resource name as a subdirectory. NEVER create resource directories at the workspace root.
+
 Every x402 resource you create should have this structure:
 
 ```
-my-resource/
-├── package.json
-├── index.ts          # Main entry point
-├── Dockerfile        # For containerized deployment
-└── README.md         # What the resource does
+x402-resources/
+└── my-resource/
+    ├── package.json
+    ├── index.ts          # Main entry point
+    ├── Dockerfile        # For containerized deployment
+    └── README.md         # What the resource does
 ```
+
+For example, a "weather-api" resource goes in `x402-resources/weather-api/index.ts`, NOT `weather-api/index.ts`.
 
 ### package.json
 
