@@ -2,6 +2,7 @@ import React from 'react';
 import { ClientOnly } from 'remix-utils/client-only';
 import { classNames } from '~/utils/classNames';
 import FilePreview from './FilePreview';
+import { WalletInput } from './WalletInput';
 import { ScreenshotStateManager } from './ScreenshotStateManager';
 import { SendButton } from './SendButton.client';
 import { IconButton } from '~/components/ui/IconButton';
@@ -131,6 +132,7 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
       <div
         className={classNames('relative shadow-xs border border-bolt-elements-borderColor backdrop-blur rounded-lg')}
       >
+        <WalletInput chatStarted={props.chatStarted} />
         <textarea
           ref={props.textareaRef}
           className={classNames(
