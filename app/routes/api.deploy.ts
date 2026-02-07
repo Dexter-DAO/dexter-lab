@@ -13,8 +13,11 @@
  */
 
 import { type ActionFunction, type LoaderFunction, json } from '@remix-run/cloudflare';
-import { DeploymentService, reconcileState } from '~/lib/.server/deployment';
+import { DeploymentService, reconcileState, runPostDeployTests, formatTestResults } from '~/lib/.server/deployment';
 import type { ResourceConfig, ResourceEndpoint } from '~/lib/.server/deployment/types';
+import type { TestSuiteResult } from '~/lib/.server/deployment/test-runner';
+
+const DEXTER_API_BASE = process.env.DEXTER_API_URL || 'https://api.dexter.cash';
 
 interface DeployRequestBody {
   name: string;
@@ -176,12 +179,94 @@ export const action: ActionFunction = async ({ request }) => {
         return json({ error: result.error || 'Deployment failed' }, { status: 500 });
       }
 
+      // Persist resource record to database (fire-and-forget)
+      persistResourceToApi({
+        id: result.resourceId,
+        creator_wallet: resolvedWallet,
+        pay_to_wallet: resolvedWallet, // Same for now, Option C will change this
+        platform_fee_bps: 3000,
+        name: body.name,
+        description: body.description,
+        resource_type: body.type,
+        pricing_model: body.pricingModel,
+        base_price_usdc: body.basePriceUsdc,
+        tags: body.tags,
+        public_url: result.publicUrl,
+        container_id: result.containerId,
+        status: 'running',
+        healthy: false, // Will be updated by tests
+        source_files_json: JSON.stringify(body.files),
+        deployed_at: new Date().toISOString(),
+      }).catch((err) => console.error('[Deploy API] Failed to persist resource:', err));
+
+      // Log deploy event
+      persistEventToApi({
+        resource_id: result.resourceId,
+        event_type: 'deploy',
+        message: `Deployed ${body.name} to ${result.publicUrl}`,
+        data: { containerId: result.containerId, version: 1 },
+        actor_system: true,
+      }).catch((e) => console.warn('[Deploy API] Event persist failed:', e));
+
+      // Run post-deployment tests
+      let testResults: TestSuiteResult | null = null;
+
+      try {
+        testResults = await runPostDeployTests(
+          result.resourceId,
+          result.publicUrl!,
+          resolvedWallet,
+          body.basePriceUsdc,
+        );
+
+        // Update resource health status based on test results
+        if (testResults.allPassed) {
+          persistResourceUpdateToApi(result.resourceId, {
+            healthy: true,
+            status: 'running',
+          }).catch((e) => console.warn('[Deploy API] Health update failed:', e));
+        }
+
+        // Log test event
+        persistEventToApi({
+          resource_id: result.resourceId,
+          event_type: 'test',
+          message: testResults.allPassed
+            ? `All ${testResults.tests.length} post-deploy tests passed`
+            : `${testResults.tests.filter((t) => !t.passed).length} of ${testResults.tests.length} tests failed`,
+          data: {
+            allPassed: testResults.allPassed,
+            tests: testResults.tests.map((t) => ({
+              type: t.testType,
+              passed: t.passed,
+              durationMs: t.durationMs,
+            })),
+          },
+          actor_system: true,
+        }).catch((e) => console.warn('[Deploy API] Test event persist failed:', e));
+      } catch (testError) {
+        console.error('[Deploy API] Test runner error:', testError);
+      }
+
       return json(
         {
           success: true,
           resourceId: result.resourceId,
           publicUrl: result.publicUrl,
           containerId: result.containerId,
+          testResults: testResults
+            ? {
+                allPassed: testResults.allPassed,
+                totalDurationMs: testResults.totalDurationMs,
+                summary: formatTestResults(testResults),
+                tests: testResults.tests.map((t) => ({
+                  testType: t.testType,
+                  passed: t.passed,
+                  durationMs: t.durationMs,
+                  errorMessage: t.errorMessage,
+                })),
+              }
+            : null,
         },
         { status: 201 },
       );
@@ -193,3 +278,47 @@ export const action: ActionFunction = async ({ request }) => {
 
   return json({ error: 'Method not allowed' }, { status: 405 });
 };
+
+/*
+ * =============================================================================
+ * Helper functions for persisting to dexter-api
+ * =============================================================================
+ */
+
+async function persistResourceToApi(data: Record<string, unknown>): Promise<void> {
+  const response = await fetch(`${DEXTER_API_BASE}/api/dexter-lab/resources`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`HTTP ${response.status}: ${text}`);
+  }
+}
+
+async function persistResourceUpdateToApi(resourceId: string, data: Record<string, unknown>): Promise<void> {
+  const response = await fetch(`${DEXTER_API_BASE}/api/dexter-lab/resources/${resourceId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`HTTP ${response.status}: ${text}`);
+  }
+}
+
+async function persistEventToApi(data: Record<string, unknown>): Promise<void> {
+  const response = await fetch(`${DEXTER_API_BASE}/api/dexter-lab/events`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    console.warn(`[Deploy API] Event persistence failed: HTTP ${response.status}`);
+  }
+}

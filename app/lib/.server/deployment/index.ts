@@ -17,3 +17,5 @@ export {
   getContainerLogs,
   listResourceContainers,
 } from './docker-client';
+export { runPostDeployTests, formatTestResults } from './test-runner';
+export type { TestResult, TestSuiteResult } from './test-runner';

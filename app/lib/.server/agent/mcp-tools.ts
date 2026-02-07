@@ -478,6 +478,17 @@ The resource will be deployed at: https://{resourceId}.dexter.cash`,
               resourceId?: string;
               publicUrl?: string;
               containerId?: string;
+              testResults?: {
+                allPassed: boolean;
+                totalDurationMs: number;
+                summary: string;
+                tests: Array<{
+                  testType: string;
+                  passed: boolean;
+                  durationMs: number;
+                  errorMessage?: string;
+                }>;
+              } | null;
             };
 
             const durationMs = Date.now() - startTime;
@@ -507,11 +518,26 @@ The resource will be deployed at: https://{resourceId}.dexter.cash`,
               durationMs,
             });
 
+            // Build response with deployment info + test results
+            let responseText = `🚀 Deployment successful!\n\n**Resource ID:** ${result.resourceId}\n**Public URL:** ${result.publicUrl}\n**Container ID:** ${result.containerId || 'N/A'}\n`;
+
+            if (result.testResults) {
+              responseText += `\n---\n\n${result.testResults.summary}\n`;
+
+              if (!result.testResults.allPassed) {
+                responseText += `\n⚠️ Some tests failed. The resource is deployed but may need fixes.\n`;
+              }
+            } else {
+              responseText += `\nYour x402 resource is now live and accepting USDC payments.\n`;
+            }
+
+            responseText += `\nTest it with:\n\`\`\`bash\ncurl ${result.publicUrl}\n\`\`\`\n\nThe first request will return a 402 Payment Required response with payment details.`;
+
             return {
               content: [
                 {
                   type: 'text' as const,
-                  text: `🚀 Deployment successful!\n\n**Resource ID:** ${result.resourceId}\n**Public URL:** ${result.publicUrl}\n**Container ID:** ${result.containerId || 'N/A'}\n\nYour x402 resource is now live and accepting USDC payments.\n\nTest it with:\n\`\`\`bash\ncurl ${result.publicUrl}\n\`\`\`\n\nThe first request will return a 402 Payment Required response with payment details.`,
+                  text: responseText,
                 },
               ],
             };
