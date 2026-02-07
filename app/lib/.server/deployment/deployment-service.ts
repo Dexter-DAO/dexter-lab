@@ -136,6 +136,19 @@ function createBuildContext(files: Map<string, string>, config: ResourceConfig):
   files.delete('Dockerfile');
   files.delete('dockerfile');
 
+  /*
+   * Substitute {{USER_WALLET}} placeholder with the actual creator wallet.
+   * The AI always writes {{USER_WALLET}} in the source code; the real address
+   * is provided via config.creatorWallet from the deployment request.
+   */
+  if (config.creatorWallet && config.creatorWallet !== '{{USER_WALLET}}') {
+    for (const [filename, content] of files.entries()) {
+      if (content.includes('{{USER_WALLET}}')) {
+        files.set(filename, content.replace(/\{\{USER_WALLET\}\}/g, config.creatorWallet));
+      }
+    }
+  }
+
   // Auto-generate tsconfig.json if TypeScript files exist but no tsconfig
   const hasTypeScript = Array.from(files.keys()).some((f) => f.endsWith('.ts'));
   const hasTsConfig = files.has('tsconfig.json');

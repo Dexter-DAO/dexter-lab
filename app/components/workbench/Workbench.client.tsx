@@ -392,6 +392,16 @@ export const Workbench = memo(
             )}
           >
             <div className="absolute inset-0 px-2 lg:px-4">
+              {/* Mobile-only floating close button */}
+              {isSmallViewport && showWorkbench && (
+                <button
+                  onClick={() => workbenchStore.showWorkbench.set(false)}
+                  className="absolute top-2 right-4 z-50 lg:hidden bg-bolt-elements-background-depth-3 border border-bolt-elements-borderColor rounded-full w-10 h-10 flex items-center justify-center shadow-lg hover:bg-bolt-elements-background-depth-4 transition-colors"
+                  title="Close workbench"
+                >
+                  <div className="i-ph:x text-lg text-bolt-elements-textPrimary" />
+                </button>
+              )}
               <div className="h-full flex flex-col bg-bolt-elements-background-depth-2 border border-bolt-elements-borderColor shadow-sm rounded-lg overflow-hidden">
                 <div className="flex items-center px-3 py-2 border-b border-bolt-elements-borderColor gap-1.5">
                   <button
@@ -406,7 +416,7 @@ export const Workbench = memo(
                   <Slider selected={selectedView} options={sliderOptions} setSelected={setSelectedView} />
                   <div className="ml-auto" />
                   {selectedView === 'code' && (
-                    <div className="flex overflow-y-auto">
+                    <div className="hidden lg:flex overflow-y-auto">
                       {/* Export Chat Button */}
                       <ExportChatButton exportChat={exportChat} />
 
@@ -472,11 +482,12 @@ export const Workbench = memo(
                   )}
                   <IconButton
                     icon="i-ph:x-circle"
-                    className="-mr-1"
+                    className="-mr-1 min-w-[32px] min-h-[32px]"
                     size="xl"
                     onClick={() => {
                       workbenchStore.showWorkbench.set(false);
                     }}
+                    title="Close workbench"
                   />
                 </div>
                 <div className="relative flex-1 overflow-hidden">

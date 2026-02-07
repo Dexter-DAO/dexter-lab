@@ -2,6 +2,7 @@ import React from 'react';
 import { ClientOnly } from 'remix-utils/client-only';
 import { classNames } from '~/utils/classNames';
 import FilePreview from './FilePreview';
+import { WalletInput } from './WalletInput';
 import { ScreenshotStateManager } from './ScreenshotStateManager';
 import { SendButton } from './SendButton.client';
 import { IconButton } from '~/components/ui/IconButton';
@@ -83,10 +84,10 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
             gradientUnits="userSpaceOnUse"
             gradientTransform="rotate(-45)"
           >
-            <stop offset="0%" stopColor="#b44aff" stopOpacity="0%"></stop>
-            <stop offset="40%" stopColor="#b44aff" stopOpacity="80%"></stop>
-            <stop offset="50%" stopColor="#b44aff" stopOpacity="80%"></stop>
-            <stop offset="100%" stopColor="#b44aff" stopOpacity="0%"></stop>
+            <stop offset="0%" stopColor="#F26B1A" stopOpacity="0%"></stop>
+            <stop offset="40%" stopColor="#F26B1A" stopOpacity="80%"></stop>
+            <stop offset="50%" stopColor="#F26B1A" stopOpacity="80%"></stop>
+            <stop offset="100%" stopColor="#F26B1A" stopOpacity="0%"></stop>
           </linearGradient>
           <linearGradient id="shine-gradient">
             <stop offset="0%" stopColor="white" stopOpacity="0%"></stop>
@@ -98,9 +99,7 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
         <rect className={classNames(styles.PromptEffectLine)} pathLength="100" strokeLinecap="round"></rect>
         <rect className={classNames(styles.PromptShine)} x="48" y="24" width="70" height="1"></rect>
       </svg>
-      <div>
-        {/* Model selector and API key manager hidden - Dexter Lab uses a fixed server-side model and API keys */}
-      </div>
+      <WalletInput chatStarted={props.chatStarted} />
       <FilePreview
         files={props.uploadedFiles}
         imageDataList={props.imageDataList}
