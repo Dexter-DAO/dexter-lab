@@ -1,0 +1,41 @@
+# dexter-x402-base
+#
+# Pre-built base image for x402 resource containers.
+# All standard dependencies are pre-installed so per-resource deploys
+# only need to layer their source code on top.
+#
+# Rebuild when @dexterai/x402 or other base deps are updated:
+#   ./infrastructure/build-base-image.sh
+#
+# The SDK_VERSION label is checked at deploy time -- if it's stale,
+# a warning is logged prompting a rebuild.
+
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Install curl for health checks
+RUN apk add --no-cache curl
+
+# Create package.json with standard x402 resource dependencies
+RUN echo '{ \
+  "name": "x402-resource-base", \
+  "version": "1.0.0", \
+  "type": "module", \
+  "dependencies": { \
+    "@dexterai/x402": "^1.4.0", \
+    "express": "^4.18.0" \
+  }, \
+  "devDependencies": { \
+    "@types/express": "^4.17.0", \
+    "@types/node": "^20.0.0", \
+    "typescript": "^5.0.0" \
+  } \
+}' > package.json
+
+# Install all dependencies (including devDependencies for TypeScript builds)
+RUN npm install && npm cache clean --force
+
+# Label with SDK version for staleness detection
+LABEL dexter.x402.sdk.version="1.4.0"
+LABEL dexter.x402.base.built="2026-02-07"

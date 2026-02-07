@@ -20,6 +20,10 @@ import {
   getContainerStatus,
   getContainerLogs,
   listResourceContainers,
+  removeImage,
+  imageExists,
+  getImageLabel,
+  startContainer,
 } from './docker-client';
 import { resourceRegistry } from './redis-client';
 
@@ -39,38 +43,61 @@ function generateResourceId(): string {
   return `res-${timestamp}-${random}`;
 }
 
+// Base image name for x402 resources
+const BASE_IMAGE = 'dexter-x402-base:latest';
+
+// Max build context size (5MB) to prevent abuse
+const MAX_BUILD_CONTEXT_BYTES = 5 * 1024 * 1024;
+
+/**
+ * Check if the base image is available and log staleness warnings
+ */
+async function checkBaseImage(): Promise<boolean> {
+  const exists = await imageExists(BASE_IMAGE);
+
+  if (!exists) {
+    console.error(`[Deploy] Base image ${BASE_IMAGE} not found! Run: ./infrastructure/build-base-image.sh`);
+    return false;
+  }
+
+  // Check SDK version staleness (non-blocking warning)
+  const imageVersion = await getImageLabel(BASE_IMAGE, 'dexter.x402.sdk.version');
+  const builtDate = await getImageLabel(BASE_IMAGE, 'dexter.x402.base.built');
+
+  if (imageVersion) {
+    console.log(`[Deploy] Base image: SDK v${imageVersion}, built ${builtDate || 'unknown'}`);
+  }
+
+  return true;
+}
+
 /**
  * Generate Dockerfile for an x402 resource
+ * Uses pre-built base image with all standard deps already installed.
  */
 function generateDockerfile(_resourceType: 'api' | 'webhook' | 'stream'): string {
   return `# Auto-generated Dockerfile for x402 resource
-FROM node:20-alpine
+# Uses pre-built base with @dexterai/x402 + express + typescript
+FROM ${BASE_IMAGE}
 
-WORKDIR /app
-
-# Copy source files
+# Copy source files (deps are already in base image)
 COPY . .
 
-# Install all dependencies (including devDependencies for build)
-RUN npm install
+# Install any additional dependencies not in base image
+RUN npm install --prefer-offline 2>/dev/null; true
 
 # Build TypeScript if present
-RUN if [ -f "tsconfig.json" ]; then npm run build 2>/dev/null || true; fi
+RUN if [ -f "tsconfig.json" ]; then npx tsc 2>/dev/null || true; fi
 
-# Remove devDependencies after build
-RUN npm prune --omit=dev
-
-# Health check
-RUN apk add --no-cache curl
+# Health check (curl already in base image)
 HEALTHCHECK --interval=10s --timeout=5s --start-period=10s --retries=3 \\
   CMD curl -f http://localhost:3000/health || exit 1
 
-# Run - check for compiled output first, then fallback to source
+# Run
 ENV NODE_ENV=production
 ENV PORT=3000
 EXPOSE 3000
 
-# Start script that handles both compiled (dist/) and direct (index.js) setups
 CMD ["sh", "-c", "if [ -f dist/index.js ]; then node dist/index.js; else node index.js; fi"]
 `;
 }
@@ -200,6 +227,35 @@ export async function deploy(
     id: resourceId,
   };
 
+  // Check base image is available
+  const baseReady = await checkBaseImage();
+
+  if (!baseReady) {
+    return {
+      success: false,
+      resourceId,
+      error: `Base image ${BASE_IMAGE} not found. Run: ./infrastructure/build-base-image.sh`,
+    };
+  }
+
+  // Check build context size
+  let totalBytes = 0;
+
+  for (const content of files.values()) {
+    totalBytes += Buffer.byteLength(content, 'utf8');
+  }
+
+  if (totalBytes > MAX_BUILD_CONTEXT_BYTES) {
+    return {
+      success: false,
+      resourceId,
+      error: `Build context too large: ${(totalBytes / 1024 / 1024).toFixed(1)}MB exceeds ${MAX_BUILD_CONTEXT_BYTES / 1024 / 1024}MB limit`,
+    };
+  }
+
+  // Store source files for rebuild capability
+  const sourceFiles = JSON.stringify(Object.fromEntries(files));
+
   // Create initial registry entry
   const resource: DeployedResource = {
     config: fullConfig,
@@ -212,6 +268,7 @@ export async function deploy(
     healthy: false,
     requestCount: 0,
     revenueUsdc: 0,
+    sourceFiles,
   };
 
   await resourceRegistry.set(resourceId, resource);
@@ -321,6 +378,10 @@ export async function remove(resourceId: string): Promise<boolean> {
     if (resource.containerId) {
       await removeContainer(resource.containerId, true);
     }
+
+    // Clean up the Docker image
+    const imageName = `dexter-resource-${resourceId}:latest`;
+    await removeImage(imageName);
 
     await resourceRegistry.delete(resourceId);
 
@@ -483,6 +544,194 @@ export async function restart(resourceId: string): Promise<boolean> {
   }
 }
 
+/**
+ * Reconcile Redis state with Docker reality
+ *
+ * Detects ghost entries (Redis says running, Docker has no container),
+ * recovers lost containers from stored source files, and cleans up
+ * stale failed/stopped resources.
+ *
+ * Runs on server startup and every 5 minutes.
+ */
+export async function reconcileState(): Promise<{
+  total: number;
+  healthy: number;
+  recovered: number;
+  lost: number;
+  cleaned: number;
+  errors: number;
+}> {
+  const stats = { total: 0, healthy: 0, recovered: 0, lost: 0, cleaned: 0, errors: 0 };
+
+  try {
+    const resources = await resourceRegistry.list();
+    stats.total = resources.length;
+
+    console.log(`[Reconcile] Checking ${resources.length} resources against Docker...`);
+
+    for (const resource of resources) {
+      const resourceId = resource.config.id;
+
+      try {
+        // Check if container exists in Docker
+        if (resource.containerId) {
+          try {
+            const status = await getContainerStatus(resource.containerId);
+
+            if (status.running) {
+              // Container is running -- update Redis to match
+              resource.healthy = status.healthy;
+              resource.status = 'running';
+              resource.updatedAt = new Date();
+              await resourceRegistry.set(resourceId, resource);
+              stats.healthy++;
+            } else {
+              // Container exists but stopped -- try to restart if it was supposed to be running
+              if (resource.status === 'running') {
+                console.log(`[Reconcile] ${resourceId}: container stopped unexpectedly, restarting...`);
+
+                try {
+                  await startContainer(resource.containerId);
+                  resource.status = 'running';
+                  resource.updatedAt = new Date();
+                  await resourceRegistry.set(resourceId, resource);
+                  stats.recovered++;
+                  console.log(`[Reconcile] ${resourceId}: restarted successfully`);
+                } catch (restartErr) {
+                  console.warn(`[Reconcile] ${resourceId}: restart failed:`, restartErr);
+                  resource.status = 'failed';
+                  resource.error = 'Container restart failed';
+                  resource.healthy = false;
+                  resource.updatedAt = new Date();
+                  await resourceRegistry.set(resourceId, resource);
+                  stats.errors++;
+                }
+              }
+            }
+          } catch {
+            // Docker doesn't know about this container -- it's a ghost
+            console.warn(
+              `[Reconcile] ${resourceId}: container ${resource.containerId.slice(0, 12)} not found in Docker`,
+            );
+            await handleLostContainer(resource, resourceId, stats);
+          }
+        } else if (resource.status === 'running' || resource.status === 'deploying') {
+          // No container ID but marked as running -- also a ghost
+          console.warn(`[Reconcile] ${resourceId}: marked as ${resource.status} but has no container ID`);
+          await handleLostContainer(resource, resourceId, stats);
+        }
+
+        // Clean up stale resources (failed/stopped/lost for >48h since deployment)
+        if (
+          (resource.status === 'failed' || resource.status === 'stopped' || resource.status === 'lost') &&
+          resource.deployedAt
+        ) {
+          const ageMs = Date.now() - new Date(resource.deployedAt).getTime();
+          const ageHours = ageMs / (1000 * 60 * 60);
+
+          if (ageHours > 48) {
+            console.log(
+              `[Reconcile] ${resourceId}: stale (${resource.status} for ${ageHours.toFixed(0)}h), cleaning up`,
+            );
+
+            try {
+              if (resource.containerId) {
+                await removeContainer(resource.containerId, true).catch(() => {});
+              }
+
+              await removeImage(`dexter-resource-${resourceId}:latest`);
+              await resourceRegistry.delete(resourceId);
+              stats.cleaned++;
+            } catch (cleanErr) {
+              console.warn(`[Reconcile] ${resourceId}: cleanup failed:`, cleanErr);
+              stats.errors++;
+            }
+          }
+        }
+      } catch (err) {
+        console.error(`[Reconcile] ${resourceId}: unexpected error:`, err);
+        stats.errors++;
+      }
+    }
+
+    console.log(
+      `[Reconcile] Done: ${stats.total} total, ${stats.healthy} healthy, ${stats.recovered} recovered, ${stats.lost} lost, ${stats.cleaned} cleaned, ${stats.errors} errors`,
+    );
+  } catch (err) {
+    console.error('[Reconcile] Fatal error:', err);
+  }
+
+  return stats;
+}
+
+/**
+ * Handle a container that Docker has lost
+ * Attempts rebuild from stored source files, or marks as lost
+ */
+async function handleLostContainer(
+  resource: DeployedResource,
+  resourceId: string,
+  stats: { recovered: number; lost: number; errors: number },
+): Promise<void> {
+  if (resource.sourceFiles) {
+    // We have the source -- attempt rebuild
+    console.log(`[Reconcile] ${resourceId}: attempting rebuild from stored source...`);
+
+    try {
+      const filesObj = JSON.parse(resource.sourceFiles) as Record<string, string>;
+      const files = new Map<string, string>(Object.entries(filesObj));
+
+      const context = createBuildContext(files, resource.config);
+      const result = await deployResource(resourceId, context, {
+        RESOURCE_ID: resourceId,
+        CREATOR_WALLET: resource.config.creatorWallet,
+        BASE_PRICE_USDC: String(resource.config.basePriceUsdc),
+        PROXY_BASE_URL: process.env.DEXTER_PROXY_URL || 'https://x402.dexter.cash/proxy',
+        ...resource.config.envVars,
+      });
+
+      if (result.success) {
+        resource.status = 'running';
+        resource.containerId = result.containerId || null;
+        resource.healthy = true;
+        resource.error = undefined;
+        resource.updatedAt = new Date();
+        await resourceRegistry.set(resourceId, resource);
+        stats.recovered++;
+        console.log(`[Reconcile] ${resourceId}: rebuilt and redeployed successfully`);
+      } else {
+        resource.status = 'failed';
+        resource.error = `Rebuild failed: ${result.error}`;
+        resource.healthy = false;
+        resource.containerId = null;
+        resource.updatedAt = new Date();
+        await resourceRegistry.set(resourceId, resource);
+        stats.errors++;
+        console.error(`[Reconcile] ${resourceId}: rebuild failed: ${result.error}`);
+      }
+    } catch (err) {
+      resource.status = 'failed';
+      resource.error = `Rebuild threw: ${err instanceof Error ? err.message : String(err)}`;
+      resource.healthy = false;
+      resource.containerId = null;
+      resource.updatedAt = new Date();
+      await resourceRegistry.set(resourceId, resource);
+      stats.errors++;
+      console.error(`[Reconcile] ${resourceId}: rebuild threw:`, err);
+    }
+  } else {
+    // No source files -- can't recover
+    (resource as DeployedResource & { status: string }).status = 'lost';
+    resource.healthy = false;
+    resource.containerId = null;
+    resource.error = 'Container lost and no source files stored for rebuild';
+    resource.updatedAt = new Date();
+    await resourceRegistry.set(resourceId, resource);
+    stats.lost++;
+    console.warn(`[Reconcile] ${resourceId}: LOST -- no stored source files for rebuild`);
+  }
+}
+
 // Export the deployment service
 export const deploymentService = {
   deploy,
@@ -494,6 +743,7 @@ export const deploymentService = {
   list,
   getMetrics,
   updateMetrics,
+  reconcileState,
 };
 
 // Also export as DeploymentService for backward compatibility

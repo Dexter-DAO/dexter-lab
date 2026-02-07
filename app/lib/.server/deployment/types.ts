@@ -7,7 +7,15 @@
 /**
  * Resource deployment status
  */
-export type DeploymentStatus = 'pending' | 'building' | 'deploying' | 'running' | 'stopped' | 'failed' | 'updating';
+export type DeploymentStatus =
+  | 'pending'
+  | 'building'
+  | 'deploying'
+  | 'running'
+  | 'stopped'
+  | 'failed'
+  | 'updating'
+  | 'lost';
 
 /**
  * Resource configuration
@@ -103,6 +111,9 @@ export interface DeployedResource {
 
   /** Revenue generated (USDC) */
   revenueUsdc: number;
+
+  /** Stored source files for rebuild after container loss (JSON-stringified file map) */
+  sourceFiles?: string;
 }
 
 /**

@@ -41,4 +41,33 @@ app.all(
 
 app.listen(PORT, () => {
   console.log(`🚀 Dexter Lab server running at http://localhost:${PORT}`);
+
+  // Container lifecycle management
+  // Call the reconcile endpoint on startup to sync Redis with Docker,
+  // then schedule periodic checks every 5 minutes
+  setTimeout(async () => {
+    try {
+      console.log('[Server] Running initial container reconciliation...');
+      const res = await fetch(`http://localhost:${PORT}/api/deploy?action=reconcile`, { method: 'POST' });
+      const data = await res.json();
+      console.log(`[Server] Reconciliation: ${data.total} total, ${data.healthy} healthy, ${data.recovered} recovered, ${data.lost} lost, ${data.cleaned} cleaned`);
+      
+      // Schedule periodic reconciliation
+      setInterval(async () => {
+        try {
+          const r = await fetch(`http://localhost:${PORT}/api/deploy?action=reconcile`, { method: 'POST' });
+          const d = await r.json();
+          if (d.recovered > 0 || d.lost > 0 || d.cleaned > 0) {
+            console.log(`[Server] Reconciliation: ${d.recovered} recovered, ${d.lost} lost, ${d.cleaned} cleaned`);
+          }
+        } catch (err) {
+          console.error('[Server] Periodic reconciliation error:', err.message);
+        }
+      }, 5 * 60 * 1000);
+      
+      console.log('[Server] Container reconciliation scheduled (every 5 min)');
+    } catch (err) {
+      console.warn('[Server] Could not start container reconciliation:', err.message);
+    }
+  }, 5000);
 });

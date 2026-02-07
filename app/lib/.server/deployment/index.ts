@@ -4,7 +4,7 @@
  * Exports the deployment service and types for x402 resource management.
  */
 
-export { DeploymentService, default } from './deployment-service';
+export { DeploymentService, reconcileState, default } from './deployment-service';
 export * from './types';
 export {
   deployResource,

@@ -304,6 +304,46 @@ export async function listResourceContainers(): Promise<
 }
 
 /**
+ * Remove a Docker image
+ */
+export async function removeImage(imageName: string): Promise<void> {
+  try {
+    await dockerRequest('DELETE', `/${DOCKER_API_VERSION}/images/${encodeURIComponent(imageName)}?force=true`);
+    console.log(`[Docker] Removed image: ${imageName}`);
+  } catch (error) {
+    // Image may already be gone or in use -- not fatal
+    console.warn(`[Docker] Failed to remove image ${imageName}:`, error instanceof Error ? error.message : error);
+  }
+}
+
+/**
+ * Check if a Docker image exists
+ */
+export async function imageExists(imageName: string): Promise<boolean> {
+  try {
+    await dockerRequest('GET', `/${DOCKER_API_VERSION}/images/${encodeURIComponent(imageName)}/json`);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Get a label value from a Docker image
+ */
+export async function getImageLabel(imageName: string, label: string): Promise<string | null> {
+  try {
+    const info = await dockerRequest<{ Config: { Labels: Record<string, string> } }>(
+      'GET',
+      `/${DOCKER_API_VERSION}/images/${encodeURIComponent(imageName)}/json`,
+    );
+    return info.Config?.Labels?.[label] || null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Create a tar archive for Docker build context
  * Uses tar-stream to create a proper tar archive for Docker API
  */
@@ -359,8 +399,8 @@ export async function deployResource(
         PROXY_BASE_URL: process.env.DEXTER_PROXY_URL || 'https://x402.dexter.cash/proxy',
       },
       labels: {},
-      memoryMb: 512,
-      cpuLimit: 0.5,
+      memoryMb: 128,
+      cpuLimit: 0.25,
       healthCheck: {
         path: '/health',
         intervalSeconds: 10,

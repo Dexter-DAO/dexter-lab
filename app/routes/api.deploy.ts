@@ -13,7 +13,7 @@
  */
 
 import { type ActionFunction, type LoaderFunction, json } from '@remix-run/cloudflare';
-import { DeploymentService } from '~/lib/.server/deployment';
+import { DeploymentService, reconcileState } from '~/lib/.server/deployment';
 import type { ResourceConfig, ResourceEndpoint } from '~/lib/.server/deployment/types';
 
 interface DeployRequestBody {
@@ -112,6 +112,12 @@ export const action: ActionFunction = async ({ request }) => {
       default:
         return json({ error: `Unknown action: ${actionType}` }, { status: 400 });
     }
+  }
+
+  // Handle reconciliation (no resourceId needed)
+  if (actionType === 'reconcile') {
+    const stats = await reconcileState();
+    return json({ action: 'reconcile', ...stats });
   }
 
   // Handle DELETE
