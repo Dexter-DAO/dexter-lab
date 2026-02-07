@@ -5,6 +5,9 @@ import { toAtomicUnits } from '@dexterai/x402/utils';
 const app = express();
 app.use(express.json());
 
+// Proxy URL from environment (injected by deployment service)
+const PROXY = process.env.PROXY_BASE_URL || 'https://x402.dexter.cash/proxy';
+
 // Initialize x402 server
 const server = createX402Server({
   payTo: '{{USER_WALLET}}', // User's Solana wallet - replaced at deploy
@@ -86,7 +89,7 @@ app.post('/api/generate', async (req, res) => {
 
   try {
     // Call OpenAI via proxy
-    const llmResponse = await fetch('/proxy/openai/v1/chat/completions', {
+    const llmResponse = await fetch(`${PROXY}/openai/v1/chat/completions`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -161,7 +164,7 @@ app.post('/api/code', async (req, res) => {
 
   try {
     // Call OpenAI Codex via proxy
-    const llmResponse = await fetch('/proxy/openai/v1/chat/completions', {
+    const llmResponse = await fetch(`${PROXY}/openai/v1/chat/completions`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -234,7 +237,7 @@ app.post('/api/image', async (req, res) => {
 
   try {
     // Call DALL-E via proxy
-    const imageResponse = await fetch('/proxy/openai/v1/images/generations', {
+    const imageResponse = await fetch(`${PROXY}/openai/v1/images/generations`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -299,12 +302,12 @@ app.post('/api/analyze', async (req, res) => {
     // Fetch token data from multiple sources
     const [metadataResponse, priceResponse, securityResponse] = await Promise.all([
       // Get token metadata from Helius
-      fetch(`/proxy/helius/token/${tokenAddress}`),
+      fetch(`${PROXY}/helius/token/${tokenAddress}`),
       // Get price data from Birdeye
-      fetch(`/proxy/birdeye/defi/token_overview?address=${tokenAddress}`),
+      fetch(`${PROXY}/birdeye/defi/token_overview?address=${tokenAddress}`),
       // Get security info from Birdeye
       analysisType === 'deep'
-        ? fetch(`/proxy/birdeye/defi/token_security?address=${tokenAddress}`)
+        ? fetch(`${PROXY}/birdeye/defi/token_security?address=${tokenAddress}`)
         : Promise.resolve(null),
     ]);
 
@@ -337,7 +340,7 @@ Security:
 
 Provide a brief investment analysis including risks and opportunities.`;
 
-      const llmResponse = await fetch('/proxy/openai/v1/chat/completions', {
+      const llmResponse = await fetch(`${PROXY}/openai/v1/chat/completions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

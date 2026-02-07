@@ -277,11 +277,18 @@ app.listen(3000);
 
 Your resource can call these APIs without managing keys. All requests go through Dexter's proxy.
 
+**IMPORTANT:** Always define the proxy base URL from the environment variable:
+```typescript
+const PROXY = process.env.PROXY_BASE_URL || 'https://x402.dexter.cash/proxy';
+```
+
 ### AI/LLM APIs
 
 ```typescript
+const PROXY = process.env.PROXY_BASE_URL || 'https://x402.dexter.cash/proxy';
+
 // OpenAI
-const response = await fetch('/proxy/openai/v1/chat/completions', {
+const response = await fetch(`${PROXY}/openai/v1/chat/completions`, {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
@@ -291,7 +298,7 @@ const response = await fetch('/proxy/openai/v1/chat/completions', {
 });
 
 // Anthropic Claude
-const response = await fetch('/proxy/anthropic/v1/messages', {
+const response = await fetch(`${PROXY}/anthropic/v1/messages`, {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
@@ -301,7 +308,7 @@ const response = await fetch('/proxy/anthropic/v1/messages', {
 });
 
 // Google Gemini
-const response = await fetch('/proxy/gemini/v1/models/gemini-pro:generateContent', {
+const response = await fetch(`${PROXY}/gemini/v1/models/gemini-pro:generateContent`, {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
@@ -314,7 +321,7 @@ const response = await fetch('/proxy/gemini/v1/models/gemini-pro:generateContent
 
 ```typescript
 // Helius RPC
-const response = await fetch('/proxy/helius/rpc', {
+const response = await fetch(`${PROXY}/helius/rpc`, {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
@@ -326,7 +333,7 @@ const response = await fetch('/proxy/helius/rpc', {
 });
 
 // Helius Token Metadata
-const response = await fetch(`/proxy/helius/token/${mintAddress}`);
+const response = await fetch(`${PROXY}/helius/token/${mintAddress}`);
 
 // Jupiter Quote
 const response = await fetch(
@@ -334,7 +341,7 @@ const response = await fetch(
 );
 
 // Jupiter Swap
-const response = await fetch('/proxy/jupiter/swap', {
+const response = await fetch(`${PROXY}/jupiter/swap`, {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({ quoteResponse, userPublicKey }),
@@ -345,7 +352,7 @@ const response = await fetch('/proxy/jupiter/swap', {
 
 ```typescript
 // Any external API via proxy
-const response = await fetch('/proxy/external/api.dominos.com/order', {
+const response = await fetch(`${PROXY}/external/api.dominos.com/order`, {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify(orderData),
@@ -757,6 +764,9 @@ import { createX402Server, createTokenPricing } from '@dexterai/x402/server';
 const app = express();
 app.use(express.json());
 
+// Proxy URL from environment (injected by deployment service)
+const PROXY = process.env.PROXY_BASE_URL || 'https://x402.dexter.cash/proxy';
+
 const server = createX402Server({
   payTo: '{{USER_WALLET}}',
   network: 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp',
@@ -806,7 +816,7 @@ app.post('/api/write', async (req, res) => {
   }
 
   // Call OpenAI via proxy - use the same model as pricing
-  const llmResponse = await fetch('/proxy/openai/v1/chat/completions', {
+  const llmResponse = await fetch(`${PROXY}/openai/v1/chat/completions`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -839,7 +849,7 @@ app.listen(PORT, () => {
 ## Remember
 
 - **`{{USER_WALLET}}`** - Always use this placeholder for the payTo address
-- **Proxy APIs** - Use `/proxy/*` endpoints, never hardcode API keys
+- **Proxy APIs** - Always use `process.env.PROXY_BASE_URL || 'https://x402.dexter.cash/proxy'` — NEVER use relative `/proxy/*` URLs (they fail in Node.js)
 - **Payment verification** - Always validate and settle before serving content
 - **Quote hashes** - Prevent manipulation on dynamic pricing
 - **Error handling** - Return clear errors, log issues

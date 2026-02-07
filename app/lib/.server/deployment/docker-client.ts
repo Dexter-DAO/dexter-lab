@@ -356,6 +356,7 @@ export async function deployResource(
         ...env,
         NODE_ENV: 'production',
         PORT: '3000',
+        PROXY_BASE_URL: process.env.DEXTER_PROXY_URL || 'https://x402.dexter.cash/proxy',
       },
       labels: {},
       memoryMb: 512,
