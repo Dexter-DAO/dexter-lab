@@ -8,6 +8,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useStore } from '@nanostores/react';
 import { $walletAddress, $walletConnected } from '~/lib/stores/wallet';
+import { ResourceLogs } from './ResourceLogs';
 
 const DEXTER_API_BASE = 'https://api.dexter.cash';
 
@@ -60,6 +61,7 @@ function ResourceItem({ resource }: { resource: LabResource }) {
   const [expanded, setExpanded] = useState(false);
   const [balance, setBalance] = useState<ResourceBalance | null>(null);
   const [loadingBalance, setLoadingBalance] = useState(false);
+  const [showLogs, setShowLogs] = useState(false);
   const statusCfg = getStatusConfig(resource.status);
 
   const loadBalance = useCallback(async () => {
@@ -175,9 +177,29 @@ function ResourceItem({ resource }: { resource: LabResource }) {
             )}
           </div>
 
-          <div className="text-xs text-gray-500 dark:text-gray-600 pt-1">
-            Price: {formatUsdc(resource.base_price_usdc)} / request
+          <div className="flex items-center justify-between pt-1">
+            <div className="text-xs text-gray-500 dark:text-gray-600">
+              Price: {formatUsdc(resource.base_price_usdc)} / request
+            </div>
+            {resource.status === 'running' && (
+              <button
+                onClick={() => setShowLogs(!showLogs)}
+                style={{ background: 'none' }}
+                className={`flex items-center gap-1 text-xs transition-colors ${
+                  showLogs
+                    ? 'text-accent-500'
+                    : 'text-gray-400 dark:text-gray-500 hover:text-accent-500'
+                }`}
+              >
+                <div className="i-ph:terminal text-xs" />
+                Logs
+              </button>
+            )}
           </div>
+
+          {showLogs && (
+            <ResourceLogs resourceId={resource.id} onClose={() => setShowLogs(false)} />
+          )}
         </div>
       )}
     </div>
