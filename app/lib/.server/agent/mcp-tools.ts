@@ -579,6 +579,135 @@ The resource will be deployed at: https://{resourceId}.dexter.cash`,
         },
       ),
 
+      // Update an existing x402 resource with new code
+      tool(
+        'update_x402',
+        `Update an existing deployed x402 resource with new code.
+
+Use this when the user wants to change, fix, or improve a resource that was already deployed.
+This keeps the same resource ID, URL, managed wallet, and revenue history.
+
+Requirements:
+1. You must have the resource ID from a previous deploy_x402 call
+2. Provide the complete updated source files (all files, not just changed ones)
+
+The resource will be redeployed at the same URL with zero downtime goal.`,
+        {
+          resourceId: z.string().describe('The resource ID to update (e.g., "res-abc123-xyz")'),
+          name: z.string().describe('Resource name'),
+          description: z.string().describe('Brief description of what changed'),
+          creatorWallet: z.string().describe('Solana wallet address (use {{USER_WALLET}} placeholder)'),
+          type: z.enum(['api', 'webhook', 'stream']).describe('Resource type'),
+          basePriceUsdc: z.number().describe('Base price in USDC'),
+          pricingModel: z
+            .enum(['per-request', 'per-token', 'per-minute', 'flat'])
+            .describe('Pricing model'),
+          tags: z.array(z.string()).describe('Tags for discovery'),
+          endpoints: z
+            .array(
+              z.object({
+                path: z.string().describe('Endpoint path'),
+                method: z.enum(['GET', 'POST', 'PUT', 'DELETE']).describe('HTTP method'),
+                description: z.string().describe('What this endpoint does'),
+                priceUsdc: z.number().optional().describe('Override price for this endpoint'),
+              }),
+            )
+            .describe('List of endpoints'),
+          files: z
+            .record(z.string(), z.string())
+            .describe('Complete map of filename to file content (all files, not just changes)'),
+          envVars: z.record(z.string(), z.string()).optional().describe('Optional environment variables'),
+        },
+        async (args) => {
+          const startTime = Date.now();
+
+          try {
+            const updateRequest = {
+              name: args.name,
+              description: args.description,
+              creatorWallet: args.creatorWallet,
+              type: args.type,
+              basePriceUsdc: args.basePriceUsdc,
+              pricingModel: args.pricingModel,
+              tags: args.tags,
+              endpoints: args.endpoints,
+              files: args.files,
+              envVars: args.envVars || {},
+            };
+
+            const response = await fetch(`${DEPLOY_API_URL}?id=${args.resourceId}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(updateRequest),
+            });
+
+            const result = (await response.json()) as {
+              success?: boolean;
+              error?: string;
+              resourceId?: string;
+              publicUrl?: string;
+              containerId?: string;
+              testResults?: {
+                allPassed: boolean;
+                totalDurationMs: number;
+                summary: string;
+                tests: Array<{
+                  testType: string;
+                  passed: boolean;
+                  durationMs: number;
+                  errorMessage?: string;
+                }>;
+              } | null;
+            };
+
+            const durationMs = Date.now() - startTime;
+
+            if (!response.ok || !result.success) {
+              return {
+                content: [
+                  {
+                    type: 'text' as const,
+                    text: `Update failed: ${result.error || 'Unknown error'}\n\nThe existing resource is still running with the previous code.`,
+                  },
+                ],
+                isError: true,
+              };
+            }
+
+            let responseText = `🔄 Resource updated successfully!\n\n**Resource ID:** ${result.resourceId}\n**Public URL:** ${result.publicUrl}\n`;
+
+            if (result.testResults) {
+              responseText += `\n---\n\n${result.testResults.summary}\n`;
+
+              if (!result.testResults.allPassed) {
+                responseText += `\n⚠️ Some tests failed after the update.\n`;
+              }
+            }
+
+            responseText += `\nThe resource is live with the updated code at the same URL.`;
+
+            return {
+              content: [
+                {
+                  type: 'text' as const,
+                  text: responseText,
+                },
+              ],
+            };
+          } catch (error) {
+            return {
+              content: [
+                {
+                  type: 'text' as const,
+                  text: `Update error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                },
+              ],
+              isError: true,
+            };
+          }
+        },
+      ),
+
       // Get deployment status
       tool(
         'deployment_status',

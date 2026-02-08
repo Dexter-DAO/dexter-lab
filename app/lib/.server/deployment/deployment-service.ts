@@ -745,9 +745,136 @@ async function handleLostContainer(
   }
 }
 
+/**
+ * Redeploy updated code to an existing resource.
+ * Stops the old container, builds a new one with the same resourceId,
+ * preserving the URL, managed wallet, and revenue history.
+ */
+export async function redeploy(
+  resourceId: string,
+  files: Map<string, string>,
+  config: Omit<ResourceConfig, 'id'>,
+): Promise<DeploymentResult & { version?: number }> {
+  const existing = await resourceRegistry.get(resourceId);
+
+  if (!existing) {
+    return { success: false, resourceId, error: `Resource not found: ${resourceId}` };
+  }
+
+  console.log(`[Redeploy] Starting redeploy for ${resourceId} (current version: ${existing.config.id === resourceId ? 'v1+' : 'unknown'})`);
+
+  // Check base image
+  const baseReady = await checkBaseImage();
+
+  if (!baseReady) {
+    return {
+      success: false,
+      resourceId,
+      error: `Base image ${BASE_IMAGE} not found. Run: ./infrastructure/build-base-image.sh`,
+    };
+  }
+
+  // Check build context size
+  let totalBytes = 0;
+
+  for (const content of files.values()) {
+    totalBytes += Buffer.byteLength(content, 'utf8');
+  }
+
+  if (totalBytes > MAX_BUILD_CONTEXT_BYTES) {
+    return {
+      success: false,
+      resourceId,
+      error: `Build context too large: ${(totalBytes / 1024 / 1024).toFixed(1)}MB exceeds ${MAX_BUILD_CONTEXT_BYTES / 1024 / 1024}MB limit`,
+    };
+  }
+
+  const fullConfig: ResourceConfig = { ...config, id: resourceId };
+  const sourceFiles = JSON.stringify(Object.fromEntries(files));
+
+  // Update status to updating
+  existing.status = 'updating';
+  existing.updatedAt = new Date();
+  await resourceRegistry.set(resourceId, existing);
+
+  try {
+    // Stop and remove the old container
+    if (existing.containerId) {
+      console.log(`[Redeploy] Stopping old container ${existing.containerId.slice(0, 12)}...`);
+
+      try {
+        await stopContainer(existing.containerId);
+      } catch {
+        console.warn(`[Redeploy] Old container stop failed (may already be stopped)`);
+      }
+
+      try {
+        await removeContainer(existing.containerId, true);
+      } catch {
+        console.warn(`[Redeploy] Old container removal failed (may already be gone)`);
+      }
+    }
+
+    // Remove old image
+    const oldImageName = `dexter-resource-${resourceId}:latest`;
+
+    try {
+      await removeImage(oldImageName);
+    } catch {
+      /* image may not exist */
+    }
+
+    // Build and deploy with updated files
+    const context = createBuildContext(files, fullConfig);
+
+    const result = await deployResource(resourceId, context, {
+      RESOURCE_ID: resourceId,
+      CREATOR_WALLET: config.creatorWallet,
+      BASE_PRICE_USDC: String(config.basePriceUsdc),
+      ...config.envVars,
+    });
+
+    if (!result.success) {
+      existing.status = 'failed';
+      existing.error = result.error;
+      existing.updatedAt = new Date();
+      await resourceRegistry.set(resourceId, existing);
+
+      return result;
+    }
+
+    // Update registry -- preserve revenue, bump state
+    existing.status = 'running';
+    existing.containerId = result.containerId || null;
+    existing.healthy = true;
+    existing.error = undefined;
+    existing.sourceFiles = sourceFiles;
+    existing.updatedAt = new Date();
+    await resourceRegistry.set(resourceId, existing);
+
+    console.log(`[Redeploy] Resource ${resourceId} redeployed successfully`);
+
+    return {
+      success: true,
+      resourceId,
+      containerId: result.containerId,
+      publicUrl: existing.publicUrl,
+    };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Redeploy failed';
+    existing.status = 'failed';
+    existing.error = errorMessage;
+    existing.updatedAt = new Date();
+    await resourceRegistry.set(resourceId, existing);
+
+    return { success: false, resourceId, error: errorMessage };
+  }
+}
+
 // Export the deployment service
 export const deploymentService = {
   deploy,
+  redeploy,
   stop,
   remove,
   restart,

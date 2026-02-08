@@ -129,6 +129,145 @@ export const action: ActionFunction = async ({ request }) => {
     return json({ success, resourceId, action: 'remove' });
   }
 
+  // Handle UPDATE (PUT) - redeploy updated code to existing resource
+  if (request.method === 'PUT' && resourceId) {
+    try {
+      const body = await request.json();
+
+      if (!validateDeployRequest(body)) {
+        return json({ error: 'Invalid update request. Check required fields.' }, { status: 400 });
+      }
+
+      const files = new Map<string, string>(Object.entries(body.files));
+
+      // Resolve wallet (same logic as deploy)
+      let resolvedWallet = body.creatorWallet;
+
+      if (!resolvedWallet || resolvedWallet === '{{USER_WALLET}}') {
+        const headerWallet = request.headers.get('X-Creator-Wallet');
+        const cookieHeader = request.headers.get('Cookie') || '';
+        const walletCookie = cookieHeader
+          .split(';')
+          .map((c) => c.trim())
+          .find((c) => c.startsWith('dexter_creator_wallet='));
+        const cookieWallet = walletCookie ? decodeURIComponent(walletCookie.split('=')[1]) : null;
+
+        resolvedWallet = headerWallet || cookieWallet || resolvedWallet;
+      }
+
+      /*
+       * For updates, use the EXISTING managed wallet (pay_to_wallet from the resource).
+       * We don't generate a new one -- the resource keeps its wallet and URL.
+       * Fetch the resource to get the managed wallet address.
+       */
+      let payToWallet = resolvedWallet;
+
+      try {
+        const resourceRes = await fetch(`${DEXTER_API_BASE}/api/dexter-lab/resources/${resourceId}`);
+
+        if (resourceRes.ok) {
+          const resourceData = (await resourceRes.json()) as { pay_to_wallet?: string };
+
+          if (resourceData.pay_to_wallet) {
+            payToWallet = resourceData.pay_to_wallet;
+            console.log(`[Deploy API] Update: reusing managed wallet ${payToWallet} for ${resourceId}`);
+          }
+        }
+      } catch {
+        console.warn(`[Deploy API] Could not fetch existing resource ${resourceId}, using resolved wallet`);
+      }
+
+      const config: Omit<ResourceConfig, 'id'> = {
+        name: body.name,
+        description: body.description,
+        creatorWallet: payToWallet,
+        type: body.type,
+        basePriceUsdc: body.basePriceUsdc,
+        pricingModel: body.pricingModel,
+        tags: body.tags,
+        envVars: body.envVars || {},
+        endpoints: body.endpoints,
+      };
+
+      console.log(`[Deploy API] Redeploying ${resourceId}...`);
+
+      const result = await DeploymentService.redeploy(resourceId, files, config);
+
+      if (!result.success) {
+        return json({ error: result.error || 'Redeploy failed' }, { status: 500 });
+      }
+
+      // Update resource in database
+      persistResourceToApi({
+        id: resourceId,
+        creator_wallet: resolvedWallet,
+        pay_to_wallet: payToWallet,
+        name: body.name,
+        description: body.description,
+        source_files_json: JSON.stringify(body.files),
+        status: 'running',
+        healthy: false,
+      }).catch((err) => console.error('[Deploy API] Failed to update resource:', err));
+
+      // Log update event
+      persistEventToApi({
+        resource_id: resourceId,
+        event_type: 'update',
+        message: `Redeployed ${body.name} with updated code`,
+        data: { containerId: result.containerId, fileCount: Object.keys(body.files).length },
+        actor_system: true,
+      }).catch((e) => console.warn('[Deploy API] Event persist failed:', e));
+
+      // Run post-deployment tests on the updated resource
+      let testResults: TestSuiteResult | null = null;
+
+      try {
+        testResults = await runPostDeployTests(
+          resourceId,
+          result.publicUrl!,
+          payToWallet,
+          body.basePriceUsdc,
+        );
+
+        if (testResults.allPassed) {
+          persistResourceUpdateToApi(resourceId, {
+            healthy: true,
+            status: 'running',
+          }).catch((e) => console.warn('[Deploy API] Health update failed:', e));
+        }
+      } catch (testError) {
+        console.error('[Deploy API] Test runner error on redeploy:', testError);
+      }
+
+      return json(
+        {
+          success: true,
+          resourceId,
+          publicUrl: result.publicUrl,
+          containerId: result.containerId,
+          action: 'update',
+          testResults: testResults
+            ? {
+                allPassed: testResults.allPassed,
+                totalDurationMs: testResults.totalDurationMs,
+                summary: formatTestResults(testResults),
+                tests: testResults.tests.map((t) => ({
+                  testType: t.testType,
+                  passed: t.passed,
+                  durationMs: t.durationMs,
+                  errorMessage: t.errorMessage,
+                })),
+              }
+            : null,
+        },
+        { status: 200 },
+      );
+    } catch (error) {
+      console.error('[Deploy API] Update error:', error);
+      return json({ error: error instanceof Error ? error.message : 'Internal error' }, { status: 500 });
+    }
+  }
+
   // Handle new deployment
   if (request.method === 'POST' && !actionType) {
     try {
