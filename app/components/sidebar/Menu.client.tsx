@@ -14,7 +14,7 @@ import { useSearchFilter } from '~/lib/hooks/useSearchFilter';
 import { classNames } from '~/utils/classNames';
 import { useStore } from '@nanostores/react';
 import { $sidebarOpen, closeSidebar } from '~/lib/stores/sidebar';
-import { $walletAddress, $walletDisplay, $walletConnected } from '~/lib/stores/wallet';
+import { $walletDisplay, $walletConnected } from '~/lib/stores/wallet';
 import { useAppKit } from '@reown/appkit/react';
 import { ResourceList } from './ResourceList';
 
@@ -73,7 +73,6 @@ export const Menu = () => {
   const open = useStore($sidebarOpen);
   const [dialogContent, setDialogContent] = useState<DialogContent>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const walletAddress = useStore($walletAddress);
   const walletDisplay = useStore($walletDisplay);
   const walletConnected = useStore($walletConnected);
   const appKit = useAppKit();
@@ -290,7 +289,7 @@ export const Menu = () => {
    */
   useEffect(() => {
     if (!open || isSettingsOpen) {
-      return;
+      return undefined;
     }
 
     function onClickOutside(event: MouseEvent) {

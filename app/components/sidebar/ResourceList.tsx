@@ -210,7 +210,7 @@ export function ResourceList() {
     if (!walletConnected || !walletAddress) {
       setResources([]);
 
-      return;
+      return undefined;
     }
 
     let cancelled = false;
