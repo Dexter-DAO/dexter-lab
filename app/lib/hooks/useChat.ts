@@ -321,6 +321,29 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
 
                   // Use throttled updater for smooth streaming display
                   throttledUpdate(assistantContent);
+                } else if (parsed.type === 'tool_use' && parsed.toolName) {
+                  // Detect deploy/update tool calls and start live progress tracking
+                  if (
+                    parsed.toolName === 'mcp__dexter-x402__deploy_x402' ||
+                    parsed.toolName === 'mcp__dexter-x402__update_x402'
+                  ) {
+                    const input = parsed.toolInput as Record<string, unknown> | undefined;
+                    const name = (input?.name as string) || 'resource';
+                    const resId = (input?.resourceId as string) || '';
+
+                    // Dynamic import to avoid circular deps and keep client-only
+                    import('~/lib/stores/deployProgress').then(({ startDeployProgress }) => {
+                      // For new deploys, resourceId isn't known yet -- start with name as temp key
+                      // The SSE progress endpoint will be subscribed once the real ID arrives
+                      if (resId) {
+                        startDeployProgress(resId, name);
+                      } else {
+                        // For new deploys, we'll pick up the resourceId from the progress events
+                        // Start polling with a temp ID that matches the deploy API's temp key pattern
+                        startDeployProgress(`pending-deploy-${name}`, name);
+                      }
+                    });
+                  }
                 } else if (parsed.type === 'system' && parsed.sessionId) {
                   sessionIdRef.current = parsed.sessionId;
                 } else if (parsed.type === 'final' && parsed.result) {

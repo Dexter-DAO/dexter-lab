@@ -16,6 +16,7 @@ import { type ActionFunction, type LoaderFunction, json } from '@remix-run/cloud
 import { DeploymentService, reconcileState, runPostDeployTests, formatTestResults } from '~/lib/.server/deployment';
 import type { ResourceConfig, ResourceEndpoint } from '~/lib/.server/deployment/types';
 import type { TestSuiteResult } from '~/lib/.server/deployment/test-runner';
+import { pushDeployProgress, type DeployProgressEvent } from '~/lib/.server/deployment/redis-client';
 
 const DEXTER_API_BASE = process.env.DEXTER_API_URL || 'https://api.dexter.cash';
 const LAB_SECRET = process.env.LAB_INTERNAL_SECRET || '';
@@ -201,11 +202,33 @@ export const action: ActionFunction = async ({ request }) => {
 
       console.log(`[Deploy API] Redeploying ${resourceId}...`);
 
+      await pushDeployProgress(resourceId, {
+        type: 'building',
+        resourceId,
+        resourceName: body.name,
+        timestamp: Date.now(),
+      });
+
       const result = await DeploymentService.redeploy(resourceId, files, config);
 
       if (!result.success) {
+        await pushDeployProgress(resourceId, {
+          type: 'error',
+          resourceId,
+          error: result.error || 'Redeploy failed',
+          timestamp: Date.now(),
+        });
+
         return json({ error: result.error || 'Redeploy failed' }, { status: 500 });
       }
+
+      await pushDeployProgress(resourceId, {
+        type: 'container_started',
+        resourceId,
+        resourceName: body.name,
+        publicUrl: result.publicUrl,
+        timestamp: Date.now(),
+      });
 
       // Update resource in database
       persistResourceToApi({
@@ -229,6 +252,13 @@ export const action: ActionFunction = async ({ request }) => {
         actor_system: true,
       }).catch((e) => console.warn('[Deploy API] Event persist failed:', e));
 
+      await pushDeployProgress(resourceId, {
+        type: 'testing',
+        resourceId,
+        resourceName: body.name,
+        timestamp: Date.now(),
+      });
+
       // Run post-deployment tests on the updated resource
       let testResults: TestSuiteResult | null = null;
 
@@ -250,6 +280,15 @@ export const action: ActionFunction = async ({ request }) => {
       } catch (testError) {
         console.error('[Deploy API] Test runner error on redeploy:', testError);
       }
+
+      await pushDeployProgress(resourceId, {
+        type: 'complete',
+        resourceId,
+        resourceName: body.name,
+        publicUrl: result.publicUrl,
+        endpoints: body.endpoints?.map((e: ResourceEndpoint) => ({ path: e.path, method: e.method, priceUsdc: e.priceUsdc })),
+        timestamp: Date.now(),
+      });
 
       return json(
         {
@@ -365,12 +404,45 @@ export const action: ActionFunction = async ({ request }) => {
         endpoints: body.endpoints,
       };
 
+      // Emit building progress (resourceId not known yet, use temp)
+      const tempProgressId = `pending-${Date.now()}`;
+
+      await pushDeployProgress(tempProgressId, {
+        type: 'building',
+        resourceId: tempProgressId,
+        resourceName: body.name,
+        timestamp: Date.now(),
+      });
+
       // Deploy the resource
       const result = await DeploymentService.deploy(files, config);
 
       if (!result.success) {
+        await pushDeployProgress(tempProgressId, {
+          type: 'error',
+          resourceId: tempProgressId,
+          error: result.error || 'Deployment failed',
+          timestamp: Date.now(),
+        });
+
         return json({ error: result.error || 'Deployment failed' }, { status: 500 });
       }
+
+      // Re-emit progress under the real resource ID so the client can find it
+      await pushDeployProgress(result.resourceId, {
+        type: 'building',
+        resourceId: result.resourceId,
+        resourceName: body.name,
+        timestamp: Date.now(),
+      });
+
+      await pushDeployProgress(result.resourceId, {
+        type: 'container_started',
+        resourceId: result.resourceId,
+        resourceName: body.name,
+        publicUrl: result.publicUrl,
+        timestamp: Date.now(),
+      });
 
       /*
        * Update the managed wallet label with the real resource ID
@@ -418,6 +490,14 @@ export const action: ActionFunction = async ({ request }) => {
         actor_system: true,
       }).catch((e) => console.warn('[Deploy API] Event persist failed:', e));
 
+      // Emit testing progress
+      await pushDeployProgress(result.resourceId, {
+        type: 'testing',
+        resourceId: result.resourceId,
+        resourceName: body.name,
+        timestamp: Date.now(),
+      });
+
       // Run post-deployment tests (pass declared endpoints so the x402 test hits the right paths)
       let testResults: TestSuiteResult | null = null;
 
@@ -458,6 +538,16 @@ export const action: ActionFunction = async ({ request }) => {
       } catch (testError) {
         console.error('[Deploy API] Test runner error:', testError);
       }
+
+      // Emit complete progress event
+      await pushDeployProgress(result.resourceId, {
+        type: 'complete',
+        resourceId: result.resourceId,
+        resourceName: body.name,
+        publicUrl: result.publicUrl,
+        endpoints: body.endpoints?.map((e: ResourceEndpoint) => ({ path: e.path, method: e.method, priceUsdc: e.priceUsdc })),
+        timestamp: Date.now(),
+      });
 
       return json(
         {

@@ -13,6 +13,7 @@
 
 import { tracer } from '~/lib/.server/tracing';
 import type { ResourceEndpoint } from './types';
+import { pushDeployProgress } from './redis-client';
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
@@ -112,15 +113,38 @@ export async function runPostDeployTests(
     data: { publicUrl, creatorWallet, basePriceUsdc, endpointCount: endpoints?.length },
   });
 
+  // Helper to emit test progress
+  const emitTestProgress = async (result: TestResult) => {
+    await pushDeployProgress(resourceId, {
+      type: 'test_result',
+      resourceId,
+      test: {
+        testType: result.testType,
+        passed: result.passed,
+        durationMs: result.durationMs,
+        aiScore: result.details?.aiScore as number | undefined,
+        aiStatus: result.details?.aiStatus as string | undefined,
+        aiNotes: result.details?.aiNotes as string | undefined,
+        testInput: result.details?.testInput,
+        txSignature: result.details?.txSignature as string | undefined,
+        priceCents: result.details?.priceCents as number | undefined,
+        responseStatus: result.responseStatus,
+      },
+      timestamp: Date.now(),
+    });
+  };
+
   // Test 1: Health check (with retry/wait for container startup)
   const healthResult = await runHealthCheck(resourceId, publicUrl);
   tests.push(healthResult);
+  await emitTestProgress(healthResult);
 
   // Only proceed with further tests if health check passed
   if (healthResult.passed) {
     // Test 2: x402 response - hit a protected endpoint, expect 402
     const x402Result = await runX402ResponseTest(resourceId, publicUrl, endpoints);
     tests.push(x402Result);
+    await emitTestProgress(x402Result);
 
     // Test 3: Header validation - deep-validate the payment requirements
     if (x402Result.passed && x402Result.details.paymentRequired) {
@@ -132,6 +156,7 @@ export async function runPostDeployTests(
         basePriceUsdc,
       );
       tests.push(headerResult);
+      await emitTestProgress(headerResult);
     }
 
     // Test 4: Paid settlement - real payment, smart input, AI evaluation
@@ -148,6 +173,7 @@ export async function runPostDeployTests(
         basePriceUsdc,
       );
       tests.push(paidResult);
+      await emitTestProgress(paidResult);
     }
   }
 

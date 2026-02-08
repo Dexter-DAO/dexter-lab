@@ -3,6 +3,7 @@ import { Fragment } from 'react';
 import { classNames } from '~/utils/classNames';
 import { AssistantMessage } from './AssistantMessage';
 import { UserMessage } from './UserMessage';
+import { ActiveDeployVerifications } from './DeployVerification';
 import { useLocation } from '@remix-run/react';
 import { db, chatId } from '~/lib/persistence/useChatHistory';
 import { forkChat } from '~/lib/persistence/db';
@@ -128,6 +129,7 @@ export const Messages = forwardRef<HTMLDivElement, MessagesProps>(
               );
             })
           : null}
+        <ActiveDeployVerifications />
         {isStreaming && (
           <div className="text-center w-full  text-bolt-elements-item-contentAccent i-svg-spinners:3-dots-fade text-4xl mt-4"></div>
         )}

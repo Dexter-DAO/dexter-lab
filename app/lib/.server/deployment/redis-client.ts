@@ -202,6 +202,72 @@ export function isRedisAvailable(): boolean {
   return redisAvailable && redis !== null;
 }
 
+// ─── Deploy Progress Events ───────────────────────────────────────────────────
+
+const PROGRESS_PREFIX = 'dexter:lab:deploy:progress:';
+const PROGRESS_TTL = 300; // 5 minutes, auto-cleanup
+
+export interface DeployProgressEvent {
+  type: 'building' | 'container_started' | 'testing' | 'test_result' | 'complete' | 'error';
+  resourceId: string;
+  resourceName?: string;
+  test?: {
+    testType: string;
+    passed: boolean;
+    durationMs: number;
+    aiScore?: number;
+    aiStatus?: string;
+    aiNotes?: string;
+    testInput?: unknown;
+    txSignature?: string;
+    priceCents?: number;
+    responseStatus?: number;
+  };
+  endpoints?: Array<{ path: string; method: string; priceUsdc?: number }>;
+  publicUrl?: string;
+  error?: string;
+  timestamp: number;
+}
+
+/**
+ * Push a deploy progress event to Redis.
+ * Events are stored in a list and expire after 5 minutes.
+ */
+export async function pushDeployProgress(resourceId: string, event: DeployProgressEvent): Promise<void> {
+  const client = getRedis();
+
+  if (client && redisAvailable) {
+    try {
+      const key = PROGRESS_PREFIX + resourceId;
+      await client.rpush(key, JSON.stringify(event));
+      await client.expire(key, PROGRESS_TTL);
+    } catch (err) {
+      console.warn('[Redis] pushDeployProgress failed:', err);
+    }
+  }
+}
+
+/**
+ * Read all deploy progress events from a given index onward.
+ * Returns events starting from `fromIndex` (0-based).
+ */
+export async function getDeployProgress(resourceId: string, fromIndex: number = 0): Promise<DeployProgressEvent[]> {
+  const client = getRedis();
+
+  if (client && redisAvailable) {
+    try {
+      const key = PROGRESS_PREFIX + resourceId;
+      const items = await client.lrange(key, fromIndex, -1);
+
+      return items.map((item) => JSON.parse(item) as DeployProgressEvent);
+    } catch (err) {
+      console.warn('[Redis] getDeployProgress failed:', err);
+    }
+  }
+
+  return [];
+}
+
 /**
  * Close Redis connection (for cleanup)
  */
