@@ -393,10 +393,13 @@ if (result.valid) {
       // Deploy x402 resource
       tool(
         'deploy_x402',
-        `Deploy an x402 resource to the Dexter platform.
-        
-This tool takes the resource files and configuration, builds a Docker image,
-deploys it to Dexter's infrastructure, and returns the public URL.
+        `Deploy a NEW x402 resource to the Dexter platform.
+
+IMPORTANT: Only use this for FIRST-TIME deployments. If you already deployed a resource
+in this conversation and the user wants changes, use update_x402 instead.
+
+This tool creates a new resource with a new ID, URL, and managed wallet.
+It builds a Docker image, deploys it, and returns the public URL.
 
 Requirements before deploying:
 1. index.ts/index.js - Express app with x402 middleware

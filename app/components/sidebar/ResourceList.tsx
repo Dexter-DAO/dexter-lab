@@ -8,6 +8,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useStore } from '@nanostores/react';
 import { $walletAddress, $walletConnected } from '~/lib/stores/wallet';
+import { closeSidebar } from '~/lib/stores/sidebar';
 import { ResourceLogs } from './ResourceLogs';
 
 const DEXTER_API_BASE = 'https://api.dexter.cash';
@@ -181,20 +182,30 @@ function ResourceItem({ resource }: { resource: LabResource }) {
             <div className="text-xs text-gray-500 dark:text-gray-600">
               Price: {formatUsdc(resource.base_price_usdc)} / request
             </div>
-            {resource.status === 'running' && (
-              <button
-                onClick={() => setShowLogs(!showLogs)}
-                style={{ background: 'none' }}
-                className={`flex items-center gap-1 text-xs transition-colors ${
-                  showLogs
-                    ? 'text-accent-500'
-                    : 'text-gray-400 dark:text-gray-500 hover:text-accent-500'
-                }`}
+            <div className="flex items-center gap-2">
+              <a
+                href={`/?edit=${encodeURIComponent(resource.id)}`}
+                onClick={() => closeSidebar()}
+                className="flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500 hover:text-accent-500 transition-colors"
               >
-                <div className="i-ph:terminal text-xs" />
-                Logs
-              </button>
-            )}
+                <div className="i-ph:pencil-simple text-xs" />
+                Edit
+              </a>
+              {resource.status === 'running' && (
+                <button
+                  onClick={() => setShowLogs(!showLogs)}
+                  style={{ background: 'none' }}
+                  className={`flex items-center gap-1 text-xs transition-colors ${
+                    showLogs
+                      ? 'text-accent-500'
+                      : 'text-gray-400 dark:text-gray-500 hover:text-accent-500'
+                  }`}
+                >
+                  <div className="i-ph:terminal text-xs" />
+                  Logs
+                </button>
+              )}
+            </div>
           </div>
 
           {showLogs && (

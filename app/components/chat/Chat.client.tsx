@@ -180,8 +180,6 @@ export const ChatImpl = memo(
     useEffect(() => {
       const prompt = searchParams.get('prompt');
 
-      // console.log(prompt, searchParams, model, provider);
-
       if (prompt) {
         setSearchParams({});
         runAnimation();
@@ -189,6 +187,66 @@ export const ChatImpl = memo(
           role: 'user',
           content: `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${prompt}`,
         });
+      }
+
+      // Handle ?edit=resourceId — load resource context for editing
+      const editResourceId = searchParams.get('edit');
+
+      if (editResourceId) {
+        setSearchParams({});
+
+        fetch(`https://api.dexter.cash/api/dexter-lab/resources/${encodeURIComponent(editResourceId)}`)
+          .then((res) => {
+            if (!res.ok) {
+              throw new Error(`HTTP ${res.status}`);
+            }
+
+            return res.json() as Promise<{
+              id: string;
+              name: string;
+              description?: string;
+              public_url?: string;
+              base_price_usdc: number | string;
+              resource_type: string;
+              pricing_model: string;
+              tags: string[];
+              source_files_json?: string;
+              pay_to_wallet: string;
+              status: string;
+            }>;
+          })
+          .then((resource) => {
+            let contextMessage = `I want to edit my existing resource **${resource.name}** (ID: \`${resource.id}\`).\n\n`;
+            contextMessage += `- **URL:** ${resource.public_url || 'N/A'}\n`;
+            contextMessage += `- **Status:** ${resource.status}\n`;
+            contextMessage += `- **Price:** $${resource.base_price_usdc} USDC (${resource.pricing_model})\n`;
+            contextMessage += `- **Type:** ${resource.resource_type}\n\n`;
+
+            if (resource.source_files_json) {
+              try {
+                const files = JSON.parse(resource.source_files_json) as Record<string, string>;
+                contextMessage += `Here are the current source files:\n\n`;
+
+                for (const [filename, content] of Object.entries(files)) {
+                  contextMessage += `**${filename}:**\n\`\`\`\n${content}\n\`\`\`\n\n`;
+                }
+              } catch {
+                contextMessage += `(Source files could not be loaded)\n\n`;
+              }
+            }
+
+            contextMessage += `What changes would you like to make? When you're done, use the \`update_x402\` tool with resource ID \`${resource.id}\`.`;
+
+            runAnimation();
+            append({
+              role: 'user',
+              content: `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${contextMessage}`,
+            });
+          })
+          .catch((err) => {
+            logger.error('Failed to load resource for editing:', err);
+            toast.error('Failed to load resource for editing');
+          });
       }
     }, [model, provider, searchParams]);
 
