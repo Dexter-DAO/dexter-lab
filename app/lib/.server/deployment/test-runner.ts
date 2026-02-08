@@ -13,6 +13,10 @@
 import { tracer } from '~/lib/.server/tracing';
 
 const DEXTER_API_BASE = process.env.DEXTER_API_URL || 'https://api.dexter.cash';
+const LAB_SECRET = process.env.LAB_INTERNAL_SECRET || '';
+const AUTH_HEADERS: Record<string, string> = LAB_SECRET
+  ? { 'Content-Type': 'application/json', Authorization: `Bearer ${LAB_SECRET}` }
+  : { 'Content-Type': 'application/json' };
 
 // Max time to wait for container to become healthy
 const HEALTH_CHECK_TIMEOUT_MS = 30_000;
@@ -434,7 +438,7 @@ async function persistTestResults(resourceId: string, tests: TestResult[]): Prom
 
       const response = await fetch(`${DEXTER_API_BASE}/api/dexter-lab/test-results`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: AUTH_HEADERS,
         body: JSON.stringify(payload),
       });
 

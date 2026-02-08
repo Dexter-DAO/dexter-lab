@@ -18,6 +18,10 @@ import type { ResourceConfig, ResourceEndpoint } from '~/lib/.server/deployment/
 import type { TestSuiteResult } from '~/lib/.server/deployment/test-runner';
 
 const DEXTER_API_BASE = process.env.DEXTER_API_URL || 'https://api.dexter.cash';
+const LAB_SECRET = process.env.LAB_INTERNAL_SECRET || '';
+const AUTH_HEADERS: Record<string, string> = LAB_SECRET
+  ? { 'Content-Type': 'application/json', Authorization: `Bearer ${LAB_SECRET}` }
+  : { 'Content-Type': 'application/json' };
 
 interface DeployRequestBody {
   name: string;
@@ -320,8 +324,8 @@ export const action: ActionFunction = async ({ request }) => {
         console.log('[Deploy API] Generating managed wallet for resource...');
         const walletResponse = await fetch(`${DEXTER_API_BASE}/api/dexter-lab/wallets/generate`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ resource_id: `pending-${Date.now()}` }),
+        headers: AUTH_HEADERS,
+        body: JSON.stringify({ resource_id: `pending-${Date.now()}` }),
         });
 
         if (walletResponse.ok) {
@@ -368,7 +372,7 @@ export const action: ActionFunction = async ({ request }) => {
       if (managedWalletAddress !== resolvedWallet) {
         fetch(`${DEXTER_API_BASE}/api/dexter-lab/resources/${result.resourceId}`, {
           method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
+          headers: AUTH_HEADERS,
           body: JSON.stringify({ pay_to_wallet: managedWalletAddress }),
         }).catch(() => {});
 
@@ -484,7 +488,7 @@ export const action: ActionFunction = async ({ request }) => {
 async function persistResourceToApi(data: Record<string, unknown>): Promise<void> {
   const response = await fetch(`${DEXTER_API_BASE}/api/dexter-lab/resources`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: AUTH_HEADERS,
     body: JSON.stringify(data),
   });
 
@@ -497,7 +501,7 @@ async function persistResourceToApi(data: Record<string, unknown>): Promise<void
 async function persistResourceUpdateToApi(resourceId: string, data: Record<string, unknown>): Promise<void> {
   const response = await fetch(`${DEXTER_API_BASE}/api/dexter-lab/resources/${resourceId}`, {
     method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
+    headers: AUTH_HEADERS,
     body: JSON.stringify(data),
   });
 
@@ -510,7 +514,7 @@ async function persistResourceUpdateToApi(resourceId: string, data: Record<strin
 async function persistEventToApi(data: Record<string, unknown>): Promise<void> {
   const response = await fetch(`${DEXTER_API_BASE}/api/dexter-lab/events`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: AUTH_HEADERS,
     body: JSON.stringify(data),
   });
 
