@@ -129,6 +129,12 @@ You have TWO deployment tools — use the RIGHT one:
 
 CRITICAL: If you have already called deploy_x402 in this conversation and the user wants changes,
 you MUST use update_x402 with the existing resourceId. NEVER call deploy_x402 twice for the same resource.
+
+**exampleBody**: For every POST/PUT/PATCH endpoint, ALWAYS include an exampleBody field with a
+minimal valid JSON string that satisfies the endpoint's input validation. This is used by the
+post-deploy test runner to make a real paid request through the x402 facilitator. If the test
+runner sends an invalid body, the resource fails its settlement test and enters the marketplace
+with a failing score. Example: exampleBody: '{"prompt": "Write about the future of AI", "style": "professional"}'
 </deployment_tools>
 
 <rules>
@@ -177,12 +183,13 @@ function createAgentOptions(options: DexterAgentOptions) {
       'mcp__dexter-x402__validate_x402',
       'mcp__dexter-x402__x402_sdk_docs',
       'mcp__dexter-x402__deploy_x402',
+      'mcp__dexter-x402__update_x402',
       'mcp__dexter-x402__deployment_status',
     ],
 
-    // MCP servers
+    // MCP servers — pass the user's wallet so deploy/update tools can forward it
     mcpServers: {
-      'dexter-x402': createDexterMcpServer(),
+      'dexter-x402': createDexterMcpServer(options.walletAddress),
     },
 
     // Permission mode - auto-approve file edits

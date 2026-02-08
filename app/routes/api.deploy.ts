@@ -144,19 +144,25 @@ export const action: ActionFunction = async ({ request }) => {
 
       const files = new Map<string, string>(Object.entries(body.files));
 
-      // Resolve wallet (same logic as deploy)
-      let resolvedWallet = body.creatorWallet;
+      // Resolve wallet (same logic as deploy — header first, body fallback)
+      const headerWallet = request.headers.get('X-Creator-Wallet');
+      const bodyWallet = body.creatorWallet;
 
-      if (!resolvedWallet || resolvedWallet === '{{USER_WALLET}}') {
-        const headerWallet = request.headers.get('X-Creator-Wallet');
-        const cookieHeader = request.headers.get('Cookie') || '';
-        const walletCookie = cookieHeader
-          .split(';')
-          .map((c) => c.trim())
-          .find((c) => c.startsWith('dexter_creator_wallet='));
-        const cookieWallet = walletCookie ? decodeURIComponent(walletCookie.split('=')[1]) : null;
+      const resolvedWallet =
+        headerWallet && headerWallet !== '{{USER_WALLET}}'
+          ? headerWallet
+          : bodyWallet && bodyWallet !== '{{USER_WALLET}}'
+            ? bodyWallet
+            : null;
 
-        resolvedWallet = headerWallet || cookieWallet || resolvedWallet;
+      if (!resolvedWallet) {
+        return json(
+          {
+            error: 'wallet_required',
+            message: 'Please connect your wallet before updating a resource.',
+          },
+          { status: 400 },
+        );
       }
 
       /*
@@ -164,7 +170,7 @@ export const action: ActionFunction = async ({ request }) => {
        * We don't generate a new one -- the resource keeps its wallet and URL.
        * Fetch the resource to get the managed wallet address.
        */
-      let payToWallet = resolvedWallet;
+      let payToWallet: string = resolvedWallet;
 
       try {
         const resourceRes = await fetch(`${DEXTER_API_BASE}/api/dexter-lab/resources/${resourceId}`);
@@ -231,6 +237,7 @@ export const action: ActionFunction = async ({ request }) => {
           result.publicUrl!,
           payToWallet,
           body.basePriceUsdc,
+          body.endpoints,
         );
 
         if (testResults.allPassed) {
@@ -285,25 +292,21 @@ export const action: ActionFunction = async ({ request }) => {
       const files = new Map<string, string>(Object.entries(body.files));
 
       /*
-       * Resolve the creator wallet: if the AI sent {{USER_WALLET}} (the placeholder),
-       * try to read the real wallet from the X-Creator-Wallet header or cookie.
+       * Resolve the creator wallet.
+       * Primary source: X-Creator-Wallet header (set by MCP deploy tool from client state).
+       * Fallback: body.creatorWallet (for direct API callers who pass a real address).
        */
-      let resolvedWallet = body.creatorWallet;
+      const headerWallet = request.headers.get('X-Creator-Wallet');
+      const bodyWallet = body.creatorWallet;
 
-      if (!resolvedWallet || resolvedWallet === '{{USER_WALLET}}') {
-        const headerWallet = request.headers.get('X-Creator-Wallet');
-        const cookieHeader = request.headers.get('Cookie') || '';
-        const walletCookie = cookieHeader
-          .split(';')
-          .map((c) => c.trim())
-          .find((c) => c.startsWith('dexter_creator_wallet='));
-        const cookieWallet = walletCookie ? decodeURIComponent(walletCookie.split('=')[1]) : null;
+      const resolvedWallet =
+        headerWallet && headerWallet !== '{{USER_WALLET}}'
+          ? headerWallet
+          : bodyWallet && bodyWallet !== '{{USER_WALLET}}'
+            ? bodyWallet
+            : null;
 
-        resolvedWallet = headerWallet || cookieWallet || resolvedWallet;
-      }
-
-      // Gate: wallet must be connected before deploying
-      if (!resolvedWallet || resolvedWallet === '{{USER_WALLET}}') {
+      if (!resolvedWallet) {
         return json(
           {
             error: 'wallet_required',
@@ -322,10 +325,11 @@ export const action: ActionFunction = async ({ request }) => {
 
       try {
         console.log('[Deploy API] Generating managed wallet for resource...');
+
         const walletResponse = await fetch(`${DEXTER_API_BASE}/api/dexter-lab/wallets/generate`, {
           method: 'POST',
-        headers: AUTH_HEADERS,
-        body: JSON.stringify({ resource_id: `pending-${Date.now()}` }),
+          headers: AUTH_HEADERS,
+          body: JSON.stringify({ resource_id: `pending-${Date.now()}` }),
         });
 
         if (walletResponse.ok) {
@@ -336,7 +340,9 @@ export const action: ActionFunction = async ({ request }) => {
             console.log(`[Deploy API] Managed wallet generated: ${managedWalletAddress}`);
           }
         } else {
-          console.warn(`[Deploy API] Managed wallet generation failed (HTTP ${walletResponse.status}), using creator wallet as fallback`);
+          console.warn(
+            `[Deploy API] Managed wallet generation failed (HTTP ${walletResponse.status}), using creator wallet as fallback`,
+          );
         }
       } catch (walletErr) {
         console.warn('[Deploy API] Managed wallet generation error, using creator wallet as fallback:', walletErr);
@@ -376,7 +382,9 @@ export const action: ActionFunction = async ({ request }) => {
           body: JSON.stringify({ pay_to_wallet: managedWalletAddress }),
         }).catch(() => {});
 
-        console.log(`[Deploy API] Resource ${result.resourceId}: payTo=${managedWalletAddress}, creator=${resolvedWallet}`);
+        console.log(
+          `[Deploy API] Resource ${result.resourceId}: payTo=${managedWalletAddress}, creator=${resolvedWallet}`,
+        );
       }
 
       // Persist resource record to database
@@ -408,7 +416,7 @@ export const action: ActionFunction = async ({ request }) => {
         actor_system: true,
       }).catch((e) => console.warn('[Deploy API] Event persist failed:', e));
 
-      // Run post-deployment tests
+      // Run post-deployment tests (pass declared endpoints so the x402 test hits the right paths)
       let testResults: TestSuiteResult | null = null;
 
       try {
@@ -417,6 +425,7 @@ export const action: ActionFunction = async ({ request }) => {
           result.publicUrl!,
           resolvedWallet,
           body.basePriceUsdc,
+          body.endpoints,
         );
 
         // Update resource health status based on test results

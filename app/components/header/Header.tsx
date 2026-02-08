@@ -13,7 +13,7 @@ import { useAppKit } from '@reown/appkit/react';
 /**
  * Dexter crest logo — memoized so it never re-renders or restarts animation.
  */
-const DexterCrest = memo(function DexterCrest() {
+const DexterCrest = memo(() => {
   return (
     <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-20 pointer-events-auto">
       <a href="/" className="block">
@@ -28,13 +28,7 @@ const DexterCrest = memo(function DexterCrest() {
           animate={{ scale: [0.99, 1.02, 0.99] }}
           transition={{ duration: 5.2, repeat: Infinity, ease: [0.6, 0, 0.4, 1] }}
         >
-          <img
-            src="/dexter-crest.svg"
-            alt="Dexter"
-            width={46}
-            height={46}
-            style={{ marginTop: 6, marginBottom: -6 }}
-          />
+          <img src="/dexter-crest.svg" alt="Dexter" width={46} height={46} style={{ marginTop: 6, marginBottom: -6 }} />
         </motion.div>
       </a>
     </div>
@@ -107,9 +101,7 @@ export function Header() {
             <span className="flex-1 px-4 truncate text-center text-bolt-elements-textPrimary hidden sm:block">
               <ClientOnly>{() => <ChatDescription />}</ClientOnly>
             </span>
-            <ClientOnly>
-              {() => <HeaderActionButtons chatStarted={chat.started} />}
-            </ClientOnly>
+            <ClientOnly>{() => <HeaderActionButtons chatStarted={chat.started} />}</ClientOnly>
           </>
         )}
       </div>

@@ -116,8 +116,11 @@ function validateX402Resource(_resourcePath: string): X402ResourceValidation {
 
 /**
  * Create the Dexter x402 MCP server with custom tools
+ *
+ * @param walletAddress - The connected user's Solana wallet address (from client state).
+ *                        Passed as X-Creator-Wallet header on deploy/update requests.
  */
-export function createDexterMcpServer() {
+export function createDexterMcpServer(walletAddress?: string) {
   return createSdkMcpServer({
     name: 'dexter-x402',
     version: '1.0.0',
@@ -425,6 +428,12 @@ The resource will be deployed at: https://{resourceId}.dexter.cash`,
                 method: z.enum(['GET', 'POST', 'PUT', 'DELETE']).describe('HTTP method'),
                 description: z.string().describe('What this endpoint does'),
                 priceUsdc: z.number().optional().describe('Override price for this endpoint'),
+                exampleBody: z
+                  .string()
+                  .optional()
+                  .describe(
+                    'Minimal valid JSON request body for POST/PUT endpoints, used for post-deploy testing (e.g., \'{"prompt":"Hello world","style":"casual"}\')',
+                  ),
               }),
             )
             .describe('List of endpoints exposed by the resource'),
@@ -447,6 +456,22 @@ The resource will be deployed at: https://{resourceId}.dexter.cash`,
           });
 
           try {
+            /*
+             * Gate: the user's wallet must be known before we attempt a deploy.
+             * walletAddress is threaded from the client → agent-chat route → agent → here.
+             */
+            if (!walletAddress) {
+              return {
+                content: [
+                  {
+                    type: 'text' as const,
+                    text: `Your resource is ready to deploy, but no wallet address was found in this session.\n\nPlease connect your Solana wallet using the **Connect** button in the top-right corner, then ask me to deploy again.`,
+                  },
+                ],
+                isError: true,
+              };
+            }
+
             // Build the deployment request
             const deployRequest = {
               name: args.name,
@@ -466,11 +491,12 @@ The resource will be deployed at: https://{resourceId}.dexter.cash`,
               fileNames: Object.keys(args.files),
             });
 
-            // Call the deployment API
+            // Call the deployment API with the real wallet in a header
             const response = await fetch(DEPLOY_API_URL, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
+                'X-Creator-Wallet': walletAddress,
               },
               body: JSON.stringify(deployRequest),
             });
@@ -602,9 +628,7 @@ The resource will be redeployed at the same URL with zero downtime goal.`,
           creatorWallet: z.string().describe('Solana wallet address (use {{USER_WALLET}} placeholder)'),
           type: z.enum(['api', 'webhook', 'stream']).describe('Resource type'),
           basePriceUsdc: z.number().describe('Base price in USDC'),
-          pricingModel: z
-            .enum(['per-request', 'per-token', 'per-minute', 'flat'])
-            .describe('Pricing model'),
+          pricingModel: z.enum(['per-request', 'per-token', 'per-minute', 'flat']).describe('Pricing model'),
           tags: z.array(z.string()).describe('Tags for discovery'),
           endpoints: z
             .array(
@@ -613,6 +637,10 @@ The resource will be redeployed at the same URL with zero downtime goal.`,
                 method: z.enum(['GET', 'POST', 'PUT', 'DELETE']).describe('HTTP method'),
                 description: z.string().describe('What this endpoint does'),
                 priceUsdc: z.number().optional().describe('Override price for this endpoint'),
+                exampleBody: z
+                  .string()
+                  .optional()
+                  .describe('Minimal valid JSON request body for POST/PUT endpoints, used for post-deploy testing'),
               }),
             )
             .describe('List of endpoints'),
@@ -622,9 +650,20 @@ The resource will be redeployed at the same URL with zero downtime goal.`,
           envVars: z.record(z.string(), z.string()).optional().describe('Optional environment variables'),
         },
         async (args) => {
-          const startTime = Date.now();
-
           try {
+            // Gate: wallet must be known (same as deploy_x402)
+            if (!walletAddress) {
+              return {
+                content: [
+                  {
+                    type: 'text' as const,
+                    text: `Cannot update the resource — no wallet address found in this session.\n\nPlease connect your Solana wallet using the **Connect** button in the top-right corner, then ask me to update again.`,
+                  },
+                ],
+                isError: true,
+              };
+            }
+
             const updateRequest = {
               name: args.name,
               description: args.description,
@@ -640,7 +679,10 @@ The resource will be redeployed at the same URL with zero downtime goal.`,
 
             const response = await fetch(`${DEPLOY_API_URL}?id=${args.resourceId}`, {
               method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
+              headers: {
+                'Content-Type': 'application/json',
+                'X-Creator-Wallet': walletAddress,
+              },
               body: JSON.stringify(updateRequest),
             });
 
@@ -662,8 +704,6 @@ The resource will be redeployed at the same URL with zero downtime goal.`,
                 }>;
               } | null;
             };
-
-            const durationMs = Date.now() - startTime;
 
             if (!response.ok || !result.success) {
               return {

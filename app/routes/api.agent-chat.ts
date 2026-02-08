@@ -17,6 +17,9 @@ interface ChatRequest {
 
   /** User ID for cost attribution (Supabase UUID) */
   userId?: string;
+
+  /** Connected Solana wallet address from the client */
+  walletAddress?: string;
 }
 
 /**
@@ -118,6 +121,7 @@ export async function action({ request }: ActionFunctionArgs) {
     maxTurns: body.maxTurns,
     additionalInstructions: body.additionalInstructions,
     userId: body.userId, // For cost attribution
+    walletAddress: body.walletAddress, // Threaded to MCP deploy/update tools
   });
 
   // Return streaming response
@@ -150,6 +154,7 @@ export async function loader() {
           maxTurns: 'number (optional) - Maximum conversation turns',
           additionalInstructions: 'string (optional) - Extra system context',
           userId: 'string (optional) - Supabase user ID for cost attribution',
+          walletAddress: 'string (optional) - Connected Solana wallet address for deploy/update',
         },
         response: 'Server-Sent Events stream',
       },

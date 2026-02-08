@@ -28,6 +28,9 @@ export interface DexterAgentOptions {
 
   /** User ID for cost attribution (Supabase UUID) */
   userId?: string;
+
+  /** Connected wallet address from the client (Solana base58 pubkey) */
+  walletAddress?: string;
 }
 
 export interface DexterAgentResult {

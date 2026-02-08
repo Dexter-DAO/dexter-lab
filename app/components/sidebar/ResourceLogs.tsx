@@ -75,9 +75,7 @@ export function ResourceLogs({ resourceId, onClose }: ResourceLogsProps) {
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-1.5 border-b border-gray-200 dark:border-gray-800/50 bg-gray-50 dark:bg-gray-900/50">
         <div className="flex items-center gap-2">
-          <div
-            className={`w-1.5 h-1.5 rounded-full ${connected ? 'bg-emerald-500 animate-pulse' : 'bg-gray-500'}`}
-          />
+          <div className={`w-1.5 h-1.5 rounded-full ${connected ? 'bg-emerald-500 animate-pulse' : 'bg-gray-500'}`} />
           <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
             {connected ? 'Live' : error || 'Disconnected'}
           </span>
@@ -96,9 +94,7 @@ export function ResourceLogs({ resourceId, onClose }: ResourceLogsProps) {
         ref={containerRef}
         className="h-48 overflow-y-auto overflow-x-hidden p-2 bg-gray-950 font-mono text-xs leading-relaxed"
       >
-        {lines.length === 0 && !error && (
-          <div className="text-gray-600 py-2">Waiting for logs...</div>
-        )}
+        {lines.length === 0 && !error && <div className="text-gray-600 py-2">Waiting for logs...</div>}
         {lines.map((line, i) => (
           <div key={i} className="text-gray-300 whitespace-pre-wrap break-all">
             {line}

@@ -73,6 +73,9 @@ export interface ResourceEndpoint {
 
   /** Response schema (JSON Schema) */
   responseSchema?: Record<string, unknown>;
+
+  /** Minimal valid JSON request body for POST/PUT endpoints (used by the test runner) */
+  exampleBody?: string;
 }
 
 /**

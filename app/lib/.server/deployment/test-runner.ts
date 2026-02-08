@@ -5,12 +5,16 @@
  * 1. Health check - confirms container is up and responding
  * 2. x402 response - confirms 402 status + valid PAYMENT-REQUIRED header
  * 3. Header validation - deep-validates the decoded payment requirements
- * 4. Paid settlement - (future) makes a real payment via CONNECTOR_REWARD_PRIVATE_KEY
+ * 4. Paid settlement - makes a REAL payment via CONNECTOR_REWARD_PRIVATE_KEY,
+ *    generates smart test input with AI, evaluates the response, scores 0-100.
  *
  * Results are persisted to dexter-api for the dashboard.
  */
 
 import { tracer } from '~/lib/.server/tracing';
+import type { ResourceEndpoint } from './types';
+
+// ─── Config ───────────────────────────────────────────────────────────────────
 
 const DEXTER_API_BASE = process.env.DEXTER_API_URL || 'https://api.dexter.cash';
 const LAB_SECRET = process.env.LAB_INTERNAL_SECRET || '';
@@ -18,9 +22,38 @@ const AUTH_HEADERS: Record<string, string> = LAB_SECRET
   ? { 'Content-Type': 'application/json', Authorization: `Bearer ${LAB_SECRET}` }
   : { 'Content-Type': 'application/json' };
 
-// Max time to wait for container to become healthy
+// Proxy for AI calls (OpenAI, etc.)
+const PROXY_BASE_URL = process.env.DEXTER_PROXY_URL || 'https://x402.dexter.cash/proxy';
+
+// Connector Reward wallet for paid settlement tests
+const CONNECTOR_KEY = process.env.CONNECTOR_REWARD_PRIVATE_KEY || '';
+
+// Max price the test runner will pay (in cents). $1.00 default.
+const MAX_PRICE_CENTS = parseInt(process.env.DEPLOY_TEST_MAX_PRICE_CENTS || '100', 10);
+
+// Health check timing
 const HEALTH_CHECK_TIMEOUT_MS = 30_000;
 const HEALTH_CHECK_INTERVAL_MS = 2_000;
+
+// Paid settlement timing
+const PAID_REQUEST_TIMEOUT_MS = 120_000;
+
+// Response preview limit
+const RESPONSE_PREVIEW_MAX = 2000;
+
+// AI model for input generation and evaluation
+const AI_MODEL = 'gpt-4o-mini';
+
+// Real crypto addresses for test inputs (same as dexter-api quality verifier)
+const CRYPTO_DEFAULTS = {
+  DEXTER_TOKEN: 'EfPoo4wWgxKVToit7yX5VtXXBrhao4G8L7vrbKy6pump',
+  SOL_MINT: 'So11111111111111111111111111111111111111112',
+  USDC_SOL: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
+  SAMPLE_SOL_WALLET: 'BRANCHVDL53igBiYuvrEfZazXJm24qKQJhyXBUm7z7V',
+  USDC_BASE: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+  BNKR_BASE: '0x22af33fe49fd1fa80c7149773dde5890d3c76f3b', // BankrCoin (BNKR) on Base
+  SAMPLE_ETH_WALLET: '0x742d35Cc6634C0532925a3b844Bc9e7595f2bD18',
+};
 
 // Valid USDC mint addresses by network
 const VALID_USDC_MINTS: Record<string, string> = {
@@ -30,6 +63,8 @@ const VALID_USDC_MINTS: Record<string, string> = {
 
 // Solana address regex (base58, 32-44 chars)
 const SOLANA_ADDRESS_RE = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 /**
  * Individual test result
@@ -58,6 +93,8 @@ export interface TestSuiteResult {
   totalDurationMs: number;
 }
 
+// ─── Main Entry Point ─────────────────────────────────────────────────────────
+
 /**
  * Run the full post-deployment test suite
  */
@@ -66,12 +103,13 @@ export async function runPostDeployTests(
   publicUrl: string,
   creatorWallet: string,
   basePriceUsdc: number,
+  endpoints?: ResourceEndpoint[],
 ): Promise<TestSuiteResult> {
   const suiteStart = Date.now();
   const tests: TestResult[] = [];
 
   tracer.trace('X402_DEPLOY', `Starting post-deploy tests for ${resourceId}`, {
-    data: { publicUrl, creatorWallet, basePriceUsdc },
+    data: { publicUrl, creatorWallet, basePriceUsdc, endpointCount: endpoints?.length },
   });
 
   // Test 1: Health check (with retry/wait for container startup)
@@ -81,7 +119,7 @@ export async function runPostDeployTests(
   // Only proceed with further tests if health check passed
   if (healthResult.passed) {
     // Test 2: x402 response - hit a protected endpoint, expect 402
-    const x402Result = await runX402ResponseTest(resourceId, publicUrl);
+    const x402Result = await runX402ResponseTest(resourceId, publicUrl, endpoints);
     tests.push(x402Result);
 
     // Test 3: Header validation - deep-validate the payment requirements
@@ -94,6 +132,22 @@ export async function runPostDeployTests(
         basePriceUsdc,
       );
       tests.push(headerResult);
+    }
+
+    // Test 4: Paid settlement - real payment, smart input, AI evaluation
+    if (x402Result.passed && x402Result.details.paymentRequired) {
+      const paidResult = await runPaidSettlementTest(
+        resourceId,
+        publicUrl,
+        x402Result.details as {
+          path: string;
+          method: string;
+          paymentRequired: Record<string, unknown>;
+        },
+        endpoints,
+        basePriceUsdc,
+      );
+      tests.push(paidResult);
     }
   }
 
@@ -125,8 +179,9 @@ export async function runPostDeployTests(
   return result;
 }
 
+// ─── Test 1: Health Check ─────────────────────────────────────────────────────
+
 /**
- * Test 1: Health check
  * Waits for the container to become healthy, retrying every 2s up to 30s.
  */
 async function runHealthCheck(resourceId: string, publicUrl: string): Promise<TestResult> {
@@ -172,7 +227,6 @@ async function runHealthCheck(resourceId: string, publicUrl: string): Promise<Te
       lastError = err instanceof Error ? err.message : String(err);
     }
 
-    // Wait before retrying
     await new Promise((resolve) => setTimeout(resolve, HEALTH_CHECK_INTERVAL_MS));
   }
 
@@ -188,38 +242,88 @@ async function runHealthCheck(resourceId: string, publicUrl: string): Promise<Te
   };
 }
 
+// ─── Test 2: x402 Response ────────────────────────────────────────────────────
+
 /**
- * Test 2: x402 Response
- * Hits the root URL and expects a 402 with PAYMENT-REQUIRED header.
- * Also tries common paths like /api/* if root doesn't return 402.
+ * Hits a paid endpoint and expects a 402 with PAYMENT-REQUIRED header.
+ * Uses the resource's declared endpoints when available.
  */
-async function runX402ResponseTest(resourceId: string, publicUrl: string): Promise<TestResult> {
+async function runX402ResponseTest(
+  resourceId: string,
+  publicUrl: string,
+  endpoints?: ResourceEndpoint[],
+): Promise<TestResult> {
   const start = Date.now();
 
-  // Try paths that are likely to be x402-protected
-  const pathsToTry = ['/', '/api', '/api/'];
+  const probes: Array<{ method: string; path: string; exampleBody?: string }> = [];
 
-  for (const path of pathsToTry) {
-    const url = publicUrl + path;
+  if (endpoints && endpoints.length > 0) {
+    for (const ep of endpoints) {
+      probes.push({ method: ep.method, path: ep.path, exampleBody: ep.exampleBody });
+    }
+  }
+
+  // Generic fallbacks
+  probes.push({ method: 'GET', path: '/' });
+  probes.push({ method: 'GET', path: '/api' });
+  probes.push({ method: 'POST', path: '/' });
+
+  // De-duplicate
+  const seen = new Set<string>();
+  const uniqueProbes = probes.filter((p) => {
+    const key = `${p.method}:${p.path}`;
+
+    if (seen.has(key)) {
+      return false;
+    }
+
+    seen.add(key);
+
+    return true;
+  });
+
+  const pathsTried: string[] = [];
+
+  for (const probe of uniqueProbes) {
+    const url = publicUrl + probe.path;
+    pathsTried.push(`${probe.method} ${probe.path}`);
 
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 10_000);
 
+      const needsBody = ['POST', 'PUT', 'PATCH'].includes(probe.method);
+      let bodyStr: string | undefined;
+
+      if (needsBody) {
+        if (probe.exampleBody) {
+          try {
+            JSON.parse(probe.exampleBody);
+            bodyStr = probe.exampleBody;
+          } catch {
+            bodyStr = '{}';
+          }
+        } else {
+          bodyStr = '{}';
+        }
+      }
+
       const response = await fetch(url, {
-        method: 'GET',
+        method: probe.method,
         signal: controller.signal,
-        headers: { 'User-Agent': 'DexterLab-TestRunner/1.0' },
+        headers: {
+          'User-Agent': 'DexterLab-TestRunner/1.0',
+          ...(needsBody ? { 'Content-Type': 'application/json' } : {}),
+        },
+        body: bodyStr,
       });
 
       clearTimeout(timeout);
 
       if (response.status === 402) {
-        // Get the PAYMENT-REQUIRED header
         const paymentRequiredRaw = response.headers.get('payment-required');
         const bodyText = (await response.text()).substring(0, 1000);
 
-        // Collect all response headers
         const headers: Record<string, string> = {};
         response.headers.forEach((value, key) => {
           headers[key] = value;
@@ -231,23 +335,21 @@ async function runX402ResponseTest(resourceId: string, publicUrl: string): Promi
             passed: false,
             durationMs: Date.now() - start,
             requestUrl: url,
-            requestMethod: 'GET',
+            requestMethod: probe.method,
             responseStatus: 402,
             responseHeaders: headers,
             responseBodyPreview: bodyText,
             errorMessage: '402 returned but missing PAYMENT-REQUIRED header',
-            details: { path, headers },
+            details: { path: probe.path, method: probe.method, headers },
           };
         }
 
-        // Try to decode the header (it's base64-encoded JSON)
         let paymentRequired: Record<string, unknown> | null = null;
 
         try {
           const decoded = Buffer.from(paymentRequiredRaw, 'base64').toString('utf8');
           paymentRequired = JSON.parse(decoded);
         } catch {
-          // Maybe it's not base64 -- try direct JSON
           try {
             paymentRequired = JSON.parse(paymentRequiredRaw);
           } catch {
@@ -256,11 +358,11 @@ async function runX402ResponseTest(resourceId: string, publicUrl: string): Promi
               passed: false,
               durationMs: Date.now() - start,
               requestUrl: url,
-              requestMethod: 'GET',
+              requestMethod: probe.method,
               responseStatus: 402,
               responseHeaders: headers,
               errorMessage: 'PAYMENT-REQUIRED header is not valid base64-encoded JSON or plain JSON',
-              details: { path, rawHeader: paymentRequiredRaw.substring(0, 200) },
+              details: { path: probe.path, method: probe.method, rawHeader: paymentRequiredRaw.substring(0, 200) },
             };
           }
         }
@@ -270,19 +372,19 @@ async function runX402ResponseTest(resourceId: string, publicUrl: string): Promi
           passed: true,
           durationMs: Date.now() - start,
           requestUrl: url,
-          requestMethod: 'GET',
+          requestMethod: probe.method,
           responseStatus: 402,
           responseHeaders: headers,
           responseBodyPreview: bodyText,
           details: {
-            path,
+            path: probe.path,
+            method: probe.method,
             paymentRequired,
             headerEncoding: paymentRequiredRaw.startsWith('{') ? 'json' : 'base64',
           },
         };
       }
     } catch {
-      // If this path fails, try the next
       continue;
     }
   }
@@ -292,16 +394,16 @@ async function runX402ResponseTest(resourceId: string, publicUrl: string): Promi
     passed: false,
     durationMs: Date.now() - start,
     requestUrl: publicUrl,
-    requestMethod: 'GET',
-    errorMessage: `No path returned 402 Payment Required. Tried: ${pathsToTry.join(', ')}`,
-    details: { pathsTried: pathsToTry },
+    requestMethod: 'MULTI',
+    errorMessage: `No endpoint returned 402 Payment Required. Tried: ${pathsTried.join(', ')}`,
+    details: { pathsTried },
   };
 }
 
+// ─── Test 3: Header Validation ────────────────────────────────────────────────
+
 /**
- * Test 3: Header Validation
  * Deep-validates the decoded PAYMENT-REQUIRED object.
- * Checks payTo, amount, asset, network, facilitator.
  */
 function runHeaderValidation(
   _resourceId: string,
@@ -314,18 +416,11 @@ function runHeaderValidation(
   const errors: string[] = [];
   const warnings: string[] = [];
 
-  /*
-   * There are different shapes the payment required can take.
-   * The x402 spec uses an "accepts" array of payment options.
-   * Some implementations use flat fields. We check both.
-   */
-
   let accepts: Record<string, unknown>[] = [];
 
   if (Array.isArray(paymentRequired.accepts)) {
     accepts = paymentRequired.accepts as Record<string, unknown>[];
   } else if (paymentRequired.payTo || paymentRequired.amount) {
-    // Flat format - treat as single accept
     accepts = [paymentRequired];
   } else {
     errors.push('PAYMENT-REQUIRED has no "accepts" array and no flat payTo/amount fields');
@@ -339,7 +434,6 @@ function runHeaderValidation(
     const accept = accepts[i];
     const prefix = accepts.length > 1 ? `accepts[${i}]: ` : '';
 
-    // Check payTo
     const payTo = accept.payTo as string | undefined;
 
     if (!payTo) {
@@ -348,18 +442,17 @@ function runHeaderValidation(
       errors.push(`${prefix}"payTo" is not a valid Solana address: ${payTo}`);
     }
 
-    // Check payTo matches creator wallet (or warn if different - could be managed wallet)
     if (payTo && payTo !== expectedCreatorWallet) {
       warnings.push(
         `${prefix}"payTo" (${payTo.substring(0, 8)}...) differs from creator wallet (${expectedCreatorWallet.substring(0, 8)}...) - may use managed wallet`,
       );
     }
 
-    // Check amount
-    const amount = accept.amount;
+    // x402 v2 uses maxAmountRequired, v1 uses amount
+    const amount = (accept.maxAmountRequired as string | number | undefined) ?? accept.amount;
 
     if (amount === undefined || amount === null) {
-      errors.push(`${prefix}Missing "amount" field`);
+      errors.push(`${prefix}Missing "amount" or "maxAmountRequired" field`);
     } else {
       const numAmount = Number(amount);
 
@@ -368,7 +461,6 @@ function runHeaderValidation(
       }
     }
 
-    // Check network
     const network = accept.network as string | undefined;
 
     if (!network) {
@@ -377,7 +469,6 @@ function runHeaderValidation(
       errors.push(`${prefix}Unrecognized network: ${network}`);
     }
 
-    // Check asset (should be USDC mint)
     const asset = accept.asset as string | undefined;
 
     if (asset) {
@@ -388,7 +479,6 @@ function runHeaderValidation(
       }
     }
 
-    // Check scheme
     const scheme = accept.scheme as string | undefined;
 
     if (scheme && scheme !== 'exact') {
@@ -414,26 +504,447 @@ function runHeaderValidation(
   };
 }
 
+// ─── Test 4: Paid Settlement ──────────────────────────────────────────────────
+
+/**
+ * Makes a REAL paid x402 request using the Connector Reward wallet.
+ * 1. Generates a smart test input using AI (or falls back to exampleBody / {})
+ * 2. Uses wrapFetch to pay and get the response
+ * 3. Evaluates the response quality with AI (0-100 score)
+ */
+async function runPaidSettlementTest(
+  resourceId: string,
+  publicUrl: string,
+  x402Details: { path: string; method: string; paymentRequired: Record<string, unknown> },
+  endpoints?: ResourceEndpoint[],
+  basePriceUsdc?: number,
+): Promise<TestResult> {
+  const start = Date.now();
+
+  // Gate: connector key must be available
+  if (!CONNECTOR_KEY) {
+    return {
+      testType: 'paid_settlement',
+      passed: false,
+      durationMs: Date.now() - start,
+      errorMessage: 'Skipped: CONNECTOR_REWARD_PRIVATE_KEY not configured',
+      details: { skipped: true, reason: 'no_key' },
+    };
+  }
+
+  // Gate: check price is within budget
+  const priceUsdc = basePriceUsdc || 0;
+  const priceCents = Math.round(priceUsdc * 100);
+
+  if (priceCents > MAX_PRICE_CENTS) {
+    return {
+      testType: 'paid_settlement',
+      passed: false,
+      durationMs: Date.now() - start,
+      errorMessage: `Skipped: price $${priceUsdc.toFixed(2)} exceeds test budget $${(MAX_PRICE_CENTS / 100).toFixed(2)}`,
+      details: { skipped: true, reason: 'too_expensive', priceUsdc, maxPriceCents: MAX_PRICE_CENTS },
+    };
+  }
+
+  // Find the endpoint that returned 402 and its metadata
+  const testedPath = x402Details.path;
+  const testedMethod = x402Details.method;
+  const matchingEndpoint = endpoints?.find((ep) => ep.path === testedPath && ep.method === testedMethod);
+
+  // Step 1: Generate smart test input
+  let testInput: Record<string, unknown> = {};
+  let inputReasoning = 'fallback: empty object';
+
+  try {
+    const smartResult = await generateSmartTestInput({
+      resourceUrl: publicUrl + testedPath,
+      description: matchingEndpoint?.description || `${testedMethod} ${testedPath}`,
+      method: testedMethod,
+      exampleBody: matchingEndpoint?.exampleBody,
+    });
+    testInput = smartResult.input;
+    inputReasoning = smartResult.reasoning;
+  } catch (err) {
+    console.warn('[TestRunner] Smart input generation failed, using fallback:', err);
+
+    // Fall back to exampleBody if available
+    if (matchingEndpoint?.exampleBody) {
+      try {
+        testInput = JSON.parse(matchingEndpoint.exampleBody);
+        inputReasoning = 'fallback: parsed exampleBody from endpoint metadata';
+      } catch {
+        inputReasoning = 'fallback: exampleBody parse failed, using empty object';
+      }
+    }
+  }
+
+  tracer.trace('X402_DEPLOY', `Paid settlement test for ${resourceId}`, {
+    data: { url: publicUrl + testedPath, method: testedMethod, testInput, inputReasoning, priceCents },
+  });
+
+  // Step 2: Make the paid request using wrapFetch
+  let responseText: string | undefined;
+  let responseStatus: number | undefined;
+  let txSignature: string | undefined;
+  let contentType: string | undefined;
+
+  try {
+    // Dynamic import to avoid bundling issues if @dexterai/x402 isn't installed
+    const { wrapFetch, SOLANA_MAINNET } = await import('@dexterai/x402/client');
+
+    const x402Fetch = wrapFetch(fetch, {
+      walletPrivateKey: CONNECTOR_KEY,
+      preferredNetwork: SOLANA_MAINNET,
+      maxAmountAtomic: String(MAX_PRICE_CENTS * 10000), // cents → USDC atomic (6 decimals)
+      verbose: false,
+    });
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), PAID_REQUEST_TIMEOUT_MS);
+
+    const needsBody = ['POST', 'PUT', 'PATCH'].includes(testedMethod.toUpperCase());
+    const fetchOptions: RequestInit = {
+      method: testedMethod.toUpperCase(),
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        'User-Agent': 'DexterLab-TestRunner/1.0',
+      },
+      signal: controller.signal,
+    };
+
+    if (needsBody) {
+      fetchOptions.body = JSON.stringify(testInput);
+    }
+
+    const response = await x402Fetch(publicUrl + testedPath, fetchOptions);
+    clearTimeout(timeout);
+
+    contentType = response.headers.get('content-type') || 'unknown';
+    txSignature = response.headers.get('x-payment-response') || response.headers.get('payment-response') || undefined;
+    responseStatus = response.status;
+
+    const rawText = await response.text();
+    responseText =
+      rawText.length > RESPONSE_PREVIEW_MAX ? rawText.slice(0, RESPONSE_PREVIEW_MAX) + '... [truncated]' : rawText;
+
+    if (!response.ok) {
+      return {
+        testType: 'paid_settlement',
+        passed: false,
+        durationMs: Date.now() - start,
+        requestUrl: publicUrl + testedPath,
+        requestMethod: testedMethod,
+        responseStatus,
+        responseBodyPreview: responseText,
+        errorMessage: `Paid request returned HTTP ${responseStatus}`,
+        details: {
+          testInput,
+          inputReasoning,
+          txSignature,
+          contentType,
+          priceCents,
+        },
+      };
+    }
+  } catch (err) {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    const isTimeout = err instanceof Error && err.name === 'AbortError';
+
+    return {
+      testType: 'paid_settlement',
+      passed: false,
+      durationMs: Date.now() - start,
+      requestUrl: publicUrl + testedPath,
+      requestMethod: testedMethod,
+      errorMessage: isTimeout ? 'Paid request timed out' : `Payment/request failed: ${errMsg}`,
+      details: {
+        testInput,
+        inputReasoning,
+        error: errMsg,
+        priceCents,
+      },
+    };
+  }
+
+  // Step 3: Evaluate the response with AI
+  let aiScore = 0;
+  let aiStatus: 'pass' | 'fail' | 'inconclusive' = 'inconclusive';
+  let aiNotes = '';
+
+  try {
+    const evalResult = await evaluateResponseWithAI({
+      resourceUrl: publicUrl + testedPath,
+      description: matchingEndpoint?.description || `${testedMethod} ${testedPath}`,
+      method: testedMethod,
+      testInput,
+      actualResponse: responseText || '',
+      responseStatus: responseStatus || 0,
+      priceCents,
+      responseSizeBytes: responseText?.length || 0,
+    });
+    aiScore = evalResult.score;
+    aiStatus = evalResult.status;
+    aiNotes = evalResult.notes;
+  } catch (err) {
+    console.warn('[TestRunner] AI evaluation failed:', err);
+
+    // Don't fail the test just because AI eval failed -- the payment went through
+    aiScore = 50;
+    aiStatus = 'inconclusive';
+    aiNotes = 'AI evaluation failed; payment succeeded but response quality unknown';
+  }
+
+  const passed = responseStatus === 200 && aiScore >= 50;
+
+  return {
+    testType: 'paid_settlement',
+    passed,
+    durationMs: Date.now() - start,
+    requestUrl: publicUrl + testedPath,
+    requestMethod: testedMethod,
+    responseStatus,
+    responseBodyPreview: responseText,
+    errorMessage: !passed ? `Score ${aiScore}/100: ${aiNotes}` : undefined,
+    details: {
+      testInput,
+      inputReasoning,
+      txSignature,
+      contentType,
+      priceCents,
+      aiScore,
+      aiStatus,
+      aiNotes,
+    },
+  };
+}
+
+// ─── Smart Test Input Generation ──────────────────────────────────────────────
+
+/**
+ * Generate a realistic test input for an endpoint.
+ *
+ * Priority order:
+ * 1. exampleBody from the developer (real, tested values)
+ * 2. AI generation with crypto defaults in the prompt
+ * 3. Basic fallback using crypto defaults based on field names
+ */
+async function generateSmartTestInput(context: {
+  resourceUrl: string;
+  description: string;
+  method: string;
+  exampleBody?: string;
+}): Promise<{ input: Record<string, unknown>; reasoning: string }> {
+  // GET/DELETE requests don't need a body
+  if (!['POST', 'PUT', 'PATCH'].includes(context.method.toUpperCase())) {
+    return { input: {}, reasoning: 'GET request - no body needed' };
+  }
+
+  // Priority 1: Use the developer's exampleBody if available
+  if (context.exampleBody) {
+    try {
+      const parsed = JSON.parse(context.exampleBody);
+
+      return { input: parsed, reasoning: 'Using developer-provided exampleBody' };
+    } catch {
+      // exampleBody is malformed, fall through to AI
+    }
+  }
+
+  // Priority 2: AI generation with crypto defaults
+  const prompt = `You are generating a realistic test input for an API endpoint verification system.
+
+ENDPOINT: ${context.resourceUrl}
+METHOD: ${context.method}
+DESCRIPTION: ${context.description}
+
+CRYPTO DEFAULTS (use these for any token/wallet/address fields - these are REAL addresses):
+- Solana token to test with: ${CRYPTO_DEFAULTS.DEXTER_TOKEN} (Dexter token)
+- SOL mint: ${CRYPTO_DEFAULTS.SOL_MINT}
+- USDC on Solana: ${CRYPTO_DEFAULTS.USDC_SOL}
+- Sample Solana wallet: ${CRYPTO_DEFAULTS.SAMPLE_SOL_WALLET}
+- USDC on Base: ${CRYPTO_DEFAULTS.USDC_BASE}
+- BankrCoin (BNKR) on Base: ${CRYPTO_DEFAULTS.BNKR_BASE}
+- Sample EVM wallet: ${CRYPTO_DEFAULTS.SAMPLE_ETH_WALLET}
+
+INSTRUCTIONS:
+1. Generate a realistic, SPECIFIC input that a real paying user would send
+2. For any field that takes a token address or mint, use one of the CRYPTO DEFAULTS above. NEVER make up an address.
+3. For text prompts, ask something a real user would genuinely want answered
+4. Match the endpoint's claimed purpose exactly
+5. Keep it concise but valid
+
+CRITICAL: Return ONLY a valid JSON object. No markdown, no explanation, just the JSON.`;
+
+  try {
+    const response = await fetch(`${PROXY_BASE_URL}/openai/v1/chat/completions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: AI_MODEL,
+        messages: [
+          {
+            role: 'system',
+            content:
+              'You generate realistic test inputs for API endpoints. Return ONLY a valid JSON object, nothing else. NEVER invent crypto addresses - always use the provided defaults.',
+          },
+          { role: 'user', content: prompt },
+        ],
+        max_tokens: 300,
+        temperature: 0.7,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`OpenAI proxy returned ${response.status}`);
+    }
+
+    const data = (await response.json()) as {
+      choices?: Array<{ message?: { content?: string } }>;
+    };
+    const rawContent = data.choices?.[0]?.message?.content?.trim() || '';
+
+    // Strip markdown code fences if present
+    const cleaned = rawContent.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
+
+    const parsed = JSON.parse(cleaned);
+
+    return { input: parsed, reasoning: 'AI-generated with crypto defaults' };
+  } catch (err) {
+    // Priority 3: Basic fallback using description to guess field names
+    return {
+      input: { mint: CRYPTO_DEFAULTS.DEXTER_TOKEN },
+      reasoning: `Fallback: Dexter token address (AI error: ${err instanceof Error ? err.message : 'unknown'})`,
+    };
+  }
+}
+
+// ─── AI Response Evaluation ───────────────────────────────────────────────────
+
+/**
+ * Evaluate the quality of an API response using AI.
+ * Returns a score 0-100 and notes, matching the quality verifier's criteria.
+ */
+async function evaluateResponseWithAI(context: {
+  resourceUrl: string;
+  description: string;
+  method: string;
+  testInput: Record<string, unknown>;
+  actualResponse: string;
+  responseStatus: number;
+  priceCents: number;
+  responseSizeBytes: number;
+}): Promise<{ score: number; status: 'pass' | 'fail' | 'inconclusive'; notes: string }> {
+  const prompt = `You are evaluating an x402 paid API endpoint. We PAID for this request and received an actual response.
+
+ENDPOINT: ${context.resourceUrl}
+METHOD: ${context.method}
+DESCRIPTION: "${context.description}"
+PRICE PAID: $${(context.priceCents / 100).toFixed(4)}
+RESPONSE STATUS: ${context.responseStatus}
+RESPONSE SIZE: ${(context.responseSizeBytes / 1024).toFixed(1)}KB
+
+OUR TEST INPUT:
+${JSON.stringify(context.testInput, null, 2)}
+
+ACTUAL RESPONSE (first ${RESPONSE_PREVIEW_MAX} chars):
+${context.actualResponse}
+
+EVALUATION CRITERIA:
+1. Did it actually answer what we asked? (not just "relevant topic")
+2. Is the response specific and actionable?
+3. Would a paying user be satisfied with THIS response?
+4. Any red flags? (error messages, empty content, asked for clarification when given specific input)
+5. Response size: under 10KB is fine, 10-30KB acceptable if dense, 30KB+ penalize, 50KB+ cap at 50
+
+SCORING:
+- 80-100: Excellent - directly answers with high quality
+- 60-79: Good - addresses the request with useful content
+- 40-59: Mediocre - partially relevant or generic
+- 25-39: Poor - mostly fails to deliver value
+- 0-24: Broken - error, empty, or completely wrong
+
+Return ONLY a JSON object with exactly these fields:
+{"score": <number 0-100>, "status": "<pass|fail|inconclusive>", "notes": "<1-2 sentence assessment>"}`;
+
+  try {
+    const response = await fetch(`${PROXY_BASE_URL}/openai/v1/chat/completions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: AI_MODEL,
+        messages: [
+          {
+            role: 'system',
+            content: 'You are an API quality evaluator. Be strict but fair. Return ONLY valid JSON.',
+          },
+          { role: 'user', content: prompt },
+        ],
+        max_tokens: 200,
+        temperature: 0.3,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`OpenAI proxy returned ${response.status}`);
+    }
+
+    const data = (await response.json()) as {
+      choices?: Array<{ message?: { content?: string } }>;
+    };
+    const rawContent = data.choices?.[0]?.message?.content?.trim() || '';
+    const cleaned = rawContent.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
+
+    const result = JSON.parse(cleaned) as { score?: number; status?: string; notes?: string };
+
+    return {
+      score: Math.max(0, Math.min(100, result.score || 0)),
+      status: (['pass', 'fail', 'inconclusive'].includes(result.status || '') ? result.status : 'inconclusive') as
+        | 'pass'
+        | 'fail'
+        | 'inconclusive',
+      notes: result.notes || 'No notes provided',
+    };
+  } catch (err) {
+    return {
+      score: 50,
+      status: 'inconclusive',
+      notes: `AI evaluation error: ${err instanceof Error ? err.message : 'unknown'}`,
+    };
+  }
+}
+
+// ─── Persistence ──────────────────────────────────────────────────────────────
+
 /**
  * Persist test results to dexter-api
  */
 async function persistTestResults(resourceId: string, tests: TestResult[]): Promise<void> {
   for (const test of tests) {
     try {
+      /*
+       * Build payload using spread to OMIT undefined/null fields.
+       * Zod .optional() rejects null — we must not send null for optional fields.
+       */
       const payload = {
         resource_id: resourceId,
         test_type: test.testType,
         passed: test.passed,
-        duration_ms: test.durationMs,
-        request_url: test.requestUrl,
-        request_method: test.requestMethod,
-        response_status: test.responseStatus,
-        response_headers: test.responseHeaders || null,
-        response_body_preview: test.responseBodyPreview?.substring(0, 1000),
-        error_message: test.errorMessage,
-        details: test.details,
-        payment_tx: null,
-        payment_amount_usdc: null,
+        ...(test.durationMs !== undefined ? { duration_ms: test.durationMs } : {}),
+        ...(test.requestUrl ? { request_url: test.requestUrl } : {}),
+        ...(test.requestMethod ? { request_method: test.requestMethod } : {}),
+        ...(test.responseStatus !== undefined ? { response_status: test.responseStatus } : {}),
+        ...(test.responseHeaders ? { response_headers: test.responseHeaders } : {}),
+        ...(test.responseBodyPreview ? { response_body_preview: test.responseBodyPreview.substring(0, 1000) } : {}),
+        ...(test.errorMessage ? { error_message: test.errorMessage } : {}),
+        details: test.details || {},
+        ...(test.details?.txSignature ? { payment_tx: test.details.txSignature as string } : {}),
+        ...(test.details?.priceCents ? { payment_amount_usdc: Number(test.details.priceCents) / 100 } : {}),
+        ...(test.details?.aiScore !== undefined ? { ai_score: test.details.aiScore as number } : {}),
+        ...(test.details?.aiStatus ? { ai_status: test.details.aiStatus as string } : {}),
+        ...(test.details?.aiNotes ? { ai_notes: test.details.aiNotes as string } : {}),
+        ...(test.details?.testInput ? { test_input_generated: test.details.testInput } : {}),
+        ...(test.details?.inputReasoning ? { test_input_reasoning: test.details.inputReasoning as string } : {}),
       };
 
       const response = await fetch(`${DEXTER_API_BASE}/api/dexter-lab/test-results`, {
@@ -451,9 +962,10 @@ async function persistTestResults(resourceId: string, tests: TestResult[]): Prom
   }
 }
 
+// ─── Formatting ───────────────────────────────────────────────────────────────
+
 /**
  * Format test results for agent display
- * Returns a human-readable summary that the agent will relay to the user
  */
 export function formatTestResults(result: TestSuiteResult): string {
   const lines: string[] = [];
@@ -476,13 +988,42 @@ export function formatTestResults(result: TestSuiteResult): string {
       lines.push(`   Error: ${test.errorMessage}`);
     }
 
-    // Add specific details
+    // Header validation warnings
     if (test.testType === 'header_validation' && test.details) {
       const warnings = test.details.warnings as string[] | undefined;
 
       if (warnings && warnings.length > 0) {
         for (const w of warnings) {
           lines.push(`   ⚠️ ${w}`);
+        }
+      }
+    }
+
+    // Paid settlement details
+    if (test.testType === 'paid_settlement' && test.details) {
+      const score = test.details.aiScore as number | undefined;
+      const notes = test.details.aiNotes as string | undefined;
+      const tx = test.details.txSignature as string | undefined;
+      const price = test.details.priceCents as number | undefined;
+      const skipped = test.details.skipped as boolean | undefined;
+
+      if (skipped) {
+        lines.push(`   ⏭️ ${test.errorMessage}`);
+      } else {
+        if (score !== undefined) {
+          lines.push(`   Score: ${score}/100`);
+        }
+
+        if (tx) {
+          lines.push(`   TX: ${tx.substring(0, 12)}...${tx.substring(tx.length - 8)}`);
+        }
+
+        if (price !== undefined) {
+          lines.push(`   Paid: $${(price / 100).toFixed(4)} USDC`);
+        }
+
+        if (notes) {
+          lines.push(`   ${notes}`);
         }
       }
     }

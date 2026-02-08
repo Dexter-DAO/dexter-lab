@@ -5,7 +5,7 @@ http:
   routers:
     # Health check endpoint
     health:
-      rule: "Path(`/health`) || Path(`/ping`)"
+      rule: "Host(`lab.dexter.cash`) && (Path(`/health`) || Path(`/ping`))"
       entryPoints:
         - web
       service: ping@internal

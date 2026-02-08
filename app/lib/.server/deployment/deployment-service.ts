@@ -30,9 +30,6 @@ import { resourceRegistry } from './redis-client';
 // Base domain for resources (wildcard *.dexter.cash)
 const RESOURCE_BASE_DOMAIN = process.env.RESOURCE_BASE_DOMAIN || 'dexter.cash';
 
-// Dexter Facilitator URL
-const FACILITATOR_URL = process.env.FACILITATOR_URL || 'https://dexter.cash';
-
 /**
  * Generate a unique resource ID
  */
@@ -184,48 +181,11 @@ app.get('/health', (req, res) => {
   };
 }
 
-/**
- * Register resource with Dexter Facilitator
+/*
+ * Facilitator registration removed — the endpoint /api/x402/resources/register
+ * never existed. Resources are persisted to dexter-api via persistResourceToApi()
+ * in api.deploy.ts, and the facilitator discovers them when processing x402 transactions.
  */
-async function registerWithFacilitator(resource: DeployedResource): Promise<boolean> {
-  try {
-    /*
-     * The facilitator automatically picks up x402 transactions
-     * This endpoint pre-registers the resource for faster discovery
-     */
-    const response = await fetch(`${FACILITATOR_URL}/api/x402/resources/register`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        resourceId: resource.config.id,
-        name: resource.config.name,
-        description: resource.config.description,
-        creatorWallet: resource.config.creatorWallet,
-        publicUrl: resource.publicUrl,
-        basePriceUsdc: resource.config.basePriceUsdc,
-        pricingModel: resource.config.pricingModel,
-        endpoints: resource.config.endpoints,
-        tags: resource.config.tags,
-        status: 'active',
-      }),
-    });
-
-    if (!response.ok) {
-      console.warn(`[Facilitator] Registration returned ${response.status}`);
-      return false;
-    }
-
-    console.log(`[Facilitator] Resource ${resource.config.id} registered successfully`);
-
-    return true;
-  } catch (error) {
-    // Registration is optional - resource still works via x402 protocol
-    console.warn('[Facilitator] Registration failed (resource still usable):', error);
-    return false;
-  }
-}
 
 /**
  * Deploy a new x402 resource
@@ -324,9 +284,6 @@ export async function deploy(
     resource.healthy = true;
     resource.updatedAt = new Date();
     await resourceRegistry.set(resourceId, resource);
-
-    // Register with facilitator (async, non-blocking)
-    registerWithFacilitator(resource).catch(console.error);
 
     return {
       success: true,
@@ -761,7 +718,9 @@ export async function redeploy(
     return { success: false, resourceId, error: `Resource not found: ${resourceId}` };
   }
 
-  console.log(`[Redeploy] Starting redeploy for ${resourceId} (current version: ${existing.config.id === resourceId ? 'v1+' : 'unknown'})`);
+  console.log(
+    `[Redeploy] Starting redeploy for ${resourceId} (current version: ${existing.config.id === resourceId ? 'v1+' : 'unknown'})`,
+  );
 
   // Check base image
   const baseReady = await checkBaseImage();

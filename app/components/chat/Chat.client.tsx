@@ -27,6 +27,7 @@ import { defaultDesignScheme, type DesignScheme } from '~/types/design-scheme';
 import type { ElementInfo } from '~/components/workbench/Inspector';
 import type { TextUIPart, FileUIPart, Attachment } from '~/types/ui-utils';
 import { useMCPStore } from '~/lib/stores/mcp';
+import { $walletAddress } from '~/lib/stores/wallet';
 import type { LlmErrorAlertType } from '~/types/actions';
 import * as chatDebug from '~/utils/chatDebugger';
 
@@ -117,6 +118,7 @@ export const ChatImpl = memo(
     const [chatMode, setChatMode] = useState<'discuss' | 'build'>('build');
     const [selectedElement, setSelectedElement] = useState<ElementInfo | null>(null);
     const mcpSettings = useMCPStore((state) => state.settings);
+    const walletAddress = useStore($walletAddress);
 
     const {
       messages,
@@ -150,6 +152,7 @@ export const ChatImpl = memo(
           },
         },
         maxLLMSteps: mcpSettings.maxLLMSteps,
+        walletAddress: walletAddress || undefined,
       },
       sendExtraMessageFields: true,
       onError: (e) => {
@@ -448,6 +451,13 @@ export const ChatImpl = memo(
     const sendMessage = async (_event: React.UIEvent, messageInput?: string) => {
       const messageContent = messageInput || input;
 
+      // Track invocations to diagnose template duplication
+      const callId = Math.random().toString(36).slice(2, 8);
+      console.log(
+        `[sendMessage:${callId}] CALLED | chatStarted=${chatStarted} isLoading=${isLoading} messageLength=${messageContent?.length || 0} source=${messageInput ? 'programmatic' : 'input-state'}`,
+      );
+      console.trace(`[sendMessage:${callId}] call stack`);
+
       // Debug: User submit
       chatDebug.debugUserSubmit({
         input: messageContent || '',
@@ -482,9 +492,11 @@ export const ChatImpl = memo(
       runAnimation();
 
       if (!chatStarted) {
+        console.log(`[sendMessage:${callId}] ENTERED !chatStarted block`);
         setFakeLoading(true);
 
         if (autoSelectTemplate) {
+          console.log(`[sendMessage:${callId}] ENTERED autoSelectTemplate block`);
           logger.info('=== TEMPLATE SELECTION START ===');
           logger.info('User message:', finalMessageContent.substring(0, 100) + '...');
 

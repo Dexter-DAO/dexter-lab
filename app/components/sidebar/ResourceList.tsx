@@ -104,21 +104,15 @@ function ResourceItem({ resource }: { resource: LabResource }) {
       >
         <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${statusCfg.dot}`} />
         <div className="flex-1 min-w-0">
-          <div className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
-            {resource.name}
-          </div>
+          <div className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{resource.name}</div>
           <div className="flex items-center gap-2 mt-0.5">
             <span className={`text-xs ${statusCfg.color}`}>{statusCfg.label}</span>
             {Number(resource.gross_revenue_usdc) > 0 && (
-              <span className="text-xs text-emerald-400">
-                {formatUsdc(resource.gross_revenue_usdc)}
-              </span>
+              <span className="text-xs text-emerald-400">{formatUsdc(resource.gross_revenue_usdc)}</span>
             )}
           </div>
         </div>
-        <div
-          className={`i-ph:caret-down text-xs text-gray-400 transition-transform ${expanded ? 'rotate-180' : ''}`}
-        />
+        <div className={`i-ph:caret-down text-xs text-gray-400 transition-transform ${expanded ? 'rotate-180' : ''}`} />
       </button>
 
       {expanded && (
@@ -142,9 +136,7 @@ function ResourceItem({ resource }: { resource: LabResource }) {
             </div>
 
             <div className="text-gray-500 dark:text-gray-500">Revenue</div>
-            <div className="text-emerald-500 text-right">
-              {formatUsdc(resource.gross_revenue_usdc)}
-            </div>
+            <div className="text-emerald-500 text-right">{formatUsdc(resource.gross_revenue_usdc)}</div>
 
             <div className="text-gray-500 dark:text-gray-500">Your Earnings</div>
             <div className="text-gray-900 dark:text-gray-200 text-right">
@@ -152,21 +144,15 @@ function ResourceItem({ resource }: { resource: LabResource }) {
             </div>
 
             <div className="text-gray-500 dark:text-gray-500">Platform Fee</div>
-            <div className="text-gray-900 dark:text-gray-200 text-right">
-              {formatUsdc(resource.platform_fees_usdc)}
-            </div>
+            <div className="text-gray-900 dark:text-gray-200 text-right">{formatUsdc(resource.platform_fees_usdc)}</div>
 
             {balance && (
               <>
                 <div className="text-gray-500 dark:text-gray-500">Wallet USDC</div>
-                <div className="text-gray-900 dark:text-gray-200 text-right">
-                  {formatUsdc(balance.usdc)}
-                </div>
+                <div className="text-gray-900 dark:text-gray-200 text-right">{formatUsdc(balance.usdc)}</div>
 
                 <div className="text-gray-500 dark:text-gray-500">Wallet SOL</div>
-                <div className="text-gray-900 dark:text-gray-200 text-right">
-                  {balance.sol.toFixed(4)}
-                </div>
+                <div className="text-gray-900 dark:text-gray-200 text-right">{balance.sol.toFixed(4)}</div>
               </>
             )}
 
@@ -196,9 +182,7 @@ function ResourceItem({ resource }: { resource: LabResource }) {
                   onClick={() => setShowLogs(!showLogs)}
                   style={{ background: 'none' }}
                   className={`flex items-center gap-1 text-xs transition-colors ${
-                    showLogs
-                      ? 'text-accent-500'
-                      : 'text-gray-400 dark:text-gray-500 hover:text-accent-500'
+                    showLogs ? 'text-accent-500' : 'text-gray-400 dark:text-gray-500 hover:text-accent-500'
                   }`}
                 >
                   <div className="i-ph:terminal text-xs" />
@@ -208,9 +192,7 @@ function ResourceItem({ resource }: { resource: LabResource }) {
             </div>
           </div>
 
-          {showLogs && (
-            <ResourceLogs resourceId={resource.id} onClose={() => setShowLogs(false)} />
-          )}
+          {showLogs && <ResourceLogs resourceId={resource.id} onClose={() => setShowLogs(false)} />}
         </div>
       )}
     </div>
@@ -272,18 +254,12 @@ export function ResourceList() {
     <div className="px-3 pb-2">
       <div className="flex items-center justify-between px-1 py-2">
         <div className="font-medium text-sm text-gray-600 dark:text-gray-400">Your Resources</div>
-        {resources.length > 0 && (
-          <span className="text-xs text-gray-400 dark:text-gray-600">{resources.length}</span>
-        )}
+        {resources.length > 0 && <span className="text-xs text-gray-400 dark:text-gray-600">{resources.length}</span>}
       </div>
 
-      {loading && (
-        <div className="px-1 py-3 text-xs text-gray-400 dark:text-gray-500">Loading resources...</div>
-      )}
+      {loading && <div className="px-1 py-3 text-xs text-gray-400 dark:text-gray-500">Loading resources...</div>}
 
-      {error && (
-        <div className="px-1 py-3 text-xs text-red-400">{error}</div>
-      )}
+      {error && <div className="px-1 py-3 text-xs text-red-400">{error}</div>}
 
       {!loading && !error && resources.length === 0 && (
         <div className="px-1 py-3 text-xs text-gray-400 dark:text-gray-500">
