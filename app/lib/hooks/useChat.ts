@@ -319,6 +319,19 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
                 if (parsed.type === 'text') {
                   assistantContent += parsed.content;
 
+                  // Detect resourceId in agent response text and start deploy verification
+                  const resIdMatch = assistantContent.match(/\bres-[a-z0-9]+-[a-z0-9]+\b/);
+
+                  if (resIdMatch) {
+                    const detectedResId = resIdMatch[0];
+                    import('~/lib/stores/deployProgress').then(({ startDeployProgress, $activeDeploys }) => {
+                      // Only start if we haven't already subscribed to this ID
+                      if (!$activeDeploys.get().has(detectedResId)) {
+                        startDeployProgress(detectedResId, detectedResId);
+                      }
+                    });
+                  }
+
                   // Use throttled updater for smooth streaming display
                   throttledUpdate(assistantContent);
                 } else if (parsed.type === 'tool_use' && parsed.toolName) {
@@ -331,18 +344,16 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
                     const name = (input?.name as string) || 'resource';
                     const resId = (input?.resourceId as string) || '';
 
-                    // Dynamic import to avoid circular deps and keep client-only
-                    import('~/lib/stores/deployProgress').then(({ startDeployProgress }) => {
-                      // For new deploys, resourceId isn't known yet -- start with name as temp key
-                      // The SSE progress endpoint will be subscribed once the real ID arrives
-                      if (resId) {
+                    // For updates, we know the resourceId immediately -- start live tracking
+                    if (resId) {
+                      import('~/lib/stores/deployProgress').then(({ startDeployProgress }) => {
                         startDeployProgress(resId, name);
-                      } else {
-                        // For new deploys, we'll pick up the resourceId from the progress events
-                        // Start polling with a temp ID that matches the deploy API's temp key pattern
-                        startDeployProgress(`pending-deploy-${name}`, name);
-                      }
-                    });
+                      });
+                    }
+
+                    // For new deploys (no resId), we wait for the result text to contain
+                    // the resourceId (res-xxx pattern) and start tracking then.
+                    // This is handled in the 'text' handler below.
                   }
                 } else if (parsed.type === 'system' && parsed.sessionId) {
                   sessionIdRef.current = parsed.sessionId;

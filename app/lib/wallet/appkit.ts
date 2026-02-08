@@ -33,5 +33,9 @@ export const appKit = projectId
         socials: [],
       },
       themeMode: 'dark',
+      // Disable AppKit's auto-reconnect on page load.
+      // It triggers the wallet extension popup (e.g., Solflare) on every visit.
+      // We handle session persistence ourselves via localStorage + initWalletFromStorage().
+      enableReconnect: false,
     })
   : null;

@@ -137,26 +137,40 @@ function ResourceItem({ resource }: { resource: LabResource }) {
               {resource.endpoints_json && resource.endpoints_json.length > 0 ? (
                 resource.endpoints_json
                   .filter((ep) => ep.priceUsdc !== undefined && ep.priceUsdc > 0)
-                  .map((ep, i) => (
-                    <div key={i} className="flex items-center gap-1.5 text-xs">
-                      <span className="font-mono px-1 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-accent-500 font-semibold">
-                        {ep.method}
-                      </span>
-                      <span className="text-gray-700 dark:text-gray-300 font-mono truncate">
-                        {resource.public_url}{ep.path}
-                      </span>
-                    </div>
-                  ))
+                  .map((ep, i) => {
+                    const fullUrl = `${resource.public_url}${ep.path}`;
+
+                    return (
+                      <button
+                        key={i}
+                        onClick={() => {
+                          navigator.clipboard.writeText(fullUrl);
+                        }}
+                        title="Click to copy endpoint URL"
+                        className="flex items-center gap-1.5 text-xs w-full text-left hover:bg-gray-100 dark:hover:bg-gray-800/50 rounded px-1 py-0.5 -mx-1 transition-colors group"
+                      >
+                        <span className="font-mono px-1 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-accent-500 font-semibold shrink-0">
+                          {ep.method}
+                        </span>
+                        <span className="text-gray-700 dark:text-gray-300 font-mono text-[10px] break-all leading-tight">
+                          {fullUrl}
+                        </span>
+                        <span className="i-ph:copy text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 text-xs" />
+                      </button>
+                    );
+                  })
               ) : (
-                <a
-                  href={resource.public_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-1.5 text-xs text-accent-500 hover:text-accent-400 transition-colors"
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(resource.public_url!);
+                  }}
+                  title="Click to copy URL"
+                  className="flex items-center gap-1.5 text-xs text-accent-500 hover:text-accent-400 transition-colors w-full text-left group"
                 >
-                  <div className="i-ph:arrow-square-out text-xs" />
-                  <span className="truncate">{resource.public_url.replace('https://', '')}</span>
-                </a>
+                  <div className="i-ph:arrow-square-out text-xs shrink-0" />
+                  <span className="font-mono text-[10px] break-all leading-tight">{resource.public_url!.replace('https://', '')}</span>
+                  <span className="i-ph:copy text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 text-xs" />
+                </button>
               )}
             </div>
           )}

@@ -28,6 +28,7 @@ import { expoUrlAtom } from '~/lib/stores/qrCodeStore';
 import { useStore } from '@nanostores/react';
 import { StickToBottom, useStickToBottomContext } from '~/lib/hooks';
 import { ChatBox } from './ChatBox';
+import { workbenchStore } from '~/lib/stores/workbench';
 import type { DesignScheme } from '~/types/design-scheme';
 import type { ElementInfo } from '~/components/workbench/Inspector';
 import LlmErrorAlert from './LLMApiAlert';
@@ -36,6 +37,33 @@ import ParticleTextWave from '~/components/ui/ParticleTextWave';
 
 const TEXTAREA_MIN_HEIGHT = 76;
 const DEXTER_LAB_GRADIENT = ['#FF8C00', '#FFB42C', '#FFE082'];
+
+/**
+ * Floating button to reopen the workbench panel when it's been dismissed.
+ * Only visible when chat has started and workbench is closed.
+ */
+function WorkbenchToggle({ chatStarted }: { chatStarted: boolean }) {
+  const showWorkbench = useStore(workbenchStore.showWorkbench);
+  const files = useStore(workbenchStore.files);
+  const hasFiles = Object.keys(files).length > 0;
+
+  if (!chatStarted || showWorkbench || !hasFiles) {
+    return null;
+  }
+
+  return (
+    <div className="flex justify-end max-w-chat mx-auto w-full px-4 mb-1">
+      <button
+        onClick={() => workbenchStore.showWorkbench.set(true)}
+        className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:text-accent-500 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+        title="Open Workbench"
+      >
+        <div className="i-ph:code text-sm" />
+        Open Workbench
+      </button>
+    </div>
+  );
+}
 
 interface BaseChatProps {
   textareaRef?: React.RefObject<HTMLTextAreaElement> | undefined;
@@ -425,6 +453,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 </ClientOnly>
                 <ScrollToBottom />
               </StickToBottom.Content>
+              <WorkbenchToggle chatStarted={chatStarted} />
               <div
                 className={classNames('my-auto flex flex-col gap-2 w-full max-w-chat mx-auto z-prompt mb-6', {
                   'sticky bottom-2': chatStarted,
