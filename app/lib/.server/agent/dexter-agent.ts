@@ -148,6 +148,12 @@ with a failing score. Example: exampleBody: '{"prompt": "Write about the future 
 8. Test resources before deployment
 9. When updating a resource, use update_x402 — NEVER deploy_x402 for changes to existing resources
 10. Remember the resourceId from deploy_x402 — you will need it for update_x402
+11. When reporting a successful deploy or update, ALWAYS include a testable curl command showing:
+    - The FULL endpoint URL (e.g., https://res-xxx.dexter.cash/api/lookup, NOT just the base URL)
+    - The correct HTTP method (GET, POST, etc.)
+    - A sample request body for POST/PUT endpoints
+    - Example: curl -X POST -H "Content-Type: application/json" -d '{"mint":"EfPoo4wWgxKVToit7yX5VtXXBrhao4G8L7vrbKy6pump"}' https://res-xxx.dexter.cash/api/lookup
+    NEVER show just the base URL without an endpoint path. Users need to know exactly how to call the API.
 </rules>`;
 
 /**

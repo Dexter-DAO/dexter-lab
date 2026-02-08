@@ -13,6 +13,14 @@ import { ResourceLogs } from './ResourceLogs';
 
 const DEXTER_API_BASE = 'https://api.dexter.cash';
 
+interface LabEndpoint {
+  path: string;
+  method: string;
+  description?: string;
+  priceUsdc?: number;
+  exampleBody?: string;
+}
+
 interface LabResource {
   id: string;
   name: string;
@@ -26,6 +34,7 @@ interface LabResource {
   request_count: number | string;
   created_at: string;
   pay_to_wallet: string;
+  endpoints_json?: LabEndpoint[] | null;
 }
 
 interface ResourceBalance {
@@ -53,6 +62,12 @@ function formatUsdc(val: number | string): string {
 
   if (isNaN(num) || num === 0) {
     return '$0.00';
+  }
+
+  // Show enough decimals for sub-cent prices (e.g., $0.005)
+  // but don't show excessive trailing zeros for round amounts
+  if (num < 0.01) {
+    return `$${num.toFixed(4).replace(/0+$/, '').replace(/\.$/, '.00')}`;
   }
 
   return `$${num.toFixed(2)}`;
@@ -118,15 +133,32 @@ function ResourceItem({ resource }: { resource: LabResource }) {
       {expanded && (
         <div className="px-3 pb-3 pt-0 space-y-2 border-t border-gray-100 dark:border-gray-800/50">
           {resource.public_url && (
-            <a
-              href={resource.public_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1.5 text-xs text-accent-500 hover:text-accent-400 transition-colors mt-2"
-            >
-              <div className="i-ph:arrow-square-out text-xs" />
-              <span className="truncate">{resource.public_url.replace('https://', '')}</span>
-            </a>
+            <div className="mt-2 space-y-1">
+              {resource.endpoints_json && resource.endpoints_json.length > 0 ? (
+                resource.endpoints_json
+                  .filter((ep) => ep.priceUsdc !== undefined && ep.priceUsdc > 0)
+                  .map((ep, i) => (
+                    <div key={i} className="flex items-center gap-1.5 text-xs">
+                      <span className="font-mono px-1 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-accent-500 font-semibold">
+                        {ep.method}
+                      </span>
+                      <span className="text-gray-700 dark:text-gray-300 font-mono truncate">
+                        {resource.public_url}{ep.path}
+                      </span>
+                    </div>
+                  ))
+              ) : (
+                <a
+                  href={resource.public_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 text-xs text-accent-500 hover:text-accent-400 transition-colors"
+                >
+                  <div className="i-ph:arrow-square-out text-xs" />
+                  <span className="truncate">{resource.public_url.replace('https://', '')}</span>
+                </a>
+              )}
+            </div>
           )}
 
           <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs">

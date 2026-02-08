@@ -215,6 +215,7 @@ export const action: ActionFunction = async ({ request }) => {
         name: body.name,
         description: body.description,
         source_files_json: JSON.stringify(body.files),
+        endpoints_json: body.endpoints,
         status: 'running',
         healthy: false,
       }).catch((err) => console.error('[Deploy API] Failed to update resource:', err));
@@ -404,6 +405,7 @@ export const action: ActionFunction = async ({ request }) => {
         status: 'running',
         healthy: false, // Will be updated by tests
         source_files_json: JSON.stringify(body.files),
+        endpoints_json: body.endpoints,
         deployed_at: new Date().toISOString(),
       }).catch((err) => console.error('[Deploy API] Failed to persist resource:', err));
 
