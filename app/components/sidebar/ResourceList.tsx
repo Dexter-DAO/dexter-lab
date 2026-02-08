@@ -147,12 +147,12 @@ function ResourceItem({ resource }: { resource: LabResource }) {
                           navigator.clipboard.writeText(fullUrl);
                         }}
                         title="Click to copy endpoint URL"
-                        className="flex items-center gap-1.5 text-xs w-full text-left hover:bg-gray-100 dark:hover:bg-gray-800/50 rounded px-1 py-0.5 -mx-1 transition-colors group"
+                        className="flex items-center gap-1.5 text-xs w-full text-left bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-700/50 rounded-lg px-2 py-1.5 -mx-1 transition-colors group"
                       >
-                        <span className="font-mono px-1 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-accent-500 font-semibold shrink-0">
+                        <span className="font-mono px-1.5 py-0.5 rounded bg-gray-200/80 dark:bg-gray-700 text-accent-500 font-semibold shrink-0">
                           {ep.method}
                         </span>
-                        <span className="text-gray-700 dark:text-gray-300 font-mono text-[10px] break-all leading-tight">
+                        <span className="text-gray-600 dark:text-gray-400 font-mono text-[10px] break-all leading-tight">
                           {fullUrl}
                         </span>
                         <span className="i-ph:copy text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 text-xs" />
