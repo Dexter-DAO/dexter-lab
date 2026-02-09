@@ -295,6 +295,12 @@ export const action: ActionFunction = async ({ request }) => {
         timestamp: Date.now(),
       });
 
+      // Fire-and-forget: generate cover image in background
+      fetch(`${DEXTER_API_BASE}/api/dexter-lab/resources/${resourceId}/generate-cover`, {
+        method: 'POST',
+        headers: AUTH_HEADERS,
+      }).catch((e) => console.warn('[Deploy API] Cover image generation failed:', e));
+
       return json(
         {
           success: true,
@@ -557,6 +563,12 @@ export const action: ActionFunction = async ({ request }) => {
         })),
         timestamp: Date.now(),
       });
+
+      // Fire-and-forget: generate cover image in background
+      fetch(`${DEXTER_API_BASE}/api/dexter-lab/resources/${result.resourceId}/generate-cover`, {
+        method: 'POST',
+        headers: AUTH_HEADERS,
+      }).catch((e) => console.warn('[Deploy API] Cover image generation failed:', e));
 
       return json(
         {
