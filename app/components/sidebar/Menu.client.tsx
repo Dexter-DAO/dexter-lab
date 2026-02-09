@@ -413,8 +413,10 @@ export const Menu = () => {
               />
             </div>
           </div>
-          <ResourceList />
-          <div className="flex items-center justify-between text-sm px-4 py-2">
+          <div className="max-h-[40vh] overflow-y-auto shrink-0 sidebar-scroll">
+            <ResourceList />
+          </div>
+          <div className="flex items-center justify-between text-sm px-4 py-2 shrink-0">
             <div className="font-medium text-gray-600 dark:text-gray-400">Your Chats</div>
             {selectionMode && (
               <div className="flex items-center gap-2">
@@ -432,7 +434,7 @@ export const Menu = () => {
               </div>
             )}
           </div>
-          <div className="flex-1 overflow-auto px-3 pb-3">
+          <div className="flex-1 overflow-auto px-3 pb-3 sidebar-scroll">
             {filteredList.length === 0 && (
               <div className="px-4 text-gray-500 dark:text-gray-400 text-sm">
                 {list.length === 0 ? 'No previous conversations' : 'No matches found'}
