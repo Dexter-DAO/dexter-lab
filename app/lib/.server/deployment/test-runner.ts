@@ -42,8 +42,49 @@ const PAID_REQUEST_TIMEOUT_MS = 120_000;
 // Response preview limit
 const RESPONSE_PREVIEW_MAX = 2000;
 
-// AI model for input generation and evaluation
-const AI_MODEL = 'gpt-4o-mini';
+// Claude Opus 4.6 for input generation and evaluation (via Anthropic proxy)
+const CLAUDE_MODEL = 'claude-opus-4-6';
+
+/**
+ * Call Claude Opus 4.6 via the Dexter proxy's Anthropic route.
+ * Proxy handles auth, rate limiting, and header injection.
+ * Returns the text content of the first response block.
+ */
+async function callClaude(opts: {
+  system: string;
+  userMessage: string;
+  maxTokens?: number;
+  temperature?: number;
+}): Promise<string> {
+  const response = await fetch(`${PROXY_BASE_URL}/anthropic/v1/messages`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: CLAUDE_MODEL,
+      max_tokens: opts.maxTokens || 300,
+      temperature: opts.temperature ?? 0.7,
+      system: opts.system,
+      messages: [{ role: 'user', content: opts.userMessage }],
+    }),
+  });
+
+  if (!response.ok) {
+    const errText = await response.text().catch(() => '');
+    throw new Error(`Claude proxy ${response.status}: ${errText.substring(0, 200)}`);
+  }
+
+  const data = (await response.json()) as {
+    content?: Array<{ type: string; text?: string }>;
+  };
+
+  const text = data.content?.find((c) => c.type === 'text')?.text?.trim();
+
+  if (!text) {
+    throw new Error('Claude returned empty response');
+  }
+
+  return text;
+}
 
 // Real crypto addresses for test inputs (same as dexter-api quality verifier)
 const CRYPTO_DEFAULTS = {
@@ -821,44 +862,25 @@ INSTRUCTIONS:
 CRITICAL: Return ONLY a valid JSON object. No markdown, no explanation, just the JSON.`;
 
   try {
-    const response = await fetch(`${PROXY_BASE_URL}/openai/v1/chat/completions`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: AI_MODEL,
-        messages: [
-          {
-            role: 'system',
-            content:
-              'You generate realistic test inputs for API endpoints. Return ONLY a valid JSON object, nothing else. NEVER invent crypto addresses - always use the provided defaults.',
-          },
-          { role: 'user', content: prompt },
-        ],
-        max_tokens: 300,
-        temperature: 0.7,
-      }),
+    const rawContent = await callClaude({
+      system:
+        'You generate realistic test inputs for API endpoints. Return ONLY a valid JSON object, nothing else. NEVER invent crypto addresses - always use the provided defaults.',
+      userMessage: prompt,
+      maxTokens: 300,
+      temperature: 0.7,
     });
-
-    if (!response.ok) {
-      throw new Error(`OpenAI proxy returned ${response.status}`);
-    }
-
-    const data = (await response.json()) as {
-      choices?: Array<{ message?: { content?: string } }>;
-    };
-    const rawContent = data.choices?.[0]?.message?.content?.trim() || '';
 
     // Strip markdown code fences if present
     const cleaned = rawContent.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
 
     const parsed = JSON.parse(cleaned);
 
-    return { input: parsed, reasoning: 'AI-generated with crypto defaults' };
+    return { input: parsed, reasoning: 'Claude Opus 4.6 generated with crypto defaults' };
   } catch (err) {
     // Priority 3: Basic fallback using description to guess field names
     return {
       input: { mint: CRYPTO_DEFAULTS.DEXTER_TOKEN },
-      reasoning: `Fallback: Dexter token address (AI error: ${err instanceof Error ? err.message : 'unknown'})`,
+      reasoning: `Fallback: Dexter token address (Claude error: ${err instanceof Error ? err.message : 'unknown'})`,
     };
   }
 }
@@ -912,31 +934,13 @@ Return ONLY a JSON object with exactly these fields:
 {"score": <number 0-100>, "status": "<pass|fail|inconclusive>", "notes": "<1-2 sentence assessment>"}`;
 
   try {
-    const response = await fetch(`${PROXY_BASE_URL}/openai/v1/chat/completions`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: AI_MODEL,
-        messages: [
-          {
-            role: 'system',
-            content: 'You are an API quality evaluator. Be strict but fair. Return ONLY valid JSON.',
-          },
-          { role: 'user', content: prompt },
-        ],
-        max_tokens: 200,
-        temperature: 0.3,
-      }),
+    const rawContent = await callClaude({
+      system: 'You are an API quality evaluator. Be strict but fair. Return ONLY valid JSON.',
+      userMessage: prompt,
+      maxTokens: 200,
+      temperature: 0.3,
     });
 
-    if (!response.ok) {
-      throw new Error(`OpenAI proxy returned ${response.status}`);
-    }
-
-    const data = (await response.json()) as {
-      choices?: Array<{ message?: { content?: string } }>;
-    };
-    const rawContent = data.choices?.[0]?.message?.content?.trim() || '';
     const cleaned = rawContent.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
 
     const result = JSON.parse(cleaned) as { score?: number; status?: string; notes?: string };
@@ -953,7 +957,7 @@ Return ONLY a JSON object with exactly these fields:
     return {
       score: 50,
       status: 'inconclusive',
-      notes: `AI evaluation error: ${err instanceof Error ? err.message : 'unknown'}`,
+      notes: `Claude evaluation error: ${err instanceof Error ? err.message : 'unknown'}`,
     };
   }
 }
