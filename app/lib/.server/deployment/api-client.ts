@@ -9,9 +9,10 @@
  * (Redis) — one module per external data store.
  */
 
-const DEXTER_API_BASE = process.env.DEXTER_API_URL || 'https://api.dexter.cash';
+export const DEXTER_API_BASE = process.env.DEXTER_API_URL || 'https://api.dexter.cash';
+
 const LAB_SECRET = process.env.LAB_INTERNAL_SECRET || '';
-const AUTH_HEADERS: Record<string, string> = LAB_SECRET
+export const AUTH_HEADERS: Record<string, string> = LAB_SECRET
   ? { 'Content-Type': 'application/json', Authorization: `Bearer ${LAB_SECRET}` }
   : { 'Content-Type': 'application/json' };
 

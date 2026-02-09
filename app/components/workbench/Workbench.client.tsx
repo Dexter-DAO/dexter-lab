@@ -286,7 +286,7 @@ export const Workbench = memo(
     isStreaming,
     metadata: _metadata,
     updateChatMestaData: _updateChatMestaData,
-    setSelectedElement,
+    setSelectedElement: _setSelectedElement,
   }: WorkspaceProps) => {
     renderLogger.trace('Workbench');
 
@@ -515,7 +515,7 @@ export const Workbench = memo(
                     <DiffView fileHistory={fileHistory} setFileHistory={setFileHistory} />
                   </View>
                   <View initial={{ x: '100%' }} animate={{ x: selectedView === 'preview' ? '0%' : '100%' }}>
-                    <Preview setSelectedElement={setSelectedElement} />
+                    <Preview />
                   </View>
                 </div>
               </div>

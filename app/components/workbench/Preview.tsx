@@ -3,10 +3,6 @@ import { useStore } from '@nanostores/react';
 import { IconButton } from '~/components/ui/IconButton';
 import { workbenchStore } from '~/lib/stores/workbench';
 
-interface PreviewProps {
-  setSelectedElement?: (element: any) => void;
-}
-
 /**
  * Preview tab for the Workbench.
  *
@@ -15,7 +11,7 @@ interface PreviewProps {
  * in an iframe with an address bar so the user can navigate to paid endpoints
  * and see the x402 paywall in action.
  */
-export const Preview = memo(({ setSelectedElement: _setSelectedElement }: PreviewProps) => {
+export const Preview = memo(() => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const deployedUrl = useStore(workbenchStore.deployedUrl);

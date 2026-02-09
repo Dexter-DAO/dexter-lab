@@ -21,13 +21,9 @@ import {
   persistResourceToApi,
   persistResourceUpdateToApi,
   persistEventToApi,
+  DEXTER_API_BASE,
+  AUTH_HEADERS,
 } from '~/lib/.server/deployment/api-client';
-
-const DEXTER_API_BASE = process.env.DEXTER_API_URL || 'https://api.dexter.cash';
-const LAB_SECRET = process.env.LAB_INTERNAL_SECRET || '';
-const AUTH_HEADERS: Record<string, string> = LAB_SECRET
-  ? { 'Content-Type': 'application/json', Authorization: `Bearer ${LAB_SECRET}` }
-  : { 'Content-Type': 'application/json' };
 
 interface DeployRequestBody {
   name: string;
