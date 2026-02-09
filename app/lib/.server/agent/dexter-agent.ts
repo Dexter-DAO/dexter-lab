@@ -87,7 +87,7 @@ my-resource/
     "start": "node dist/index.js"
   },
   "dependencies": {
-    "@dexterai/x402": "^1.4.1",
+    "@dexterai/x402": "^1.5.1",
     "express": "^4.18.0"
   }
 }
@@ -95,23 +95,40 @@ my-resource/
 </x402_resource_structure>
 
 <pricing_guidance>
-Choose pricing based on resource type:
+Choose the right payment pattern based on resource type:
 
-1. **Fixed Price** - Same cost every request
+1. **Fixed Price** (\`x402Middleware\`) - Same cost every request
    - Simple endpoints: $0.001 - $0.01
    - Premium content: $0.05 - $0.50
 
-2. **Dynamic Pricing** - Scales with input
-   - Per character: $0.0001/char
-   - Per image: $0.01 - $0.10
-   - Per MB: $0.001/MB
+2. **Dynamic Pricing** (\`createDynamicPricing\`) - Scales with input
+   - Per character, per byte, per record, per pixel
 
-3. **Token-Based** - For LLM wrappers
-   - Use MODEL_PRICING from SDK
-   - Add 15-25% markup
-   - Estimate tokens from input length
+3. **Token-Based** (\`createTokenPricing\`) - For LLM wrappers
+   - Use MODEL_PRICING from SDK. Recommended models: gpt-5.2, gpt-5-mini, gpt-5-nano
+   - For Anthropic: claude-opus-4-6. For Gemini: gemini-2.5-pro or gemini-3-pro-preview
 
-Always use \`{{USER_WALLET}}\` for payTo - it's replaced at deploy time.
+4. **Access Pass** (\`x402AccessPass\`) - Pay once, unlimited requests
+   - Buyer pays for a time window (5m, 1h, 24h), receives a JWT
+   - All subsequent requests use the JWT — no per-request payment
+   - Ideal for high-throughput APIs, RPC endpoints, data feeds
+   - Pass purchase MUST use POST. Paid endpoints should accept POST.
+
+5. **API Gateway** - Proxy upstream APIs with x402 payments
+   - Wraps any URL with \`x402Middleware\`, forwards after payment
+
+6. **File Server** - Pay-per-download with per-file pricing
+   - Dynamic pricing per file, Content-Disposition headers for downloads
+
+7. **Webhook Receiver** - Sender pays to deliver data
+   - Reversed payment flow: the sender pays, not the consumer
+
+8. **SSE/WebSocket Stream** - Pay for time-limited data streams
+   - Tiered duration pricing, supports both SSE and WebSocket delivery
+   - Requires \`ws\` package for WebSocket support
+
+Always use \`{{USER_WALLET}}\` for payTo — it's replaced at deploy time.
+Always use \`@dexterai/x402@^1.5.1\` or later.
 </pricing_guidance>
 
 <deployment_tools>
