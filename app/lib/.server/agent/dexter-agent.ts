@@ -87,7 +87,7 @@ my-resource/
     "start": "node dist/index.js"
   },
   "dependencies": {
-    "@dexterai/x402": "^1.4.0",
+    "@dexterai/x402": "^1.4.1",
     "express": "^4.18.0"
   }
 }

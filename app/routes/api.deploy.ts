@@ -16,7 +16,7 @@ import { type ActionFunction, type LoaderFunction, json } from '@remix-run/cloud
 import { DeploymentService, reconcileState, runPostDeployTests, formatTestResults } from '~/lib/.server/deployment';
 import type { ResourceConfig, ResourceEndpoint } from '~/lib/.server/deployment/types';
 import type { TestSuiteResult } from '~/lib/.server/deployment/test-runner';
-import { pushDeployProgress, type DeployProgressEvent } from '~/lib/.server/deployment/redis-client';
+import { pushDeployProgress } from '~/lib/.server/deployment/redis-client';
 
 const DEXTER_API_BASE = process.env.DEXTER_API_URL || 'https://api.dexter.cash';
 const LAB_SECRET = process.env.LAB_INTERNAL_SECRET || '';
@@ -286,7 +286,11 @@ export const action: ActionFunction = async ({ request }) => {
         resourceId,
         resourceName: body.name,
         publicUrl: result.publicUrl,
-        endpoints: body.endpoints?.map((e: ResourceEndpoint) => ({ path: e.path, method: e.method, priceUsdc: e.priceUsdc })),
+        endpoints: body.endpoints?.map((e: ResourceEndpoint) => ({
+          path: e.path,
+          method: e.method,
+          priceUsdc: e.priceUsdc,
+        })),
         timestamp: Date.now(),
       });
 
@@ -545,7 +549,11 @@ export const action: ActionFunction = async ({ request }) => {
         resourceId: result.resourceId,
         resourceName: body.name,
         publicUrl: result.publicUrl,
-        endpoints: body.endpoints?.map((e: ResourceEndpoint) => ({ path: e.path, method: e.method, priceUsdc: e.priceUsdc })),
+        endpoints: body.endpoints?.map((e: ResourceEndpoint) => ({
+          path: e.path,
+          method: e.method,
+          priceUsdc: e.priceUsdc,
+        })),
         timestamp: Date.now(),
       });
 

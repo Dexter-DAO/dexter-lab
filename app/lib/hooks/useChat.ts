@@ -366,9 +366,11 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
                       });
                     }
 
-                    // For new deploys (no resId), we wait for the result text to contain
-                    // the resourceId (res-xxx pattern) and start tracking then.
-                    // This is handled in the 'text' handler below.
+                    /*
+                     * For new deploys (no resId), we wait for the result text to contain
+                     * the resourceId (res-xxx pattern) and start tracking then.
+                     * This is handled in the 'text' handler below.
+                     */
                   }
                 } else if (parsed.type === 'system' && parsed.sessionId) {
                   sessionIdRef.current = parsed.sessionId;

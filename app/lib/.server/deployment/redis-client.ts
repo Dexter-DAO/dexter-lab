@@ -221,7 +221,9 @@ export interface DeployProgressEvent {
     testInput?: unknown;
     txSignature?: string;
     priceCents?: number;
+    priceUsdc?: number;
     responseStatus?: number;
+    responsePreview?: string;
   };
   endpoints?: Array<{ path: string; method: string; priceUsdc?: number }>;
   publicUrl?: string;

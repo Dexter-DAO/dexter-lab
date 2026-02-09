@@ -23,7 +23,9 @@ export interface DeployProgressEvent {
     testInput?: unknown;
     txSignature?: string;
     priceCents?: number;
+    priceUsdc?: number;
     responseStatus?: number;
+    responsePreview?: string;
   };
   endpoints?: Array<{ path: string; method: string; priceUsdc?: number }>;
   publicUrl?: string;
@@ -71,18 +73,29 @@ export function startDeployProgress(resourceId: string, resourceName: string): v
 
   // Start SSE subscription
   const sseUrl = `/api/deploy-progress?id=${encodeURIComponent(resourceId)}`;
-  if (dbg()) console.log(`[DexterDebug:DeployProgress] Opening EventSource: ${sseUrl}`);
+
+  if (dbg()) {
+    console.log(`[DexterDebug:DeployProgress] Opening EventSource: ${sseUrl}`);
+  }
+
   const eventSource = new EventSource(sseUrl);
 
   eventSource.onopen = () => {
-    if (dbg()) console.log(`[DexterDebug:DeployProgress] EventSource connected for ${resourceId}`);
+    if (dbg()) {
+      console.log(`[DexterDebug:DeployProgress] EventSource connected for ${resourceId}`);
+    }
   };
 
   eventSource.onmessage = (e) => {
-    if (dbg()) console.log(`[DexterDebug:DeployProgress] Event received for ${resourceId}:`, e.data.substring(0, 100));
+    if (dbg()) {
+      console.log(`[DexterDebug:DeployProgress] Event received for ${resourceId}:`, e.data.substring(0, 100));
+    }
 
     if (e.data === '[DONE]') {
-      if (dbg()) console.log(`[DexterDebug:DeployProgress] Stream complete for ${resourceId}`);
+      if (dbg()) {
+        console.log(`[DexterDebug:DeployProgress] Stream complete for ${resourceId}`);
+      }
+
       eventSource.close();
       subscribedIds.delete(resourceId);
 
@@ -117,7 +130,10 @@ export function startDeployProgress(resourceId: string, resourceName: string): v
   };
 
   eventSource.onerror = (err) => {
-    if (dbg()) console.error(`[DexterDebug:DeployProgress] EventSource error for ${resourceId}:`, err);
+    if (dbg()) {
+      console.error(`[DexterDebug:DeployProgress] EventSource error for ${resourceId}:`, err);
+    }
+
     eventSource.close();
     subscribedIds.delete(resourceId);
   };

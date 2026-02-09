@@ -347,7 +347,7 @@ const SHARED_PACKAGE_JSON = (name: string) => `{
     "dev": "tsx watch index.ts"
   },
   "dependencies": {
-    "@dexterai/x402": "^1.4.0",
+    "@dexterai/x402": "^1.4.1",
     "express": "^4.18.0"
   },
   "devDependencies": {

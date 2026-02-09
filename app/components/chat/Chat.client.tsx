@@ -496,11 +496,17 @@ export const ChatImpl = memo(
       runAnimation();
 
       if (!chatStarted) {
-        if (_dbg) console.log(`[DexterDebug:sendMessage:${callId}] ENTERED !chatStarted block`);
+        if (_dbg) {
+          console.log(`[DexterDebug:sendMessage:${callId}] ENTERED !chatStarted block`);
+        }
+
         setFakeLoading(true);
 
         if (autoSelectTemplate) {
-          if (_dbg) console.log(`[DexterDebug:sendMessage:${callId}] ENTERED autoSelectTemplate block`);
+          if (_dbg) {
+            console.log(`[DexterDebug:sendMessage:${callId}] ENTERED autoSelectTemplate block`);
+          }
+
           logger.info('=== TEMPLATE SELECTION START ===');
           logger.info('User message:', finalMessageContent.substring(0, 100) + '...');
 

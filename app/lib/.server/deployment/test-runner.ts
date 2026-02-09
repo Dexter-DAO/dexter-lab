@@ -128,7 +128,9 @@ export async function runPostDeployTests(
         testInput: result.details?.testInput,
         txSignature: result.details?.txSignature as string | undefined,
         priceCents: result.details?.priceCents as number | undefined,
+        priceUsdc: result.details?.priceCents ? Number(result.details.priceCents) / 100 : undefined,
         responseStatus: result.responseStatus,
+        responsePreview: result.responseBodyPreview?.substring(0, 500),
       },
       timestamp: Date.now(),
     });
@@ -647,8 +649,24 @@ async function runPaidSettlementTest(
     clearTimeout(timeout);
 
     contentType = response.headers.get('content-type') || 'unknown';
-    txSignature = response.headers.get('x-payment-response') || response.headers.get('payment-response') || undefined;
     responseStatus = response.status;
+
+    // Decode PAYMENT-RESPONSE header to extract the real Solana TX hash
+    const paymentResponseRaw = response.headers.get('payment-response') || response.headers.get('x-payment-response');
+
+    if (paymentResponseRaw) {
+      try {
+        const decoded = JSON.parse(Buffer.from(paymentResponseRaw, 'base64').toString('utf8'));
+        txSignature = decoded.transaction || paymentResponseRaw;
+      } catch {
+        try {
+          const decoded = JSON.parse(paymentResponseRaw);
+          txSignature = decoded.transaction || paymentResponseRaw;
+        } catch {
+          txSignature = paymentResponseRaw;
+        }
+      }
+    }
 
     const rawText = await response.text();
     responseText =

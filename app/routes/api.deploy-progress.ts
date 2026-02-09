@@ -9,7 +9,7 @@
  */
 
 import type { LoaderFunction } from '@remix-run/cloudflare';
-import { getDeployProgress, type DeployProgressEvent } from '~/lib/.server/deployment/redis-client';
+import { getDeployProgress } from '~/lib/.server/deployment/redis-client';
 
 const POLL_INTERVAL_MS = 300;
 const MAX_DURATION_MS = 120_000; // 2 minute timeout

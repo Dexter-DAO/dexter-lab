@@ -64,8 +64,10 @@ function formatUsdc(val: number | string): string {
     return '$0.00';
   }
 
-  // Show enough decimals for sub-cent prices (e.g., $0.005)
-  // but don't show excessive trailing zeros for round amounts
+  /*
+   * Show enough decimals for sub-cent prices (e.g., $0.005)
+   * but don't show excessive trailing zeros for round amounts
+   */
   if (num < 0.01) {
     return `$${num.toFixed(4).replace(/0+$/, '').replace(/\.$/, '.00')}`;
   }
@@ -168,7 +170,9 @@ function ResourceItem({ resource }: { resource: LabResource }) {
                   className="flex items-center gap-1.5 text-xs text-accent-500 hover:text-accent-400 transition-colors w-full text-left group"
                 >
                   <div className="i-ph:arrow-square-out text-xs shrink-0" />
-                  <span className="font-mono text-[10px] break-all leading-tight">{resource.public_url!.replace('https://', '')}</span>
+                  <span className="font-mono text-[10px] break-all leading-tight">
+                    {resource.public_url!.replace('https://', '')}
+                  </span>
                   <span className="i-ph:copy text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 text-xs" />
                 </button>
               )}

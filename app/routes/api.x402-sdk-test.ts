@@ -33,6 +33,7 @@ function getServer() {
       facilitatorUrl: FACILITATOR_URL,
     });
   }
+
   return serverInstance;
 }
 
