@@ -298,10 +298,15 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
         // Buffer for partial SSE lines
         let sseBuffer = '';
 
+        let clientEventCount = 0;
+
         while (true) {
           const { done, value } = await reader.read();
 
           if (done) {
+            console.log(
+              `[SSE-Client] Stream done after ${clientEventCount} events, assistantContent length=${assistantContent.length}`,
+            );
             break;
           }
 
@@ -325,6 +330,11 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
 
               try {
                 const parsed = JSON.parse(data);
+
+                clientEventCount++;
+                console.log(
+                  `[SSE-Client] Event #${clientEventCount}: type=${parsed.type}, contentLen=${parsed.content?.length || 0}`,
+                );
 
                 // Handle different message types
                 if (parsed.type === 'text') {
@@ -375,6 +385,10 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
                 } else if (parsed.type === 'system' && parsed.sessionId) {
                   sessionIdRef.current = parsed.sessionId;
                 } else if (parsed.type === 'final' && parsed.result) {
+                  console.log(
+                    `[SSE-Client] FINAL event received. result.result length=${parsed.result.result?.length || 0}, assistantContent before final=${assistantContent.length}`,
+                  );
+
                   // Final update - use flushSync for immediate render
                   if (parsed.result.result) {
                     assistantContent = parsed.result.result;

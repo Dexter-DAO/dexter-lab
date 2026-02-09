@@ -550,9 +550,6 @@ export async function reconcileState(): Promise<{
             const status = await getContainerStatus(resource.containerId);
 
             if (status.running) {
-              // Detect if health status actually changed
-              const previousHealthy = resource.healthy;
-
               // Container is running -- update Redis to match
               resource.healthy = status.healthy;
               resource.status = 'running';
@@ -560,13 +557,15 @@ export async function reconcileState(): Promise<{
               await resourceRegistry.set(resourceId, resource);
               stats.healthy++;
 
-              // Sync to dexter-api DB only when health status changed
-              if (previousHealthy !== status.healthy) {
-                persistResourceUpdateToApi(resourceId, {
-                  healthy: status.healthy,
-                  status: 'running',
-                }).catch((e) => console.warn(`[Reconcile] ${resourceId}: API health sync failed:`, e));
-              }
+              /*
+               * Always sync to dexter-api DB so it reflects Docker reality.
+               * ~19 lightweight PATCHes every 5 min is negligible; guarantees
+               * the API never drifts from actual container state.
+               */
+              persistResourceUpdateToApi(resourceId, {
+                healthy: status.healthy,
+                status: 'running',
+              }).catch((e) => console.warn(`[Reconcile] ${resourceId}: API health sync failed:`, e));
             } else {
               // Container exists but stopped -- try to restart if it was supposed to be running
               if (resource.status === 'running') {

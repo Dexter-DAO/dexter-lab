@@ -33,17 +33,24 @@ function createEventStream(stream: AsyncGenerator<StreamMessage, DexterAgentResu
       try {
         let lastResult: DexterAgentResult | undefined;
 
+        let eventIndex = 0;
+
         while (true) {
           const { done, value } = await stream.next();
 
           if (done) {
             lastResult = value;
+            console.log(`[SSE] Stream ended after ${eventIndex} events`);
             break;
           }
 
           // Send each message as an SSE event
           const event = `data: ${JSON.stringify(value)}\n\n`;
           controller.enqueue(encoder.encode(event));
+          eventIndex++;
+          console.log(
+            `[SSE] Sent event #${eventIndex}: type=${value.type}, length=${(value as any).content?.length || 0}`,
+          );
         }
 
         // Send final result

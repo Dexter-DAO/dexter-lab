@@ -88,7 +88,7 @@ function ResourceCard({ resource }: { resource: PublicResource }) {
   const method = primaryEndpoint?.method || 'GET';
   const endpointPath = primaryEndpoint?.path || '/';
   const fullUrl = `${resource.public_url}${endpointPath}`;
-  const coverUrl = (resource as any).cover_image_url as string | undefined;
+  const coverUrl = resource.cover_image_url;
 
   const handleFlip = useCallback(() => {
     setFlipped((prev) => !prev);
@@ -188,12 +188,18 @@ function ResourceCard({ resource }: { resource: PublicResource }) {
         >
           {/* Cover image */}
           {coverUrl ? (
-            <div className="w-full h-28 overflow-hidden">
+            <div className="w-full h-28 overflow-hidden bg-gray-900/50">
               <img
                 src={coverUrl}
                 alt={resource.name}
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                 loading="lazy"
+                crossOrigin="anonymous"
+                referrerPolicy="no-referrer"
+                onError={(e) => {
+                  console.error(`[CoverImage] Failed to load: ${coverUrl}`, e);
+                  (e.target as HTMLImageElement).style.display = 'none';
+                }}
               />
             </div>
           ) : (
