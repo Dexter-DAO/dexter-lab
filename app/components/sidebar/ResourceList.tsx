@@ -3,15 +3,24 @@
  *
  * Shows deployed x402 resources for the connected wallet.
  * Fetched from dexter-api, displayed above "Your Chats" in the sidebar.
+ *
+ * Revenue data auto-refreshes every 45 seconds (matching the backend
+ * reconciliation job that writes gross_revenue_usdc from on-chain truth).
  */
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useStore } from '@nanostores/react';
 import { $walletAddress, $walletConnected } from '~/lib/stores/wallet';
 import { closeSidebar } from '~/lib/stores/sidebar';
 import { ResourceLogs } from './ResourceLogs';
 
 const DEXTER_API_BASE = 'https://api.dexter.cash';
+
+/** Minimum pending balance (USDC) to show the Withdraw Now option */
+const MIN_WITHDRAW_USDC = 1.0;
+
+/** Auto-refresh interval in milliseconds */
+const REFRESH_INTERVAL_MS = 45_000;
 
 interface LabEndpoint {
   path: string;
@@ -34,6 +43,7 @@ interface LabResource {
   request_count: number | string;
   created_at: string;
   pay_to_wallet: string;
+  last_revenue_sync_at?: string | null;
   endpoints_json?: LabEndpoint[] | null;
 }
 
@@ -41,6 +51,19 @@ interface ResourceBalance {
   sol: number;
   usdc: number;
 }
+
+interface PayoutResult {
+  success: boolean;
+  message: string;
+  signature?: string;
+  creator_amount_usdc?: number;
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * Status config
+ * ---------------------------------------------------------------------------
+ */
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; dot: string }> = {
   running: { label: 'Live', color: 'text-emerald-400', dot: 'bg-emerald-500' },
@@ -57,6 +80,12 @@ function getStatusConfig(status: string) {
   return STATUS_CONFIG[status] || { label: status, color: 'text-gray-400', dot: 'bg-gray-500' };
 }
 
+/*
+ * ---------------------------------------------------------------------------
+ * Formatting helpers
+ * ---------------------------------------------------------------------------
+ */
+
 function formatUsdc(val: number | string): string {
   const num = typeof val === 'string' ? parseFloat(val) : val;
 
@@ -64,10 +93,6 @@ function formatUsdc(val: number | string): string {
     return '$0.00';
   }
 
-  /*
-   * Show enough decimals for sub-cent prices (e.g., $0.005)
-   * but don't show excessive trailing zeros for round amounts
-   */
   if (num < 0.01) {
     return `$${num.toFixed(4).replace(/0+$/, '').replace(/\.$/, '.00')}`;
   }
@@ -75,45 +100,211 @@ function formatUsdc(val: number | string): string {
   return `$${num.toFixed(2)}`;
 }
 
-function ResourceItem({ resource }: { resource: LabResource }) {
+/**
+ * Calculate the next automatic payout time label.
+ * Payouts fire at noon and midnight America/New_York.
+ */
+function getNextPayoutLabel(): string {
+  const now = new Date();
+
+  // Get current ET hour and minute via Intl
+  const etParts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York',
+    hour: 'numeric',
+    minute: 'numeric',
+    hour12: false,
+  }).formatToParts(now);
+
+  const hour = parseInt(etParts.find((p) => p.type === 'hour')?.value || '0', 10);
+  const minute = parseInt(etParts.find((p) => p.type === 'minute')?.value || '0', 10);
+  const currentMinutes = hour * 60 + minute;
+
+  const noonMinutes = 12 * 60;
+
+  let minutesUntil: number;
+  let targetLabel: string;
+
+  if (currentMinutes < noonMinutes) {
+    minutesUntil = noonMinutes - currentMinutes;
+    targetLabel = 'Today 12pm';
+  } else {
+    minutesUntil = 24 * 60 - currentMinutes;
+    targetLabel = 'Tonight 12am';
+  }
+
+  if (minutesUntil <= 5) {
+    return 'any minute now';
+  }
+
+  if (minutesUntil < 60) {
+    return `${targetLabel} ET (~${minutesUntil}m)`;
+  }
+
+  const hours = Math.floor(minutesUntil / 60);
+  const mins = minutesUntil % 60;
+
+  if (hours < 2 && mins > 0) {
+    return `${targetLabel} ET (~${hours}h ${mins}m)`;
+  }
+
+  return `${targetLabel} ET (~${hours}h)`;
+}
+
+/**
+ * Format a relative "synced X ago" label from a timestamp.
+ */
+function formatSyncAge(isoString: string | null | undefined): string | null {
+  if (!isoString) {
+    return null;
+  }
+
+  const diff = Date.now() - new Date(isoString).getTime();
+
+  if (diff < 0 || isNaN(diff)) {
+    return null;
+  }
+
+  const seconds = Math.floor(diff / 1000);
+
+  if (seconds < 10) {
+    return 'just now';
+  }
+
+  if (seconds < 60) {
+    return `${seconds}s ago`;
+  }
+
+  const minutes = Math.floor(seconds / 60);
+
+  if (minutes < 60) {
+    return `${minutes}m ago`;
+  }
+
+  return `${Math.floor(minutes / 60)}h ago`;
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * ResourceItem
+ * ---------------------------------------------------------------------------
+ */
+
+function ResourceItem({ resource, onWithdraw }: { resource: LabResource; onWithdraw?: () => void }) {
   const [expanded, setExpanded] = useState(false);
   const [balance, setBalance] = useState<ResourceBalance | null>(null);
-  const [loadingBalance, setLoadingBalance] = useState(false);
   const [showLogs, setShowLogs] = useState(false);
+  const [withdrawing, setWithdrawing] = useState(false);
+  const [payoutResult, setPayoutResult] = useState<PayoutResult | null>(null);
   const statusCfg = getStatusConfig(resource.status);
 
-  const loadBalance = useCallback(async () => {
-    if (balance || loadingBalance) {
+  // Fetch balance on expand, then refresh on interval
+  useEffect(() => {
+    if (!expanded) {
+      return undefined;
+    }
+
+    let cancelled = false;
+
+    const fetchBalance = async () => {
+      try {
+        const res = await fetch(`${DEXTER_API_BASE}/api/dexter-lab/wallets/${resource.id}/balance`);
+
+        if (res.ok && !cancelled) {
+          const data = (await res.json()) as ResourceBalance;
+          setBalance({ sol: data.sol, usdc: data.usdc });
+        }
+      } catch {
+        /* silent — balance is supplementary */
+      }
+    };
+
+    fetchBalance();
+
+    const interval = setInterval(fetchBalance, REFRESH_INTERVAL_MS);
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [expanded, resource.id]);
+
+  const handleToggle = () => {
+    setExpanded((prev) => !prev);
+    setPayoutResult(null);
+  };
+
+  const handleWithdraw = async () => {
+    if (withdrawing) {
       return;
     }
 
-    setLoadingBalance(true);
+    setWithdrawing(true);
+    setPayoutResult(null);
 
     try {
-      const res = await fetch(`${DEXTER_API_BASE}/api/dexter-lab/wallets/${resource.id}/balance`);
+      const res = await fetch('/api/payout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ resourceId: resource.id }),
+      });
 
-      if (res.ok) {
-        const data = (await res.json()) as ResourceBalance;
-        setBalance({ sol: data.sol, usdc: data.usdc });
+      const data = (await res.json()) as {
+        success?: boolean;
+        signature?: string;
+        creator_amount_usdc?: number;
+        message?: string;
+        error?: string;
+      };
+
+      if (data.success) {
+        setPayoutResult({
+          success: true,
+          message: `Sent ${formatUsdc(data.creator_amount_usdc ?? 0)} to your wallet`,
+          signature: data.signature,
+          creator_amount_usdc: data.creator_amount_usdc,
+        });
+
+        // Refresh balance after payout
+        setBalance(null);
+
+        try {
+          const balRes = await fetch(`${DEXTER_API_BASE}/api/dexter-lab/wallets/${resource.id}/balance`);
+
+          if (balRes.ok) {
+            const balData = (await balRes.json()) as ResourceBalance;
+            setBalance({ sol: balData.sol, usdc: balData.usdc });
+          }
+        } catch {
+          /* silent */
+        }
+
+        // Let parent know to refresh resource data
+        onWithdraw?.();
+      } else {
+        setPayoutResult({
+          success: false,
+          message: data.message || data.error || 'Payout failed',
+        });
       }
     } catch {
-      /* silent */
+      setPayoutResult({
+        success: false,
+        message: 'Network error — could not reach server',
+      });
     } finally {
-      setLoadingBalance(false);
-    }
-  }, [resource.id, balance, loadingBalance]);
-
-  const handleToggle = () => {
-    const opening = !expanded;
-    setExpanded(opening);
-
-    if (opening) {
-      loadBalance();
+      setWithdrawing(false);
     }
   };
 
+  const pendingUsdc = balance?.usdc ?? 0;
+  const canWithdraw = pendingUsdc >= MIN_WITHDRAW_USDC && !withdrawing;
+  const hasRevenue = Number(resource.gross_revenue_usdc) > 0;
+  const hasPending = pendingUsdc > 0;
+  const syncAge = formatSyncAge(resource.last_revenue_sync_at);
+
   return (
     <div className="rounded-lg border border-gray-200 dark:border-gray-800 overflow-hidden transition-colors hover:border-gray-300 dark:hover:border-gray-700">
+      {/* ── Collapsed header ── */}
       <button
         onClick={handleToggle}
         style={{ background: 'none' }}
@@ -124,16 +315,16 @@ function ResourceItem({ resource }: { resource: LabResource }) {
           <div className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{resource.name}</div>
           <div className="flex items-center gap-2 mt-0.5">
             <span className={`text-xs ${statusCfg.color}`}>{statusCfg.label}</span>
-            {Number(resource.gross_revenue_usdc) > 0 && (
-              <span className="text-xs text-emerald-400">{formatUsdc(resource.gross_revenue_usdc)}</span>
-            )}
+            {hasRevenue && <span className="text-xs text-emerald-400">{formatUsdc(resource.gross_revenue_usdc)}</span>}
           </div>
         </div>
         <div className={`i-ph:caret-down text-xs text-gray-400 transition-transform ${expanded ? 'rotate-180' : ''}`} />
       </button>
 
+      {/* ── Expanded detail ── */}
       {expanded && (
-        <div className="px-3 pb-3 pt-0 space-y-2 border-t border-gray-100 dark:border-gray-800/50">
+        <div className="px-3 pb-3 pt-0 space-y-2.5 border-t border-gray-100 dark:border-gray-800/50">
+          {/* Endpoints */}
           {resource.public_url && (
             <div className="mt-2 space-y-1">
               {resource.endpoints_json && resource.endpoints_json.length > 0 ? (
@@ -179,6 +370,7 @@ function ResourceItem({ resource }: { resource: LabResource }) {
             </div>
           )}
 
+          {/* ── Revenue stats ── */}
           <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
             <div className="text-gray-500 dark:text-gray-500">Requests</div>
             <div className="text-gray-900 dark:text-gray-200 text-right">
@@ -188,35 +380,91 @@ function ResourceItem({ resource }: { resource: LabResource }) {
             <div className="text-gray-500 dark:text-gray-500">Revenue</div>
             <div className="text-emerald-500 text-right">{formatUsdc(resource.gross_revenue_usdc)}</div>
 
-            <div className="text-gray-500 dark:text-gray-500">Your Earnings</div>
+            <div className="text-gray-500 dark:text-gray-500">Paid to You</div>
             <div className="text-gray-900 dark:text-gray-200 text-right">
               {formatUsdc(resource.creator_earnings_usdc)}
             </div>
-
-            <div className="text-gray-500 dark:text-gray-500">Platform Fee</div>
-            <div className="text-gray-900 dark:text-gray-200 text-right">{formatUsdc(resource.platform_fees_usdc)}</div>
-
-            {balance && (
-              <>
-                <div className="text-gray-500 dark:text-gray-500">Wallet USDC</div>
-                <div className="text-gray-900 dark:text-gray-200 text-right">{formatUsdc(balance.usdc)}</div>
-
-                <div className="text-gray-500 dark:text-gray-500">Wallet SOL</div>
-                <div className="text-gray-900 dark:text-gray-200 text-right">{balance.sol.toFixed(4)}</div>
-              </>
-            )}
-
-            {loadingBalance && !balance && (
-              <>
-                <div className="text-gray-500 dark:text-gray-500">Balance</div>
-                <div className="text-gray-400 text-right">Loading...</div>
-              </>
-            )}
           </div>
 
-          <div className="flex items-center justify-between pt-1">
-            <div className="text-xs text-gray-500 dark:text-gray-600">
-              Price: {formatUsdc(resource.base_price_usdc)} / request
+          {/* ── Pending payout section ── */}
+          {(hasPending || balance !== null) && (
+            <div className="rounded-md bg-gray-50 dark:bg-gray-800/40 px-2.5 py-2 space-y-1.5">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-gray-500 dark:text-gray-500">Pending</span>
+                <span className={`font-medium ${hasPending ? 'text-emerald-500' : 'text-gray-400 dark:text-gray-500'}`}>
+                  {formatUsdc(pendingUsdc)}
+                </span>
+              </div>
+
+              <div className="text-[10px] text-gray-400 dark:text-gray-600 leading-tight">
+                Next payout: {getNextPayoutLabel()}
+              </div>
+
+              {/* Withdraw Now — only when pending exceeds threshold */}
+              {canWithdraw && (
+                <button
+                  onClick={handleWithdraw}
+                  disabled={withdrawing}
+                  style={{ background: 'none' }}
+                  className="flex items-center gap-1 text-[11px] font-medium text-accent-500 hover:text-accent-400 transition-colors mt-0.5 disabled:opacity-50"
+                >
+                  {withdrawing ? (
+                    <>
+                      <div className="i-svg-spinners:90-ring-with-bg text-xs" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <div className="i-ph:arrow-up-right text-xs" />
+                      Withdraw Now
+                    </>
+                  )}
+                </button>
+              )}
+
+              {/* Payout result feedback */}
+              {payoutResult && (
+                <div
+                  className={`text-[10px] leading-tight mt-1 ${
+                    payoutResult.success ? 'text-emerald-500' : 'text-red-400'
+                  }`}
+                >
+                  {payoutResult.message}
+                  {payoutResult.signature && (
+                    <>
+                      {' '}
+                      <a
+                        href={`https://solscan.io/tx/${payoutResult.signature}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="underline hover:no-underline"
+                      >
+                        View tx
+                      </a>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Loading state for balance */}
+          {balance === null && (
+            <div className="text-[10px] text-gray-400 dark:text-gray-600 px-0.5">Loading balance...</div>
+          )}
+
+          {/* ── Footer: price + actions ── */}
+          <div className="flex items-center justify-between pt-0.5">
+            <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-600">
+              <span>{formatUsdc(resource.base_price_usdc)} / req</span>
+              {syncAge && (
+                <>
+                  <span className="text-gray-300 dark:text-gray-700">·</span>
+                  <span className="text-[10px]" title="Last revenue sync">
+                    {syncAge}
+                  </span>
+                </>
+              )}
             </div>
             <div className="flex items-center gap-2">
               <a
@@ -249,52 +497,87 @@ function ResourceItem({ resource }: { resource: LabResource }) {
   );
 }
 
+/*
+ * ---------------------------------------------------------------------------
+ * ResourceList — main component with auto-refresh
+ * ---------------------------------------------------------------------------
+ */
+
 export function ResourceList() {
   const walletConnected = useStore($walletConnected);
   const walletAddress = useStore($walletAddress);
   const [resources, setResources] = useState<LabResource[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const initialLoadDone = useRef(false);
 
-  useEffect(() => {
-    if (!walletConnected || !walletAddress) {
-      setResources([]);
+  const fetchResources = useCallback(
+    async (isInitial: boolean) => {
+      if (!walletAddress) {
+        return;
+      }
 
-      return undefined;
-    }
+      if (isInitial) {
+        setLoading(true);
+        setError(null);
+      }
 
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
+      try {
+        const res = await fetch(
+          `${DEXTER_API_BASE}/api/dexter-lab/resources?creator_wallet=${encodeURIComponent(walletAddress)}&limit=50`,
+        );
 
-    fetch(`${DEXTER_API_BASE}/api/dexter-lab/resources?creator_wallet=${encodeURIComponent(walletAddress)}&limit=50`)
-      .then(async (res) => {
         if (!res.ok) {
           throw new Error(`HTTP ${res.status}`);
         }
 
         const data = (await res.json()) as { resources?: LabResource[] };
+        setResources(data.resources || []);
+      } catch (err) {
+        console.error('[ResourceList] Failed to fetch resources:', err);
 
-        if (!cancelled) {
-          setResources(data.resources || []);
-        }
-      })
-      .catch((err) => {
-        if (!cancelled) {
-          console.error('[ResourceList] Failed to fetch resources:', err);
+        if (isInitial) {
           setError('Failed to load resources');
         }
-      })
-      .finally(() => {
-        if (!cancelled) {
+      } finally {
+        if (isInitial) {
           setLoading(false);
         }
-      });
+      }
+    },
+    [walletAddress],
+  );
+
+  useEffect(() => {
+    if (!walletConnected || !walletAddress) {
+      setResources([]);
+      initialLoadDone.current = false;
+
+      return undefined;
+    }
+
+    // Initial fetch
+    initialLoadDone.current = false;
+    fetchResources(true).then(() => {
+      initialLoadDone.current = true;
+    });
+
+    // Auto-refresh every 45 seconds
+    const interval = setInterval(() => {
+      if (initialLoadDone.current) {
+        fetchResources(false);
+      }
+    }, REFRESH_INTERVAL_MS);
 
     return () => {
-      cancelled = true;
+      clearInterval(interval);
     };
-  }, [walletConnected, walletAddress]);
+  }, [walletConnected, walletAddress, fetchResources]);
+
+  // Callback for child components to trigger a refresh (e.g., after payout)
+  const handleWithdraw = useCallback(() => {
+    fetchResources(false);
+  }, [fetchResources]);
 
   if (!walletConnected) {
     return null;
@@ -320,7 +603,7 @@ export function ResourceList() {
       {!loading && resources.length > 0 && (
         <div className="space-y-1.5">
           {resources.map((resource) => (
-            <ResourceItem key={resource.id} resource={resource} />
+            <ResourceItem key={resource.id} resource={resource} onWithdraw={handleWithdraw} />
           ))}
         </div>
       )}
