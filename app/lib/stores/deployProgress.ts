@@ -7,6 +7,8 @@
 
 import { atom } from 'nanostores';
 
+const dbg = () => typeof window !== 'undefined' && localStorage.getItem('DEXTER_DEBUG') === 'true';
+
 export interface DeployProgressEvent {
   type: 'building' | 'container_started' | 'testing' | 'test_result' | 'complete' | 'error';
   resourceId: string;
@@ -68,10 +70,19 @@ export function startDeployProgress(resourceId: string, resourceName: string): v
   $activeDeploys.set(current);
 
   // Start SSE subscription
-  const eventSource = new EventSource(`/api/deploy-progress?id=${encodeURIComponent(resourceId)}`);
+  const sseUrl = `/api/deploy-progress?id=${encodeURIComponent(resourceId)}`;
+  if (dbg()) console.log(`[DexterDebug:DeployProgress] Opening EventSource: ${sseUrl}`);
+  const eventSource = new EventSource(sseUrl);
+
+  eventSource.onopen = () => {
+    if (dbg()) console.log(`[DexterDebug:DeployProgress] EventSource connected for ${resourceId}`);
+  };
 
   eventSource.onmessage = (e) => {
+    if (dbg()) console.log(`[DexterDebug:DeployProgress] Event received for ${resourceId}:`, e.data.substring(0, 100));
+
     if (e.data === '[DONE]') {
+      if (dbg()) console.log(`[DexterDebug:DeployProgress] Stream complete for ${resourceId}`);
       eventSource.close();
       subscribedIds.delete(resourceId);
 
@@ -105,7 +116,8 @@ export function startDeployProgress(resourceId: string, resourceName: string): v
     }
   };
 
-  eventSource.onerror = () => {
+  eventSource.onerror = (err) => {
+    if (dbg()) console.error(`[DexterDebug:DeployProgress] EventSource error for ${resourceId}:`, err);
     eventSource.close();
     subscribedIds.delete(resourceId);
   };

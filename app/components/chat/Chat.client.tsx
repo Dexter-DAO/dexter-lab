@@ -451,12 +451,16 @@ export const ChatImpl = memo(
     const sendMessage = async (_event: React.UIEvent, messageInput?: string) => {
       const messageContent = messageInput || input;
 
-      // Track invocations to diagnose template duplication
+      // Track invocations to diagnose template duplication (flag-activated)
       const callId = Math.random().toString(36).slice(2, 8);
-      console.log(
-        `[sendMessage:${callId}] CALLED | chatStarted=${chatStarted} isLoading=${isLoading} messageLength=${messageContent?.length || 0} source=${messageInput ? 'programmatic' : 'input-state'}`,
-      );
-      console.trace(`[sendMessage:${callId}] call stack`);
+      const _dbg = typeof window !== 'undefined' && localStorage.getItem('DEXTER_DEBUG') === 'true';
+
+      if (_dbg) {
+        console.log(
+          `[DexterDebug:sendMessage:${callId}] CALLED | chatStarted=${chatStarted} isLoading=${isLoading} messageLength=${messageContent?.length || 0} source=${messageInput ? 'programmatic' : 'input-state'}`,
+        );
+        console.trace(`[DexterDebug:sendMessage:${callId}] call stack`);
+      }
 
       // Debug: User submit
       chatDebug.debugUserSubmit({
@@ -492,11 +496,11 @@ export const ChatImpl = memo(
       runAnimation();
 
       if (!chatStarted) {
-        console.log(`[sendMessage:${callId}] ENTERED !chatStarted block`);
+        if (_dbg) console.log(`[DexterDebug:sendMessage:${callId}] ENTERED !chatStarted block`);
         setFakeLoading(true);
 
         if (autoSelectTemplate) {
-          console.log(`[sendMessage:${callId}] ENTERED autoSelectTemplate block`);
+          if (_dbg) console.log(`[DexterDebug:sendMessage:${callId}] ENTERED autoSelectTemplate block`);
           logger.info('=== TEMPLATE SELECTION START ===');
           logger.info('User message:', finalMessageContent.substring(0, 100) + '...');
 

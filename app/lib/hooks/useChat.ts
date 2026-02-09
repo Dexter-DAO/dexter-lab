@@ -16,6 +16,17 @@ import { createScopedLogger } from '~/utils/logger';
 const chatHookLogger = createScopedLogger('useChat');
 
 /**
+ * Debug logging for deploy verification and sendMessage diagnostics.
+ * Activate by setting localStorage.setItem('DEXTER_DEBUG', 'true') in the browser console.
+ * Deactivate by removing the key or setting it to anything else.
+ */
+const debugLog = (...args: unknown[]) => {
+  if (typeof window !== 'undefined' && localStorage.getItem('DEXTER_DEBUG') === 'true') {
+    console.log('[DexterDebug]', ...args);
+  }
+};
+
+/**
  * Throttle function for streaming updates
  * Ensures UI updates happen at a reasonable rate for smooth animation
  */
@@ -213,9 +224,9 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
         return;
       }
 
-      console.log('[useChat.sendMessage] Sending to API:', api);
-      console.log('[useChat.sendMessage] Content:', content.slice(0, 100) + '...');
-      console.log('[useChat.sendMessage] Existing messages count:', existingMessages.length);
+      debugLog('sendMessage: Sending to API:', api);
+      debugLog('sendMessage: Content:', content.slice(0, 100) + '...');
+      debugLog('sendMessage: Existing messages count:', existingMessages.length);
 
       setError(undefined);
       setIsLoading(true);
@@ -324,9 +335,13 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
 
                   if (resIdMatch) {
                     const detectedResId = resIdMatch[0];
+                    debugLog('DeployVerification: Detected resourceId in text:', detectedResId);
                     import('~/lib/stores/deployProgress').then(({ startDeployProgress, $activeDeploys }) => {
-                      // Only start if we haven't already subscribed to this ID
-                      if (!$activeDeploys.get().has(detectedResId)) {
+                      const alreadyTracked = $activeDeploys.get().has(detectedResId);
+                      debugLog('DeployVerification: alreadyTracked=', alreadyTracked, 'for', detectedResId);
+
+                      if (!alreadyTracked) {
+                        debugLog('DeployVerification: Starting progress subscription for', detectedResId);
                         startDeployProgress(detectedResId, detectedResId);
                       }
                     });
@@ -449,8 +464,8 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
         return;
       }
 
-      console.log('[useChat.sendMessageWithoutNewUserMessage] Sending to API (no new user message)');
-      console.log('[useChat.sendMessageWithoutNewUserMessage] Existing messages count:', existingMessages.length);
+      debugLog('sendMessageWithoutNewUserMessage: Sending to API (no new user message)');
+      debugLog('sendMessageWithoutNewUserMessage: Existing messages count:', existingMessages.length);
 
       setError(undefined);
       setIsLoading(true);
@@ -539,6 +554,21 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
 
                 if (parsed.type === 'text') {
                   assistantContent += parsed.content;
+
+                  // Detect resourceId in agent response and start deploy verification
+                  const resIdMatch = assistantContent.match(/\bres-[a-z0-9]+-[a-z0-9]+\b/);
+
+                  if (resIdMatch) {
+                    const detectedResId = resIdMatch[0];
+                    debugLog('DeployVerification:reload: Detected resourceId:', detectedResId);
+                    import('~/lib/stores/deployProgress').then(({ startDeployProgress, $activeDeploys }) => {
+                      if (!$activeDeploys.get().has(detectedResId)) {
+                        debugLog('DeployVerification:reload: Starting progress for', detectedResId);
+                        startDeployProgress(detectedResId, detectedResId);
+                      }
+                    });
+                  }
+
                   throttledUpdate(assistantContent);
                 } else if (parsed.type === 'system' && parsed.sessionId) {
                   sessionIdRef.current = parsed.sessionId;
