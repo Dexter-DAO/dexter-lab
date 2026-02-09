@@ -23,7 +23,7 @@ RUN echo '{ \
   "version": "1.0.0", \
   "type": "module", \
   "dependencies": { \
-    "@dexterai/x402": "^1.4.1", \
+    "@dexterai/x402": "^1.5.0", \
     "express": "^4.18.0" \
   }, \
   "devDependencies": { \
@@ -37,5 +37,5 @@ RUN echo '{ \
 RUN npm install && npm cache clean --force
 
 # Label with SDK version for staleness detection
-LABEL dexter.x402.sdk.version="1.4.1"
+LABEL dexter.x402.sdk.version="1.5.0"
 LABEL dexter.x402.base.built="2026-02-09"
