@@ -19,3 +19,4 @@ export {
 } from './docker-client';
 export { runPostDeployTests, formatTestResults } from './test-runner';
 export type { TestResult, TestSuiteResult } from './test-runner';
+export { persistResourceToApi, persistResourceUpdateToApi, persistEventToApi } from './api-client';

@@ -114,7 +114,7 @@ async function handlePaidRequest(request: Request, paymentSignature: string) {
     {
       ok: true,
       message: 'x402 SDK test — payment settled successfully',
-      sdkVersion: '1.5.0',
+      sdkVersion: '1.5.2',
       fixes: {
         amountField: 'accepts[].amount is set alongside maxAmountRequired',
         paymentResponse: 'PAYMENT-RESPONSE header is set on this 200 response',

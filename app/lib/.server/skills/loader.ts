@@ -127,7 +127,9 @@ export function loadSkill(skillPath: string): Skill | null {
       }
 
       if (siblings.length > 0) {
-        console.log(`[skills] Loaded ${siblings.length} companion files for ${meta.name || skillFilename}: ${siblings.join(', ')}`);
+        console.log(
+          `[skills] Loaded ${siblings.length} companion files for ${meta.name || skillFilename}: ${siblings.join(', ')}`,
+        );
       }
     } catch {
       // Directory read failed — just use the main file

@@ -14,8 +14,11 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Install curl for health checks
-RUN apk add --no-cache curl
+# Install curl for health checks and tini for proper PID 1 signal handling
+RUN apk add --no-cache curl tini
+
+# Create non-root user for running resource code
+RUN addgroup -S resource && adduser -S resource -G resource
 
 # Create package.json with standard x402 resource dependencies
 RUN echo '{ \
@@ -23,7 +26,7 @@ RUN echo '{ \
   "version": "1.0.0", \
   "type": "module", \
   "dependencies": { \
-    "@dexterai/x402": "^1.5.0", \
+    "@dexterai/x402": "^1.5.2", \
     "express": "^4.18.0" \
   }, \
   "devDependencies": { \
@@ -36,6 +39,15 @@ RUN echo '{ \
 # Install all dependencies (including devDependencies for TypeScript builds)
 RUN npm install && npm cache clean --force
 
+# Set ownership to non-root user
+RUN chown -R resource:resource /app
+
+# Switch to non-root user
+USER resource
+
+# Use tini as PID 1 for proper signal handling and zombie reaping
+ENTRYPOINT ["/sbin/tini", "--"]
+
 # Label with SDK version for staleness detection
-LABEL dexter.x402.sdk.version="1.5.0"
+LABEL dexter.x402.sdk.version="1.5.2"
 LABEL dexter.x402.base.built="2026-02-09"

@@ -4,8 +4,15 @@
 # Usage:
 #   docker compose -f infrastructure/docker-compose.resources.yaml up -d
 #
-# Individual x402 resources are deployed via the deployment service,
-# which creates containers with appropriate Traefik labels.
+# SECURITY ARCHITECTURE:
+#   - Single bridge network: Traefik, Redis, and resource containers
+#   - Containers have internet access (needed for API Gateway template + proxy calls)
+#   - Host service access (dexter-api, facilitator, host Redis, Supabase, etc.)
+#     is blocked via DOCKER-USER iptables rules -- see infrastructure/iptables-resources.sh
+#   - Docker Redis requires authentication (requirepass)
+#   - Dangerous Redis commands (CONFIG, DEBUG, FLUSHALL, FLUSHDB) are disabled
+#   - Resource containers are hardened: PID-limited, read-only rootfs,
+#     all capabilities dropped, non-root user, no-new-privileges
 
 services:
   # Traefik Reverse Proxy
@@ -16,26 +23,21 @@ services:
     security_opt:
       - no-new-privileges:true
     ports:
-      # HTTP - receives traffic from Cloudflare
+      # HTTP - receives traffic from Cloudflare via Nginx
       - "8090:80"
-      # Traefik dashboard (internal access only)
+      # Traefik dashboard (localhost only -- access via SSH tunnel)
       - "127.0.0.1:8082:8082"
     volumes:
-      # Traefik configuration
       - ./traefik/traefik.yaml:/etc/traefik/traefik.yaml:ro
       - ./traefik/dynamic:/etc/traefik/dynamic:ro
-      # Docker socket for container discovery
       - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
       - dexter-resources
     labels:
-      # Traefik dashboard routing (optional, for internal use)
       - "traefik.enable=true"
       - "traefik.http.routers.traefik-dashboard.rule=Host(`traefik.localhost`)"
       - "traefik.http.routers.traefik-dashboard.entrypoints=traefik"
       - "traefik.http.routers.traefik-dashboard.service=api@internal"
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     healthcheck:
       test: ["CMD", "traefik", "healthcheck", "--ping"]
       interval: 10s
@@ -52,11 +54,22 @@ services:
     networks:
       - dexter-resources
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${DEXTER_REDIS_PASSWORD:-rediN!ck1003}", "ping"]
       interval: 10s
       timeout: 5s
       retries: 3
-    command: redis-server --appendonly yes
+    command: >
+      redis-server
+        --appendonly yes
+        --requirepass ${DEXTER_REDIS_PASSWORD:-rediN!ck1003}
+        --bind 0.0.0.0
+        --protected-mode yes
+        --maxmemory 256mb
+        --maxmemory-policy allkeys-lru
+        --rename-command CONFIG ""
+        --rename-command DEBUG ""
+        --rename-command FLUSHALL ""
+        --rename-command FLUSHDB ""
 
 networks:
   dexter-resources:

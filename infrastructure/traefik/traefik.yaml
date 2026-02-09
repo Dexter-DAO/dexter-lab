@@ -24,7 +24,7 @@ providers:
   docker:
     endpoint: "unix:///var/run/docker.sock"
     exposedByDefault: false  # Only expose containers with explicit labels
-    network: dexter-resources  # Network for x402 resource containers
+    network: dexter-resources  # Network where resource containers live
     watch: true
   
   # File provider for dynamic configuration

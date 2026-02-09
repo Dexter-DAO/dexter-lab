@@ -9,6 +9,7 @@ import { ChatDescription } from '~/lib/persistence/ChatDescription.client';
 import { toggleSidebar, $sidebarOpen } from '~/lib/stores/sidebar';
 import { $walletConnected, $walletDisplay } from '~/lib/stores/wallet';
 import { useAppKit } from '@reown/appkit/react';
+import { workbenchStore } from '~/lib/stores/workbench';
 
 /**
  * Dexter crest logo — memoized so it never re-renders or restarts animation.
@@ -65,6 +66,37 @@ function WalletHeaderButton() {
   );
 }
 
+/**
+ * Workbench toggle button for the header.
+ * Shows when chat has started and workbench files exist.
+ * Toggles the workbench panel open/closed.
+ */
+function WorkbenchHeaderButton() {
+  const showWorkbench = useStore(workbenchStore.showWorkbench);
+  const files = useStore(workbenchStore.files);
+  const hasFiles = Object.keys(files).length > 0;
+
+  if (!hasFiles) {
+    return null;
+  }
+
+  return (
+    <button
+      onClick={() => workbenchStore.showWorkbench.set(!showWorkbench)}
+      className={classNames(
+        'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm font-medium transition-colors',
+        showWorkbench
+          ? 'text-orange-400 bg-orange-500/15 hover:bg-orange-500/25'
+          : 'text-gray-600 dark:text-gray-400 hover:text-orange-400 hover:bg-gray-100 dark:hover:bg-white/10',
+      )}
+      title={showWorkbench ? 'Close Workbench' : 'Open Workbench'}
+    >
+      <div className="i-ph:code text-base" />
+      <span className="hidden sm:inline">Workbench</span>
+    </button>
+  );
+}
+
 export function Header() {
   const chat = useStore(chatStore);
   const sidebarOpen = useStore($sidebarOpen);
@@ -93,11 +125,12 @@ export function Header() {
       {/* Center: Dexter crest */}
       <DexterCrest />
 
-      {/* Right: wallet + action buttons */}
+      {/* Right: wallet + workbench toggle + action buttons */}
       <div className="flex items-center gap-2 z-logo">
         <ClientOnly>{() => <WalletHeaderButton />}</ClientOnly>
         {chat.started && (
           <>
+            <ClientOnly>{() => <WorkbenchHeaderButton />}</ClientOnly>
             <span className="flex-1 px-4 truncate text-center text-bolt-elements-textPrimary hidden sm:block">
               <ClientOnly>{() => <ChatDescription />}</ClientOnly>
             </span>

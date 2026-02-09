@@ -16,7 +16,10 @@ import type { ContainerOptions, BuildContext, DeploymentResult } from './types';
 const DOCKER_API_VERSION = 'v1.43';
 const DOCKER_SOCKET_PATH = '/var/run/docker.sock';
 
-// Network for x402 resources
+/*
+ * Network for x402 resources
+ * Host access blocked via DOCKER-USER iptables (see infrastructure/iptables-resources.sh)
+ */
 const RESOURCE_NETWORK = 'dexter-resources';
 
 // Base domain for resources (wildcard *.dexter.cash)
@@ -170,7 +173,7 @@ export async function createContainer(options: ContainerOptions): Promise<string
     ...options.labels,
   };
 
-  // Container configuration
+  // Container configuration -- hardened for untrusted workloads
   const containerConfig = {
     Image: options.image,
     Env: Object.entries(options.env).map(([k, v]) => `${k}=${v}`),
@@ -179,9 +182,28 @@ export async function createContainer(options: ContainerOptions): Promise<string
       '3000/tcp': {},
     },
     HostConfig: {
+      // Resource limits
       Memory: options.memoryMb * 1024 * 1024,
       NanoCpus: options.cpuLimit * 1e9,
+      PidsLimit: 256, // Prevent fork bombs
+
+      // Network: host access blocked via iptables (see infrastructure/iptables-resources.sh)
       NetworkMode: RESOURCE_NETWORK,
+
+      // Filesystem: read-only root with tmpfs for writable areas
+      ReadonlyRootfs: true,
+      Tmpfs: {
+        '/tmp': 'rw,noexec,nosuid,size=64m',
+        '/app/node_modules/.cache': 'rw,noexec,nosuid,size=32m',
+      },
+
+      // Security: drop all capabilities, no privilege escalation
+      CapDrop: ['ALL'],
+      SecurityOpt: ['no-new-privileges:true'],
+
+      // No host devices, no extra permissions
+      Privileged: false,
+
       RestartPolicy: {
         Name: 'unless-stopped',
       },

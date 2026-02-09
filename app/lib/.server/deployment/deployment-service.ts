@@ -26,6 +26,7 @@ import {
   startContainer,
 } from './docker-client';
 import { resourceRegistry } from './redis-client';
+import { persistResourceUpdateToApi } from './api-client';
 
 // Base domain for resources (wildcard *.dexter.cash)
 const RESOURCE_BASE_DOMAIN = process.env.RESOURCE_BASE_DOMAIN || 'dexter.cash';
@@ -549,12 +550,23 @@ export async function reconcileState(): Promise<{
             const status = await getContainerStatus(resource.containerId);
 
             if (status.running) {
+              // Detect if health status actually changed
+              const previousHealthy = resource.healthy;
+
               // Container is running -- update Redis to match
               resource.healthy = status.healthy;
               resource.status = 'running';
               resource.updatedAt = new Date();
               await resourceRegistry.set(resourceId, resource);
               stats.healthy++;
+
+              // Sync to dexter-api DB only when health status changed
+              if (previousHealthy !== status.healthy) {
+                persistResourceUpdateToApi(resourceId, {
+                  healthy: status.healthy,
+                  status: 'running',
+                }).catch((e) => console.warn(`[Reconcile] ${resourceId}: API health sync failed:`, e));
+              }
             } else {
               // Container exists but stopped -- try to restart if it was supposed to be running
               if (resource.status === 'running') {
@@ -567,6 +579,12 @@ export async function reconcileState(): Promise<{
                   await resourceRegistry.set(resourceId, resource);
                   stats.recovered++;
                   console.log(`[Reconcile] ${resourceId}: restarted successfully`);
+
+                  // Sync recovered status to API
+                  persistResourceUpdateToApi(resourceId, {
+                    healthy: true,
+                    status: 'running',
+                  }).catch((e) => console.warn(`[Reconcile] ${resourceId}: API recovery sync failed:`, e));
                 } catch (restartErr) {
                   console.warn(`[Reconcile] ${resourceId}: restart failed:`, restartErr);
                   resource.status = 'failed';
@@ -575,6 +593,12 @@ export async function reconcileState(): Promise<{
                   resource.updatedAt = new Date();
                   await resourceRegistry.set(resourceId, resource);
                   stats.errors++;
+
+                  // Sync failure status to API
+                  persistResourceUpdateToApi(resourceId, {
+                    healthy: false,
+                    status: 'failed',
+                  }).catch((e) => console.warn(`[Reconcile] ${resourceId}: API failure sync failed:`, e));
                 }
               }
             }

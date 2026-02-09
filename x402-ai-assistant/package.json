@@ -9,7 +9,7 @@
     "build": "tsc"
   },
   "dependencies": {
-    "@dexterai/x402": "^1.4.1",
+    "@dexterai/x402": "^1.5.2",
     "express": "^4.18.0",
     "@types/express": "^4.17.0"
   },

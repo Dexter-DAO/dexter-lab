@@ -17,6 +17,11 @@ import { DeploymentService, reconcileState, runPostDeployTests, formatTestResult
 import type { ResourceConfig, ResourceEndpoint } from '~/lib/.server/deployment/types';
 import type { TestSuiteResult } from '~/lib/.server/deployment/test-runner';
 import { pushDeployProgress } from '~/lib/.server/deployment/redis-client';
+import {
+  persistResourceToApi,
+  persistResourceUpdateToApi,
+  persistEventToApi,
+} from '~/lib/.server/deployment/api-client';
 
 const DEXTER_API_BASE = process.env.DEXTER_API_URL || 'https://api.dexter.cash';
 const LAB_SECRET = process.env.LAB_INTERNAL_SECRET || '';
@@ -592,42 +597,7 @@ export const action: ActionFunction = async ({ request }) => {
  * =============================================================================
  * Helper functions for persisting to dexter-api
  * =============================================================================
+ * Moved to ~/lib/.server/deployment/api-client.ts
+ * Imported at the top of this file.
+ * =============================================================================
  */
-
-async function persistResourceToApi(data: Record<string, unknown>): Promise<void> {
-  const response = await fetch(`${DEXTER_API_BASE}/api/dexter-lab/resources`, {
-    method: 'POST',
-    headers: AUTH_HEADERS,
-    body: JSON.stringify(data),
-  });
-
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(`HTTP ${response.status}: ${text}`);
-  }
-}
-
-async function persistResourceUpdateToApi(resourceId: string, data: Record<string, unknown>): Promise<void> {
-  const response = await fetch(`${DEXTER_API_BASE}/api/dexter-lab/resources/${resourceId}`, {
-    method: 'PATCH',
-    headers: AUTH_HEADERS,
-    body: JSON.stringify(data),
-  });
-
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(`HTTP ${response.status}: ${text}`);
-  }
-}
-
-async function persistEventToApi(data: Record<string, unknown>): Promise<void> {
-  const response = await fetch(`${DEXTER_API_BASE}/api/dexter-lab/events`, {
-    method: 'POST',
-    headers: AUTH_HEADERS,
-    body: JSON.stringify(data),
-  });
-
-  if (!response.ok) {
-    console.warn(`[Deploy API] Event persistence failed: HTTP ${response.status}`);
-  }
-}

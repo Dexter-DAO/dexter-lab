@@ -272,6 +272,31 @@ export const ChatImpl = memo(
       });
     }, [messages, isLoading, parseMessages]);
 
+    // Detect deployed resource URLs from assistant messages and store for Preview tab
+    useEffect(() => {
+      for (let i = messages.length - 1; i >= 0; i--) {
+        const msg = messages[i];
+
+        if (msg.role !== 'assistant') {
+          continue;
+        }
+
+        const text = typeof msg.content === 'string' ? msg.content : '';
+        const match = text.match(/https:\/\/[\w-]+\.dexter\.cash/);
+
+        if (match) {
+          const url = match[0];
+          const current = workbenchStore.deployedUrl.get();
+
+          if (current !== url) {
+            workbenchStore.deployedUrl.set(url);
+          }
+
+          break;
+        }
+      }
+    }, [messages]);
+
     const scrollTextArea = () => {
       const textarea = textareaRef.current;
 

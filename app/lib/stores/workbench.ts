@@ -48,6 +48,13 @@ export class WorkbenchStore {
   showWorkbench: WritableAtom<boolean> = import.meta.hot?.data.showWorkbench ?? atom(false);
   currentView: WritableAtom<WorkbenchViewType> = import.meta.hot?.data.currentView ?? atom('code');
   unsavedFiles: WritableAtom<Set<string>> = import.meta.hot?.data.unsavedFiles ?? atom(new Set<string>());
+
+  /**
+   * URL of the deployed resource (e.g. https://dad-jokes-api.dexter.cash).
+   * Set when deploy_x402 or update_x402 succeeds. Used by the Preview tab
+   * to load the live resource in an iframe.
+   */
+  deployedUrl: WritableAtom<string | null> = import.meta.hot?.data.deployedUrl ?? atom<string | null>(null);
   actionAlert: WritableAtom<ActionAlert | undefined> =
     import.meta.hot?.data.actionAlert ?? atom<ActionAlert | undefined>(undefined);
   supabaseAlert: WritableAtom<SupabaseAlert | undefined> =
@@ -66,6 +73,7 @@ export class WorkbenchStore {
       import.meta.hot.data.actionAlert = this.actionAlert;
       import.meta.hot.data.supabaseAlert = this.supabaseAlert;
       import.meta.hot.data.deployAlert = this.deployAlert;
+      import.meta.hot.data.deployedUrl = this.deployedUrl;
 
       // Ensure binary files are properly preserved across hot reloads
       const filesMap = this.files.get();

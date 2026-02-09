@@ -239,17 +239,17 @@ function ResourceCard({ resource }: { resource: PublicResource }) {
 
         {/* ─── Back Face ─── */}
         <div
-          className="absolute inset-0 rounded-lg border border-accent-500/30 bg-gray-900/95 backdrop-blur-sm overflow-hidden"
+          className="absolute inset-0 rounded-lg border border-accent-500/30 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm overflow-hidden"
           style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
         >
           <div className="p-4 h-full flex flex-col">
             {/* Back header */}
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-bold text-gray-100 truncate">{resource.name}</h3>
+              <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100 truncate">{resource.name}</h3>
               <button
                 onClick={handleFlip}
                 style={{ background: 'none' }}
-                className="text-gray-500 hover:text-gray-300 transition-colors p-0.5"
+                className="text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors p-0.5"
               >
                 <div className="i-ph:x text-sm" />
               </button>
@@ -261,11 +261,14 @@ function ResourceCard({ resource }: { resource: PublicResource }) {
                 <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-accent-500/15 text-accent-400 font-bold uppercase">
                   {method}
                 </span>
-                <span className="text-[11px] font-mono text-gray-400 truncate">{fullUrl}</span>
+                <span className="text-[11px] font-mono text-gray-600 dark:text-gray-400 truncate">{fullUrl}</span>
               </div>
-              <div className="text-[11px] text-gray-500">
-                Price: <span className="text-accent-400 font-medium">{formatPrice(resource.base_price_usdc)}</span> USDC
-                per request
+              <div className="text-[11px] text-gray-500 dark:text-gray-500">
+                Price:{' '}
+                <span className="text-accent-500 dark:text-accent-400 font-medium">
+                  {formatPrice(resource.base_price_usdc)}
+                </span>{' '}
+                USDC per request
               </div>
             </div>
 
@@ -292,7 +295,7 @@ function ResourceCard({ resource }: { resource: PublicResource }) {
               <button
                 onClick={handleCopyCurl}
                 style={{ background: 'none' }}
-                className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-300 px-2 py-2 rounded-lg border border-gray-800 hover:border-gray-700 transition-colors"
+                className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 px-2 py-2 rounded-lg border border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700 transition-colors"
                 title="Copy curl command"
               >
                 <div className="i-ph:terminal text-xs" />
@@ -301,7 +304,7 @@ function ResourceCard({ resource }: { resource: PublicResource }) {
               <button
                 onClick={handleCopyUrl}
                 style={{ background: 'none' }}
-                className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-300 px-2 py-2 rounded-lg border border-gray-800 hover:border-gray-700 transition-colors"
+                className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 px-2 py-2 rounded-lg border border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700 transition-colors"
                 title="Copy URL"
               >
                 <div className="i-ph:copy text-xs" />
@@ -314,8 +317,8 @@ function ResourceCard({ resource }: { resource: PublicResource }) {
                 <pre
                   className={`text-[10px] font-mono leading-relaxed whitespace-pre-wrap break-all p-2 rounded-md max-h-32 overflow-y-auto sidebar-scroll ${
                     tryResult.status === 'success'
-                      ? 'bg-gray-950/60 border border-gray-800/40 text-emerald-300/70'
-                      : 'bg-red-950/30 border border-red-800/30 text-red-300/70'
+                      ? 'bg-gray-50 dark:bg-gray-950/60 border border-gray-200 dark:border-gray-800/40 text-emerald-700 dark:text-emerald-300/70'
+                      : 'bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800/30 text-red-700 dark:text-red-300/70'
                   }`}
                 >
                   {tryResult.data}
@@ -325,7 +328,9 @@ function ResourceCard({ resource }: { resource: PublicResource }) {
 
             {/* Wallet hint */}
             {!walletAddress && tryResult.status === 'idle' && (
-              <div className="mt-auto text-[10px] text-gray-600 text-center">Connect wallet to make paid requests</div>
+              <div className="mt-auto text-[10px] text-gray-400 dark:text-gray-600 text-center">
+                Connect wallet to make paid requests
+              </div>
             )}
           </div>
         </div>

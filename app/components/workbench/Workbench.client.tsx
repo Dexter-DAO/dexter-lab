@@ -295,6 +295,7 @@ export const Workbench = memo(
     // const modifiedFiles = Array.from(useStore(workbenchStore.unsavedFiles).keys());
 
     const hasPreview = useStore(computed(workbenchStore.previews, (previews) => previews.length > 0));
+    const deployedUrl = useStore(workbenchStore.deployedUrl);
     const showWorkbench = useStore(workbenchStore.showWorkbench);
     const selectedFile = useStore(workbenchStore.selectedFile);
     const currentDocument = useStore(workbenchStore.currentDocument);
@@ -313,11 +314,12 @@ export const Workbench = memo(
       workbenchStore.currentView.set(view);
     };
 
+    // Auto-switch to Preview tab when a resource is deployed
     useEffect(() => {
-      if (hasPreview) {
+      if (hasPreview || deployedUrl) {
         setSelectedView('preview');
       }
-    }, [hasPreview]);
+    }, [hasPreview, deployedUrl]);
 
     useEffect(() => {
       workbenchStore.setDocuments(files);

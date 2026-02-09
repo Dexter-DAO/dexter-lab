@@ -11,7 +11,10 @@ const messageParser = new EnhancedStreamingMessageParser({
     onArtifactOpen: (data) => {
       logger.trace('onArtifactOpen', data);
 
-      workbenchStore.showWorkbench.set(true);
+      /*
+       * Don't auto-open the workbench -- let the user open it via the header toggle
+       * when they're ready. The store still tracks all artifacts and file actions.
+       */
       workbenchStore.addArtifact(data);
     },
     onArtifactClose: (data) => {

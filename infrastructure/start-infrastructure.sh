@@ -53,9 +53,23 @@ check_docker() {
 create_network() {
     if ! docker network inspect dexter-resources &> /dev/null; then
         log_info "Creating dexter-resources network..."
-        docker network create dexter-resources
+        docker network create --driver bridge dexter-resources
     else
         log_info "Network dexter-resources already exists"
+    fi
+}
+
+# Apply iptables rules to block container access to host services
+apply_firewall() {
+    local SCRIPT_DIR_FW="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    local FW_SCRIPT="$SCRIPT_DIR_FW/iptables-resources.sh"
+
+    if [ -f "$FW_SCRIPT" ]; then
+        log_info "Applying DOCKER-USER iptables rules..."
+        bash "$FW_SCRIPT" apply
+    else
+        log_warn "Firewall script not found at $FW_SCRIPT -- host services are NOT protected!"
+        log_warn "Resource containers can reach dexter-api, Redis, Supabase, etc."
     fi
 }
 
@@ -81,9 +95,9 @@ start_services() {
         fi
     fi
     
-    # Check Redis health
-    if docker exec dexter-redis redis-cli ping | grep -q PONG; then
-        log_info "Redis is healthy"
+    # Check Redis health (now requires auth)
+    if docker exec dexter-redis redis-cli -a "${DEXTER_REDIS_PASSWORD:-changeme_dexter_redis_2026}" ping 2>/dev/null | grep -q PONG; then
+        log_info "Redis is healthy (authenticated)"
     else
         log_error "Redis health check failed"
     fi
@@ -92,7 +106,7 @@ start_services() {
 # Stop infrastructure services
 stop_services() {
     log_info "Stopping infrastructure services..."
-    docker compose -f "$COMPOSE_FILE" down
+    docker-compose -f "$COMPOSE_FILE" down
     log_info "Infrastructure stopped"
 }
 
@@ -109,6 +123,9 @@ show_status() {
     
     log_info "Network Info:"
     docker network inspect dexter-resources --format '{{range .Containers}}{{.Name}}: {{.IPv4Address}}{{"\n"}}{{end}}' 2>/dev/null || echo "No containers in network"
+
+    log_info "DOCKER-USER firewall rules:"
+    sudo iptables -L DOCKER-USER -n -v 2>/dev/null | grep -E 'dexter|DROP' || echo "No dexter-specific rules found"
 }
 
 # Main
@@ -117,6 +134,7 @@ case "${1:-start}" in
         check_docker
         create_network
         start_services
+        apply_firewall
         log_info "Infrastructure is ready!"
         log_info "Traefik dashboard: http://localhost:8082"
         log_info "Resource traffic: port 8090 -> Traefik -> containers"
@@ -133,6 +151,7 @@ case "${1:-start}" in
         check_docker
         create_network
         start_services
+        apply_firewall
         log_info "Infrastructure restarted!"
         ;;
     *)

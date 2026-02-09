@@ -87,7 +87,7 @@ my-resource/
     "start": "node dist/index.js"
   },
   "dependencies": {
-    "@dexterai/x402": "^1.5.1",
+    "@dexterai/x402": "^1.5.2",
     "express": "^4.18.0"
   }
 }
@@ -128,7 +128,7 @@ Choose the right payment pattern based on resource type:
    - Requires \`ws\` package for WebSocket support
 
 Always use \`{{USER_WALLET}}\` for payTo — it's replaced at deploy time.
-Always use \`@dexterai/x402@^1.5.1\` or later.
+Always use \`@dexterai/x402@^1.5.2\` or later.
 </pricing_guidance>
 
 <deployment_tools>
