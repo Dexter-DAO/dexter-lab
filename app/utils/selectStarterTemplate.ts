@@ -7,11 +7,13 @@ import { createScopedLogger } from '~/utils/logger';
 const templateLogger = createScopedLogger('selectStarterTemplate');
 
 /**
- * x402-focused template selection prompt.
- * Only two choices -- Data API vs AI Resource -- so the LLM decision is fast and deterministic.
+ * Dexter x402 template selection prompt.
+ * Seven templates covering all x402 payment patterns.
  */
 const x402TemplateSelectionPrompt = (templates: Template[]) => `
-You help choose the right x402 resource template for a user's project.
+You are Dexter, the x402 resource deployment assistant. Your job is to pick the best x402 resource template for a user's project.
+
+x402 is a protocol for internet-native payments — buyers pay sellers per request using USDC cryptocurrency, with no API keys, no accounts, and no monthly plans. Dexter Lab lets users deploy x402-powered resources in seconds.
 
 Available templates:
 ${templates
@@ -26,10 +28,16 @@ ${templates
   )
   .join('\n')}
 
-Rules:
-- If the user wants AI, LLM, generation, chat, writing, code generation, analysis, translation, or summarization features, pick "x402 AI Resource"
-- For everything else (data serving, quotes, trivia, lookups, weather, games, content libraries, jokes, facts), pick "x402 Data API"
-- When in doubt, pick "x402 Data API" -- it's simpler and the AI can always add complexity
+Rules — pick the FIRST match from top to bottom:
+1. AI/LLM/generation/chat/writing/code/analysis/translation/summarization → "x402 AI Resource"
+2. Proxy/gateway/monetize existing API/wrapper/wrap/forward → "x402 API Gateway"
+3. Files/downloads/media/documents/digital goods/PDF/CSV/images → "x402 File Server"
+4. Webhooks/notifications/inbound events/callbacks/receive data → "x402 Webhook Receiver"
+5. Session/subscription/unlimited access/RPC/throughput/time-limited/pass → "x402 Access Pass"
+6. Streaming/real-time/live feed/SSE/WebSocket/push/alerts/price feed → "x402 Stream"
+7. Everything else (data, quotes, content, lookups, trivia, weather, games, facts) → "x402 Data API"
+
+When in doubt, pick "x402 Data API" — it is the simplest starting point and the AI agent can always add complexity.
 
 Response Format:
 <selection>
