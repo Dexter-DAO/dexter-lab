@@ -1,39 +1,5 @@
-import React, { useCallback } from 'react';
-
-const EXAMPLES = [
-  {
-    title: 'Whale Watch API',
-    description: 'Track large Solana wallet movements and score trading patterns',
-    prompt:
-      'Build a whale watch API that monitors large Solana wallet movements and scores their trading patterns using Helius data',
-  },
-  {
-    title: 'AI Code Reviewer',
-    description: 'Automated pull request feedback, powered by Claude',
-    prompt: 'Create a code review API that gives automated line-by-line feedback on code submissions using Claude',
-  },
-  {
-    title: 'Token Sentiment Engine',
-    description: 'Score market mood from on-chain activity and trading volume',
-    prompt:
-      'Build a token sentiment engine that scores market mood based on on-chain trading activity using Birdeye data',
-  },
-  {
-    title: 'Product Shot Generator',
-    description: 'Turn product descriptions into studio-quality marketing images',
-    prompt: 'Create a product shot generator API that turns product descriptions into marketing images using DALL-E',
-  },
-  {
-    title: 'Smart Contract Explainer',
-    description: 'Feed in a program address, get a plain-English breakdown',
-    prompt: 'Build an API that takes a Solana program address and returns a plain-English explanation of what it does',
-  },
-  {
-    title: 'DeFi Route Optimizer',
-    description: 'Find optimal swap paths across Solana DEXes via Jupiter',
-    prompt: 'Create a DeFi route optimizer that finds the best token swap paths across Solana using Jupiter',
-  },
-];
+import React from 'react';
+import { RecentlyDeployed } from './RecentlyDeployed';
 
 const GRADIENT_STYLE = {
   background: 'linear-gradient(130deg, #d13f00 0%, #ff6b00 42%, #ffb42c 100%)',
@@ -53,7 +19,7 @@ interface LandingContentProps {
   sendMessage?: (event: React.UIEvent, messageInput?: string) => void;
 }
 
-export function LandingContent({ sendMessage }: LandingContentProps) {
+export function LandingContent(_props: LandingContentProps) {
   return (
     <div className="w-full pb-24 mt-16">
       {/* Divider */}
@@ -148,54 +114,11 @@ export function LandingContent({ sendMessage }: LandingContentProps) {
         </p>
       </section>
 
-      {/* What You Could Build — at the bottom, faded orange borders */}
-      <section className="max-w-4xl mx-auto px-6 mb-20">
-        <h2 className="font-display text-lg lg:text-xl font-semibold mb-10 text-center text-bolt-elements-textPrimary tracking-wide">
-          What you could build
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-1">
-          {EXAMPLES.map((example) => (
-            <ExampleItem key={example.title} {...example} sendMessage={sendMessage} />
-          ))}
-        </div>
-      </section>
+      {/* Live Resources Feed */}
+      <RecentlyDeployed />
 
       {/* Bottom fade */}
       <div className="w-12 h-px mx-auto mt-24 bg-gradient-to-r from-transparent via-accent-500/15 to-transparent" />
-    </div>
-  );
-}
-
-function ExampleItem({
-  title,
-  description,
-  prompt,
-  sendMessage,
-}: {
-  title: string;
-  description: string;
-  prompt: string;
-  sendMessage?: (event: React.UIEvent, messageInput?: string) => void;
-}) {
-  const handleClick = useCallback(
-    (event: React.MouseEvent) => {
-      sendMessage?.(event, prompt);
-    },
-    [sendMessage, prompt],
-  );
-
-  return (
-    <div
-      onClick={handleClick}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => e.key === 'Enter' && handleClick(e as unknown as React.MouseEvent)}
-      className="text-left group py-4 pl-4 border-l-2 border-accent-500/25 hover:border-accent-500 transition-all duration-200 cursor-pointer"
-    >
-      <h3 className="text-sm font-semibold text-bolt-elements-textPrimary group-hover:text-accent-500 transition-colors duration-200">
-        {title}
-      </h3>
-      <p className="text-xs text-bolt-elements-textSecondary mt-1 leading-relaxed">{description}</p>
     </div>
   );
 }

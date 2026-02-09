@@ -310,11 +310,22 @@ function ResourceItem({ resource, onWithdraw }: { resource: LabResource; onWithd
         style={{ background: 'none' }}
         className="w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors"
       >
-        <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${statusCfg.dot}`} />
+        <div className="relative shrink-0">
+          <div
+            className={`w-2 h-2 rounded-full ${resource.status === 'running' ? (resource.healthy ? 'bg-emerald-500' : 'bg-red-500') : statusCfg.dot}`}
+          />
+          {resource.status === 'running' && resource.healthy && (
+            <div className="absolute inset-0 w-2 h-2 rounded-full bg-emerald-500 animate-ping opacity-40" />
+          )}
+        </div>
         <div className="flex-1 min-w-0">
           <div className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{resource.name}</div>
           <div className="flex items-center gap-2 mt-0.5">
-            <span className={`text-xs ${statusCfg.color}`}>{statusCfg.label}</span>
+            <span
+              className={`text-xs ${resource.status === 'running' ? (resource.healthy ? 'text-emerald-400' : 'text-red-400') : statusCfg.color}`}
+            >
+              {resource.status === 'running' ? (resource.healthy ? 'Healthy' : 'Unhealthy') : statusCfg.label}
+            </span>
             {hasRevenue && <span className="text-xs text-emerald-400">{formatUsdc(resource.gross_revenue_usdc)}</span>}
           </div>
         </div>
@@ -487,6 +498,26 @@ function ResourceItem({ resource, onWithdraw }: { resource: LabResource; onWithd
                   Logs
                 </button>
               )}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+
+                  if (window.confirm(`Stop "${resource.name}"? This will shut down the container.`)) {
+                    fetch('/api/resource-delete', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ resourceId: resource.id }),
+                    }).then(() => {
+                      onWithdraw?.();
+                    });
+                  }
+                }}
+                style={{ background: 'none' }}
+                className="flex items-center gap-1 text-xs text-gray-400 dark:text-gray-600 hover:text-red-400 transition-colors"
+                title="Stop resource"
+              >
+                <div className="i-ph:trash text-xs" />
+              </button>
             </div>
           </div>
 
