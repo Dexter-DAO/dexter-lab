@@ -177,14 +177,7 @@ const pricing = createTokenPricing({
   maxTokens: 16384,
 });
 
-// Google Gemini 2.5 Pro (stable)
-const pricing = createTokenPricing({
-  model: 'gemini-2.5-pro',
-  inputRate: 1.25,
-  outputRate: 10.0,
-});
-
-// Google Gemini 3 Pro (preview, latest)
+// Google Gemini 3 Pro (latest, best quality)
 const pricing = createTokenPricing({
   model: 'gemini-3-pro-preview',
   inputRate: 2.50,

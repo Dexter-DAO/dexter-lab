@@ -98,12 +98,40 @@ function parseFrontmatter(content: string): { meta: Record<string, any>; body: s
 }
 
 /**
- * Load a single skill file
+ * Load a single skill file.
+ * If the skill is in a directory with companion .md files, those are
+ * appended to the skill content in alphabetical order. This allows
+ * large skills to be split across multiple files while still being
+ * loaded as a single prompt section.
  */
 export function loadSkill(skillPath: string): Skill | null {
   try {
     const content = readFileSync(skillPath, 'utf-8');
     const { meta, body } = parseFrontmatter(content);
+
+    // Check for companion .md files in the same directory
+    let fullContent = body;
+    const skillDir = skillPath.replace(/\/[^/]+$/, '');
+    const skillFilename = skillPath.split('/').pop() || '';
+
+    try {
+      const siblings = readdirSync(skillDir).filter(
+        (f) => f.endsWith('.md') && f !== skillFilename && f !== 'README.md',
+      );
+      siblings.sort(); // Alphabetical order for deterministic loading
+
+      for (const sibling of siblings) {
+        const siblingPath = join(skillDir, sibling);
+        const siblingContent = readFileSync(siblingPath, 'utf-8');
+        fullContent += `\n\n---\n\n${siblingContent}`;
+      }
+
+      if (siblings.length > 0) {
+        console.log(`[skills] Loaded ${siblings.length} companion files for ${meta.name || skillFilename}: ${siblings.join(', ')}`);
+      }
+    } catch {
+      // Directory read failed — just use the main file
+    }
 
     return {
       meta: {
@@ -113,7 +141,7 @@ export function loadSkill(skillPath: string): Skill | null {
         author: meta.author,
         tags: meta.tags || [],
       },
-      content: body,
+      content: fullContent,
       path: skillPath,
     };
   } catch (error) {

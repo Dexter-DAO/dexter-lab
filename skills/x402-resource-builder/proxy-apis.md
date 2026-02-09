@@ -43,7 +43,7 @@ const response = await fetch(`${PROXY}/anthropic/v1/messages`, {
 ### Google Gemini (via `/proxy/gemini/*`)
 
 ```typescript
-const response = await fetch(`${PROXY}/gemini/v1/models/gemini-2.5-pro:generateContent`, {
+const response = await fetch(`${PROXY}/gemini/v1/models/gemini-3-pro-preview:generateContent`, {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
@@ -115,14 +115,13 @@ Choose the right model for your resource's quality and cost needs.
 | Premium, complex tasks | `gpt-5.2-pro` | High | Deep reasoning, complex analysis |
 | Reasoning tasks | `o4-mini` | Medium | Math, logic, step-by-step reasoning |
 | Anthropic premium | `claude-opus-4-6` | High | Excellent for nuanced writing, code |
-| Google stable | `gemini-2.5-pro` | Medium | Good general purpose alternative |
-| Google latest | `gemini-3-pro-preview` | Medium | Latest capabilities (preview) |
+| Google best | `gemini-3-pro-preview` | Medium | Latest and best Gemini model |
 
 ### Models to Avoid
 
 - `gpt-4o-mini` — Superseded by `gpt-5-mini` in every way
 - `claude-3-5-sonnet` — Old, use `claude-opus-4-6` instead
-- `gemini-1.5-pro` — Old, use `gemini-2.5-pro` or `gemini-3-pro-preview`
+- `gemini-1.5-pro`, `gemini-2.5-pro` — Old, use `gemini-3-pro-preview`
 - `o1`, `o1-mini`, `o1-pro` — Old reasoning models, use `o4-mini` or `o3`
 
 ### Pricing with Model Registry
