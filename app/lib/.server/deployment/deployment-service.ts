@@ -190,7 +190,11 @@ h1{font-family:'Orbitron',sans-serif;font-size:1.15rem;font-weight:700;color:#f1
 .footer{margin-top:1.25rem;display:flex;align-items:center;justify-content:center;gap:.75rem;font-size:.7rem;color:#404040}
 .footer a{color:#525252;text-decoration:none}
 .footer a:hover{color:#737373}
-.sep{width:3px;height:3px;border-radius:50%;background:#333}`;
+.sep{width:3px;height:3px;border-radius:50%;background:#333}
+.identity-section{background:rgba(167,139,250,.04);border:1px solid rgba(167,139,250,.12);border-radius:6px;padding:.85rem 1rem;text-align:left;margin-bottom:1.25rem}
+.identity-section h3{font-size:.75rem;color:#737373;margin-bottom:.6rem;text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+.identity-section a{color:#818cf8;text-decoration:none;font-weight:500}
+.identity-section a:hover{text-decoration:underline}`;
 
 /**
  * Generate a Dexter-branded landing page for GET /.
@@ -243,6 +247,17 @@ function generateLandingPageHtml(config: ResourceConfig): string {
     <h3>Endpoints <span style="font-weight:400;text-transform:none;color:#525252">(click to try)</span></h3>
     ${endpointRows}
   </div>
+  <div class="identity-section" id="identity-section" style="display:none">
+    <h3>Trust &amp; Identity</h3>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:13px;color:#a78bfa">&#9830;</span>
+        <span style="font-size:13px;color:#d1d5db">Agent <strong id="identity-agent-id" style="color:#a78bfa"></strong> on Base</span>
+      </div>
+      <a id="identity-8004scan" href="#" target="_blank" rel="noopener" style="font-size:12px;color:#818cf8;text-decoration:none">View on 8004scan &rarr;</a>
+      <a id="identity-a2a" href="#" target="_blank" rel="noopener" style="font-size:12px;color:#818cf8;text-decoration:none">A2A Agent Card &rarr;</a>
+    </div>
+  </div>
   <div class="info">
     <strong>Programmatic access:</strong><br><br>
     <code>npm install @dexterai/x402</code><br><br>
@@ -268,6 +283,12 @@ function generateLandingPageHtml(config: ResourceConfig): string {
           document.getElementById('stat-reqs').textContent=Number(d.request_count).toLocaleString();
           document.getElementById('stat-earn').textContent=Number(d.creator_earnings_usdc||0).toFixed(4);
           el.style.display='flex';
+        }
+        if(d.erc8004_agent_id){
+          document.getElementById('identity-agent-id').textContent='#'+d.erc8004_agent_id;
+          document.getElementById('identity-8004scan').href='https://www.8004scan.io/agents/base/'+d.erc8004_agent_id;
+          document.getElementById('identity-a2a').href='https://api.dexter.cash/api/dexter-lab/resources/'+rid+'/agent.json';
+          document.getElementById('identity-section').style.display='block';
         }
       }).catch(function(){});
   }

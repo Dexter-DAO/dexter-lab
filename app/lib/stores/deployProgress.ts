@@ -10,7 +10,7 @@ import { atom } from 'nanostores';
 const dbg = () => typeof window !== 'undefined' && localStorage.getItem('DEXTER_DEBUG') === 'true';
 
 export interface DeployProgressEvent {
-  type: 'building' | 'container_started' | 'testing' | 'test_result' | 'complete' | 'error';
+  type: 'building' | 'container_started' | 'testing' | 'test_result' | 'minting_identity' | 'complete' | 'error';
   resourceId: string;
   resourceName?: string;
   test?: {
@@ -113,7 +113,14 @@ export function startDeployProgress(resourceId: string, resourceName: string): v
         const updated: ActiveDeploy = {
           ...existing,
           events: [...existing.events, event],
-          status: event.type === 'complete' ? 'complete' : event.type === 'error' ? 'error' : 'in_progress',
+          status:
+            event.type === 'complete'
+              ? 'complete'
+              : event.type === 'error'
+                ? 'error'
+                : existing.status === 'complete'
+                  ? 'complete' // Don't regress from complete (e.g. late minting_identity event)
+                  : 'in_progress',
         };
 
         // Capture publicUrl and endpoints from complete event

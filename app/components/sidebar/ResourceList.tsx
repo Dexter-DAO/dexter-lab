@@ -44,6 +44,8 @@ interface LabResource {
   created_at: string;
   pay_to_wallet: string;
   last_revenue_sync_at?: string | null;
+  erc8004_agent_id?: number | null;
+  erc8004_agent_registry?: string | null;
   endpoints_json?: LabEndpoint[] | null;
 }
 
@@ -326,6 +328,12 @@ function ResourceItem({ resource, onWithdraw }: { resource: LabResource; onWithd
             >
               {resource.status === 'running' ? (resource.healthy ? 'Healthy' : 'Unhealthy') : statusCfg.label}
             </span>
+            {resource.erc8004_agent_id && (
+              <span
+                className="i-ph:link-bold text-[10px] text-purple-400"
+                title={`Agent #${resource.erc8004_agent_id}`}
+              />
+            )}
             {hasRevenue && <span className="text-xs text-emerald-400">{formatUsdc(resource.gross_revenue_usdc)}</span>}
           </div>
         </div>
@@ -395,6 +403,22 @@ function ResourceItem({ resource, onWithdraw }: { resource: LabResource; onWithd
             <div className="text-gray-900 dark:text-gray-200 text-right">
               {formatUsdc(resource.creator_earnings_usdc)}
             </div>
+
+            {resource.erc8004_agent_id && (
+              <>
+                <div className="text-gray-500 dark:text-gray-500">On-chain</div>
+                <div className="text-right">
+                  <a
+                    href={`https://www.8004scan.io/agents/base/${resource.erc8004_agent_id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-purple-400 hover:text-purple-300 transition-colors"
+                  >
+                    Agent #{resource.erc8004_agent_id}
+                  </a>
+                </div>
+              </>
+            )}
           </div>
 
           {/* ── Pending payout section ── */}

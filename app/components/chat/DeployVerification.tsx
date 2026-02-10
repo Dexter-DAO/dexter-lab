@@ -203,6 +203,76 @@ function ResponsePreview({ text }: { text: string }) {
   );
 }
 
+// ─── Identity Section (polls resource detail after deploy completes) ──────────
+
+const DEXTER_API_BASE = 'https://api.dexter.cash';
+const IDENTITY_POLL_INTERVAL = 3_000;
+const IDENTITY_POLL_MAX = 30_000;
+
+interface IdentityData {
+  agentId: number;
+  explorer: string;
+  chain: string;
+}
+
+function useIdentityData(resourceId: string, isComplete: boolean): IdentityData | null | 'loading' {
+  const [identity, setIdentity] = useState<IdentityData | null | 'loading'>(null);
+
+  useEffect(() => {
+    if (!isComplete) {
+      return undefined;
+    }
+
+    let cancelled = false;
+    const startedAt = Date.now();
+
+    setIdentity('loading');
+
+    const poll = async () => {
+      while (!cancelled && Date.now() - startedAt < IDENTITY_POLL_MAX) {
+        try {
+          const res = await fetch(`${DEXTER_API_BASE}/api/dexter-lab/resources/${encodeURIComponent(resourceId)}`);
+
+          if (res.ok) {
+            const data = (await res.json()) as { erc8004_agent_id?: number | null };
+
+            if (data.erc8004_agent_id && !cancelled) {
+              setIdentity({
+                agentId: data.erc8004_agent_id,
+                explorer: `https://www.8004scan.io/agents/base/${data.erc8004_agent_id}`,
+                chain: 'Base',
+              });
+
+              return;
+            }
+          }
+        } catch {
+          /* silent — keep polling */
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, IDENTITY_POLL_INTERVAL));
+      }
+
+      /* Timed out without finding identity — mint may have failed */
+      if (!cancelled) {
+        setIdentity(null);
+      }
+    };
+
+    /* Delay start slightly — give the mint a head start */
+    const timeout = setTimeout(() => {
+      void poll();
+    }, 2_000);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timeout);
+    };
+  }, [resourceId, isComplete]);
+
+  return identity;
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 interface DeployVerificationProps {
@@ -224,6 +294,9 @@ export const DeployVerification = memo(({ resourceId }: DeployVerificationProps)
   const isComplete = deploy.status === 'complete';
   const hasError = deploy.status === 'error';
   const allPassed = testResults.length > 0 && testResults.every((e) => e.test?.passed);
+
+  /* Poll for on-chain identity after deploy completes */
+  const identity = useIdentityData(resourceId, isComplete);
 
   // Find paid settlement for score, response, price, TX
   const settlementEvent = testResults.find((e) => e.test?.testType === 'paid_settlement');
@@ -400,6 +473,54 @@ export const DeployVerification = memo(({ resourceId }: DeployVerificationProps)
               {txSignature}
             </span>
           </a>
+        </motion.div>
+      )}
+
+      {/* ─── On-chain Identity ─── */}
+      {identity === 'loading' && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: testResults.length * 0.35 + 2.5 }}
+          className="px-4 py-2.5 border-t border-gray-800/30"
+        >
+          <div className="flex items-center gap-2">
+            <div className="w-3.5 h-3.5 border-[1.5px] border-purple-500/30 border-t-purple-500 rounded-full animate-spin" />
+            <span className="text-[11px] text-gray-400">Minting on-chain identity...</span>
+          </div>
+        </motion.div>
+      )}
+      {identity && identity !== 'loading' && (
+        <motion.div
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
+          className="px-4 py-2.5 border-t border-gray-800/30"
+        >
+          <div className="text-[10px] uppercase tracking-widest text-gray-600 mb-1.5 font-semibold">
+            On-chain Identity
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-5 h-5 rounded-full bg-purple-500/15 flex items-center justify-center ring-1 ring-purple-500/20">
+              <div className="i-ph:link-bold text-purple-400 text-[11px]" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-[12px] text-gray-300">
+                Agent #{identity.agentId} <span className="text-gray-600">on {identity.chain}</span>
+              </span>
+              <a
+                href={identity.explorer}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 group/id"
+              >
+                <div className="i-ph:arrow-square-out text-gray-600 group-hover/id:text-purple-400 text-[10px] transition-colors" />
+                <span className="text-[10px] text-gray-500 group-hover/id:text-purple-400 transition-colors">
+                  View on 8004scan
+                </span>
+              </a>
+            </div>
+          </div>
         </motion.div>
       )}
 
