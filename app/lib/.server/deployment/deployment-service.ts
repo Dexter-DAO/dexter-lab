@@ -223,12 +223,28 @@ function generateLandingPageHtml(config: ResourceConfig): string {
     })
     .join('\n      ');
 
+  const coverUrl = `https://api.dexter.cash/api/dexter-lab/resources/${config.id}/cover`;
+  const escapedName = config.name.replace(/"/g, '&quot;');
+  const escapedDesc = (config.description || '').replace(/"/g, '&quot;');
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${config.name}</title>
+<meta name="description" content="${escapedDesc}">
+<meta property="og:title" content="${escapedName}">
+<meta property="og:description" content="${escapedDesc}">
+<meta property="og:image" content="${coverUrl}">
+<meta property="og:image:width" content="1536">
+<meta property="og:image:height" content="1024">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Dexter Lab">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="${escapedName}">
+<meta name="twitter:description" content="${escapedDesc}">
+<meta name="twitter:image" content="${coverUrl}">
 <style>${PLATFORM_STYLES}</style>
 </head>
 <body>
