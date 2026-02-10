@@ -6,7 +6,7 @@
 
 export const packageJson = (name: string, extraDeps?: Record<string, string>) => {
   const deps: Record<string, string> = {
-    '@dexterai/x402': '^1.5.5',
+    '@dexterai/x402': '^1.6.0',
     express: '^4.18.0',
     ...extraDeps,
   };

@@ -208,7 +208,7 @@ const PROGRESS_PREFIX = 'dexter:lab:deploy:progress:';
 const PROGRESS_TTL = 300; // 5 minutes, auto-cleanup
 
 export interface DeployProgressEvent {
-  type: 'building' | 'container_started' | 'testing' | 'test_result' | 'complete' | 'error';
+  type: 'building' | 'container_started' | 'testing' | 'test_result' | 'minting_identity' | 'complete' | 'error';
   resourceId: string;
   resourceName?: string;
   test?: {

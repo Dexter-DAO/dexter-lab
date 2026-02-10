@@ -206,7 +206,7 @@ This tool checks the structure and reports issues.`,
                 text: `To validate the x402 resource at "${args.resourcePath}", check:
 
 1. **package.json** - Must contain:
-   - "dependencies": { "@dexterai/x402": "^1.5.5" }
+   - "dependencies": { "@dexterai/x402": "^1.6.2" }
    - "main": pointing to entry file
    
 2. **Entry point** (index.ts/index.js) - Must:

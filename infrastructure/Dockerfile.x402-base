@@ -26,7 +26,7 @@ RUN echo '{ \
   "version": "1.0.0", \
   "type": "module", \
   "dependencies": { \
-    "@dexterai/x402": "^1.5.5", \
+    "@dexterai/x402": "^1.6.2", \
     "express": "^4.18.0" \
   }, \
   "devDependencies": { \
@@ -49,5 +49,5 @@ USER resource
 ENTRYPOINT ["/sbin/tini", "--"]
 
 # Label with SDK version for staleness detection
-LABEL dexter.x402.sdk.version="1.5.5"
-LABEL dexter.x402.base.built="2026-02-09"
+LABEL dexter.x402.sdk.version="1.6.2"
+LABEL dexter.x402.base.built="2026-02-10"

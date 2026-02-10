@@ -205,7 +205,8 @@ export async function createContainer(options: ContainerOptions): Promise<string
       Privileged: false,
 
       RestartPolicy: {
-        Name: 'unless-stopped',
+        Name: 'on-failure',
+        MaximumRetryCount: 5,
       },
     },
     Healthcheck: {

@@ -8,7 +8,7 @@ const templateLogger = createScopedLogger('selectStarterTemplate');
 
 /**
  * Dexter x402 template selection prompt.
- * Seven templates covering all x402 payment patterns.
+ * Eight templates covering all x402 payment patterns.
  */
 const x402TemplateSelectionPrompt = (templates: Template[]) => `
 You are Dexter, the x402 resource deployment assistant. Your job is to pick the best x402 resource template for a user's project.
@@ -35,7 +35,8 @@ Rules — pick the FIRST match from top to bottom:
 4. Webhooks/notifications/inbound events/callbacks/receive data → "x402 Webhook Receiver"
 5. Session/subscription/unlimited access/RPC/throughput/time-limited/pass → "x402 Access Pass"
 6. Streaming/real-time/live feed/SSE/WebSocket/push/alerts/price feed → "x402 Stream"
-7. Everything else (data, quotes, content, lookups, trivia, weather, games, facts) → "x402 Data API"
+7. Articles/blog/paywall/news/publishing/reading/newsletter/pay-per-article/magazine/editorial/essays → "x402 Content Paywall"
+8. Everything else (data, quotes, lookups, trivia, weather, games, facts) → "x402 Data API"
 
 When in doubt, pick "x402 Data API" — it is the simplest starting point and the AI agent can always add complexity.
 

@@ -63,6 +63,32 @@ You have access to powerful tools:
 All proxy calls are authenticated - no API keys needed in user code.
 </capabilities>
 
+<proxy_api_guide>
+**CRITICAL**: Before generating ANY code that calls external APIs via the proxy, you MUST read
+the proxy API reference file at /home/branchmanager/websites/dexter-lab/skills/proxy-api-reference.md
+using the Read tool. This file contains the CORRECT, CURRENT endpoint paths for all providers.
+
+API providers change their endpoints frequently. Your training data may have OUTDATED paths.
+If the reference file doesn't cover a specific endpoint you need, use your web search tool to
+look up the provider's current documentation before generating code.
+
+**Quick reference for the most common paths** (always verify against the full reference):
+
+- Jupiter Price: \`\${PROXY}/jupiter/price/v3?ids=MINT\` (V3, NOT v2)
+- Helius DAS: \`POST \${PROXY}/helius/rpc\` with JSON-RPC body (method: "getAsset", etc.)
+- Solscan Token: \`\${PROXY}/solscan/v2.0/token/meta?address=MINT\` (v2.0, NOT v2)
+- Birdeye Overview: \`\${PROXY}/birdeye/defi/token_overview?address=MINT\`
+- OpenAI Chat: \`POST \${PROXY}/openai/v1/chat/completions\`
+
+**Container setup**: Resources access the proxy via \`process.env.PROXY_BASE_URL\`:
+\`\`\`typescript
+const PROXY = process.env.PROXY_BASE_URL || 'https://x402.dexter.cash/proxy';
+\`\`\`
+
+**Error handling**: NEVER silently swallow proxy errors with empty catch blocks.
+Always log errors and implement fallback providers (e.g., if Birdeye fails, try Helius DAS).
+</proxy_api_guide>
+
 <x402_resource_structure>
 Every x402 resource follows this structure:
 
@@ -87,7 +113,7 @@ my-resource/
     "start": "node dist/index.js"
   },
   "dependencies": {
-    "@dexterai/x402": "^1.5.5",
+    "@dexterai/x402": "^1.6.2",
     "express": "^4.18.0"
   }
 }
@@ -127,8 +153,14 @@ Choose the right payment pattern based on resource type:
    - Tiered duration pricing, supports both SSE and WebSocket delivery
    - Requires \`ws\` package for WebSocket support
 
+9. **Content Paywall** - Pay-per-article micropayments
+   - Free previews (teaser + metadata) via GET, paid full content via POST
+   - Per-article pricing ($0.05 - $0.50 USDC per article)
+   - Dynamic pricing per article based on length, author, or exclusivity
+   - No subscriptions — readers pay only for what they read
+
 Always use \`{{USER_WALLET}}\` for payTo — it's replaced at deploy time.
-Always use \`@dexterai/x402@^1.5.5\` or later.
+Always use \`@dexterai/x402@^1.6.2\` or later.
 </pricing_guidance>
 
 <deployment_tools>

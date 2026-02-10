@@ -570,12 +570,108 @@ export const action: ActionFunction = async ({ request }) => {
         headers: AUTH_HEADERS,
       }).catch((e) => console.warn('[Deploy API] Cover image generation failed:', e));
 
+      /*
+       * Auto-mint ERC-8004 identity for this resource.
+       * Gives the deployed resource an on-chain identity on Base so it's
+       * discoverable on 8004scan and by other agents via A2A.
+       * Runs inline (not fire-and-forget) so we can include the result in
+       * the response, but a mint failure does NOT block the deploy.
+       */
+      let erc8004Result: { agentId?: number; txHash?: string; error?: string } | null = null;
+
+      try {
+        console.log(`[Deploy API] Auto-minting ERC-8004 identity for ${result.resourceId}...`);
+
+        await pushDeployProgress(result.resourceId, {
+          type: 'minting_identity',
+          resourceId: result.resourceId,
+          resourceName: body.name,
+          timestamp: Date.now(),
+        });
+
+        const mintRes = await fetch(`${DEXTER_API_BASE}/api/identity/mint`, {
+          method: 'POST',
+          headers: {
+            ...AUTH_HEADERS,
+            'X-Internal-Key': process.env.INTERNAL_API_KEY || '',
+          },
+          body: JSON.stringify({
+            chain: 'base',
+            name: body.name,
+            description: body.description,
+            walletAddress: managedWalletAddress,
+            services: [
+              {
+                name: 'x402',
+                endpoint: result.publicUrl,
+                version: 'v2',
+              },
+              {
+                name: 'A2A',
+                endpoint: `${DEXTER_API_BASE}/api/dexter-lab/resources/${result.resourceId}/agent.json`,
+                version: '0.2.1',
+              },
+            ],
+          }),
+        });
+
+        if (mintRes.ok) {
+          const mintData = (await mintRes.json()) as { agentId?: number; txHash?: string };
+          erc8004Result = mintData;
+          console.log(
+            `[Deploy API] ERC-8004 identity minted for ${result.resourceId}: agentId=${mintData.agentId}, tx=${mintData.txHash}`,
+          );
+
+          // Store the agent ID on the resource record
+          if (mintData.agentId) {
+            persistResourceUpdateToApi(result.resourceId, {
+              erc8004_agent_id: mintData.agentId,
+              erc8004_agent_registry: 'eip155:8453:0x8004A169FB4a3325136EB29fA0ceB6D2e539a432',
+            }).catch(() => {});
+          }
+
+          persistEventToApi({
+            resource_id: result.resourceId,
+            event_type: 'identity_minted',
+            message: `ERC-8004 identity minted on Base: agent #${mintData.agentId}`,
+            data: { agentId: mintData.agentId, txHash: mintData.txHash, chain: 'base' },
+            actor_system: true,
+          }).catch(() => {});
+        } else {
+          const errText = await mintRes.text();
+          erc8004Result = { error: `HTTP ${mintRes.status}: ${errText}` };
+          console.error(`[Deploy API] ERC-8004 mint failed for ${result.resourceId}: ${erc8004Result.error}`);
+
+          persistEventToApi({
+            resource_id: result.resourceId,
+            event_type: 'identity_mint_failed',
+            message: `ERC-8004 mint failed: ${erc8004Result.error}`,
+            data: { error: erc8004Result.error },
+            actor_system: true,
+          }).catch(() => {});
+        }
+      } catch (mintErr) {
+        const errMsg = mintErr instanceof Error ? mintErr.message : String(mintErr);
+        erc8004Result = { error: errMsg };
+        console.error(`[Deploy API] ERC-8004 mint error for ${result.resourceId}:`, mintErr);
+      }
+
       return json(
         {
           success: true,
           resourceId: result.resourceId,
           publicUrl: result.publicUrl,
           containerId: result.containerId,
+          identity: erc8004Result
+            ? {
+                minted: !!erc8004Result.agentId,
+                agentId: erc8004Result.agentId ?? null,
+                txHash: erc8004Result.txHash ?? null,
+                error: erc8004Result.error ?? null,
+                chain: 'base',
+                explorer: erc8004Result.agentId ? `https://www.8004scan.io/agents/base/${erc8004Result.agentId}` : null,
+              }
+            : null,
           testResults: testResults
             ? {
                 allPassed: testResults.allPassed,
