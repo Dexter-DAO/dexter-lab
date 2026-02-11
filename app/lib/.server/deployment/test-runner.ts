@@ -55,17 +55,24 @@ async function callClaude(opts: {
   userMessage: string;
   maxTokens?: number;
   temperature?: number;
+  webSearch?: boolean;
 }): Promise<string> {
+  const body: Record<string, unknown> = {
+    model: CLAUDE_MODEL,
+    max_tokens: opts.maxTokens || 300,
+    temperature: opts.temperature ?? 0.7,
+    system: opts.system,
+    messages: [{ role: 'user', content: opts.userMessage }],
+  };
+
+  if (opts.webSearch) {
+    body.tools = [{ type: 'web_search_20250305', name: 'web_search' }];
+  }
+
   const response = await fetch(`${PROXY_BASE_URL}/anthropic/v1/messages`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: CLAUDE_MODEL,
-      max_tokens: opts.maxTokens || 300,
-      temperature: opts.temperature ?? 0.7,
-      system: opts.system,
-      messages: [{ role: 'user', content: opts.userMessage }],
-    }),
+    body: JSON.stringify(body),
   });
 
   if (!response.ok) {
@@ -949,12 +956,21 @@ ${JSON.stringify(context.testInput, null, 2)}
 ACTUAL RESPONSE (first ${RESPONSE_PREVIEW_MAX} chars):
 ${context.actualResponse}
 
+IMPORTANT CONTEXT:
+- Today's date is ${new Date().toISOString().split('T')[0]}.
+- This API returns LIVE data from real external services (Helius, Jupiter, etc.).
+- Do NOT judge the accuracy of prices, market caps, or other live data against your training data.
+  Your training data is outdated. The API's data is from real-time sources and should be trusted.
+- Only judge whether the response STRUCTURE is correct, the data LOOKS reasonable (not null/empty/error),
+  and the API delivered what it promised.
+
 EVALUATION CRITERIA:
 1. Did it actually answer what we asked? (not just "relevant topic")
 2. Is the response specific and actionable?
 3. Would a paying user be satisfied with THIS response?
 4. Any red flags? (error messages, empty content, asked for clarification when given specific input)
 5. Response size: under 10KB is fine, 10-30KB acceptable if dense, 30KB+ penalize, 50KB+ cap at 50
+6. Do NOT penalize for live data values that differ from your training knowledge (prices, market caps, etc.)
 
 SCORING:
 - 80-100: Excellent - directly answers with high quality
@@ -968,10 +984,12 @@ Return ONLY a JSON object with exactly these fields:
 
   try {
     const rawContent = await callClaude({
-      system: 'You are an API quality evaluator. Be strict but fair. Return ONLY valid JSON.',
+      system:
+        'You are an API quality evaluator. Be strict but fair. Use web search to verify current market data if the response contains prices, market caps, or other live data. Return ONLY valid JSON.',
       userMessage: prompt,
-      maxTokens: 200,
+      maxTokens: 300,
       temperature: 0.3,
+      webSearch: true,
     });
 
     const cleaned = rawContent.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');

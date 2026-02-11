@@ -337,6 +337,22 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
 
                 // Handle different message types
                 if (parsed.type === 'text') {
+                  /*
+                   * Ensure consecutive text chunks are separated.
+                   * The agent sends multiple text events (planning, code, result) that get
+                   * concatenated. Without a separator, sentences mash together.
+                   */
+                  if (
+                    assistantContent.length > 0 &&
+                    parsed.content.length > 0 &&
+                    !assistantContent.endsWith('\n') &&
+                    !assistantContent.endsWith(' ') &&
+                    !parsed.content.startsWith('\n') &&
+                    !parsed.content.startsWith(' ')
+                  ) {
+                    assistantContent += '\n\n';
+                  }
+
                   assistantContent += parsed.content;
 
                   // Detect resourceId in agent response text and start deploy verification
@@ -571,6 +587,17 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
                 const parsed = JSON.parse(data);
 
                 if (parsed.type === 'text') {
+                  if (
+                    assistantContent.length > 0 &&
+                    parsed.content.length > 0 &&
+                    !assistantContent.endsWith('\n') &&
+                    !assistantContent.endsWith(' ') &&
+                    !parsed.content.startsWith('\n') &&
+                    !parsed.content.startsWith(' ')
+                  ) {
+                    assistantContent += '\n\n';
+                  }
+
                   assistantContent += parsed.content;
 
                   // Detect resourceId in agent response and start deploy verification
