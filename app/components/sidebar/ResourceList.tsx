@@ -10,6 +10,7 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useStore } from '@nanostores/react';
+import { toast } from 'react-toastify';
 import { $walletAddress, $walletConnected } from '~/lib/stores/wallet';
 import { closeSidebar } from '~/lib/stores/sidebar';
 import { ResourceLogs } from './ResourceLogs';
@@ -17,7 +18,7 @@ import { ResourceLogs } from './ResourceLogs';
 const DEXTER_API_BASE = 'https://api.dexter.cash';
 
 /** Minimum pending balance (USDC) to show the Withdraw Now option */
-const MIN_WITHDRAW_USDC = 1.0;
+const MIN_WITHDRAW_USDC = 0.01;
 
 /** Auto-refresh interval in milliseconds */
 const REFRESH_INTERVAL_MS = 45_000;
@@ -422,18 +423,26 @@ function ResourceItem({ resource, onWithdraw }: { resource: LabResource; onWithd
           </div>
 
           {/* ── Pending payout section ── */}
-          {(hasPending || balance !== null) && (
+          {balance !== null && (
             <div className="rounded-md bg-gray-50 dark:bg-gray-800/40 px-2.5 py-2 space-y-1.5">
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-gray-500 dark:text-gray-500">Pending</span>
-                <span className={`font-medium ${hasPending ? 'text-emerald-500' : 'text-gray-400 dark:text-gray-500'}`}>
-                  {formatUsdc(pendingUsdc)}
-                </span>
-              </div>
-
-              <div className="text-[10px] text-gray-400 dark:text-gray-600 leading-tight">
-                Next payout: {getNextPayoutLabel()}
-              </div>
+              {hasPending ? (
+                <>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-gray-500 dark:text-gray-500">Pending</span>
+                    <span className="font-medium text-emerald-500">{formatUsdc(pendingUsdc)}</span>
+                  </div>
+                  <div className="text-[10px] text-gray-400 dark:text-gray-600 leading-tight">
+                    Next payout: {getNextPayoutLabel()}
+                  </div>
+                </>
+              ) : (
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-gray-500 dark:text-gray-500">Pending</span>
+                  <span className="text-gray-400 dark:text-gray-600 text-[10px]">
+                    {Number(resource.creator_earnings_usdc) > 0 ? 'Paid out' : 'Awaiting first payment'}
+                  </span>
+                </div>
+              )}
 
               {/* Withdraw Now — only when pending exceeds threshold */}
               {canWithdraw && (
@@ -566,6 +575,9 @@ export function ResourceList() {
   const [error, setError] = useState<string | null>(null);
   const initialLoadDone = useRef(false);
 
+  /** Track previous values to detect revenue / payout changes for toast notifications */
+  const prevValuesRef = useRef<Map<string, { revenue: number; earnings: number }>>(new Map());
+
   const fetchResources = useCallback(
     async (isInitial: boolean) => {
       if (!walletAddress) {
@@ -587,7 +599,55 @@ export function ResourceList() {
         }
 
         const data = (await res.json()) as { resources?: LabResource[] };
-        setResources(data.resources || []);
+        const newResources = data.resources || [];
+
+        /* Fire toast notifications on revenue / payout changes (skip on initial load) */
+        if (!isInitial && prevValuesRef.current.size > 0) {
+          for (const r of newResources) {
+            const prev = prevValuesRef.current.get(r.id);
+
+            if (!prev) {
+              continue;
+            }
+
+            const newRevenue = Number(r.gross_revenue_usdc) || 0;
+            const newEarnings = Number(r.creator_earnings_usdc) || 0;
+
+            /* New revenue came in */
+            if (newRevenue > prev.revenue) {
+              const delta = newRevenue - prev.revenue;
+
+              toast.success(`${r.name} earned ${formatUsdc(delta)}`, {
+                autoClose: 5000,
+                position: 'bottom-right',
+              });
+            }
+
+            /* Payout received */
+            if (newEarnings > prev.earnings) {
+              const delta = newEarnings - prev.earnings;
+
+              toast.success(`Payout received! ${formatUsdc(delta)} sent to your wallet`, {
+                autoClose: 8000,
+                position: 'bottom-right',
+              });
+            }
+          }
+        }
+
+        /* Update tracked values */
+        const nextMap = new Map<string, { revenue: number; earnings: number }>();
+
+        for (const r of newResources) {
+          nextMap.set(r.id, {
+            revenue: Number(r.gross_revenue_usdc) || 0,
+            earnings: Number(r.creator_earnings_usdc) || 0,
+          });
+        }
+
+        prevValuesRef.current = nextMap;
+
+        setResources(newResources);
       } catch (err) {
         console.error('[ResourceList] Failed to fetch resources:', err);
 
