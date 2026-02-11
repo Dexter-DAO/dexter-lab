@@ -282,6 +282,10 @@ interface DeployVerificationProps {
 export const DeployVerification = memo(({ resourceId }: DeployVerificationProps) => {
   const deploys = useStore($activeDeploys);
   const deploy = deploys.get(resourceId);
+  const isComplete = deploy?.status === 'complete';
+
+  /* Hook must be called before any early return (React rules of hooks) */
+  const identity = useIdentityData(resourceId, isComplete);
 
   if (!deploy || deploy.events.length === 0) {
     return null;
@@ -291,12 +295,8 @@ export const DeployVerification = memo(({ resourceId }: DeployVerificationProps)
   const hasBuilding = deploy.events.some((e) => e.type === 'building');
   const hasContainerStarted = deploy.events.some((e) => e.type === 'container_started');
   const hasTesting = deploy.events.some((e) => e.type === 'testing');
-  const isComplete = deploy.status === 'complete';
   const hasError = deploy.status === 'error';
   const allPassed = testResults.length > 0 && testResults.every((e) => e.test?.passed);
-
-  /* Poll for on-chain identity after deploy completes */
-  const identity = useIdentityData(resourceId, isComplete);
 
   // Find paid settlement for score, response, price, TX
   const settlementEvent = testResults.find((e) => e.test?.testType === 'paid_settlement');
