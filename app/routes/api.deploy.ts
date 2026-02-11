@@ -113,6 +113,11 @@ export const action: ActionFunction = async ({ request }) => {
         return json({ resourceId, logs });
       }
 
+      case 'remove': {
+        const success = await DeploymentService.remove(resourceId);
+        return json({ success, resourceId, action: 'remove' });
+      }
+
       case 'metrics': {
         const metrics = await DeploymentService.getMetrics(resourceId);
         return json({ resourceId, metrics });

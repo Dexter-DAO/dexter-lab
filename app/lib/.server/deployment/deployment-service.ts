@@ -901,7 +901,7 @@ export async function remove(resourceId: string): Promise<boolean> {
 
     // 4. Sync deletion to dexter-api DB so frontend reflects it immediately
     persistResourceUpdateToApi(resourceId, {
-      status: 'stopped',
+      status: 'deleted',
       healthy: false,
     }).catch((e) => console.warn(`[Remove] ${resourceId}: API sync failed:`, e));
 

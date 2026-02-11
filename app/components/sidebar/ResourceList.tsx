@@ -71,6 +71,7 @@ interface PayoutResult {
 const STATUS_CONFIG: Record<string, { label: string; color: string; dot: string }> = {
   running: { label: 'Live', color: 'text-emerald-400', dot: 'bg-emerald-500' },
   stopped: { label: 'Stopped', color: 'text-gray-400', dot: 'bg-gray-500' },
+  deleted: { label: 'Deleted', color: 'text-gray-500', dot: 'bg-gray-600' },
   failed: { label: 'Failed', color: 'text-red-400', dot: 'bg-red-500' },
   pending: { label: 'Pending', color: 'text-yellow-400', dot: 'bg-yellow-500' },
   building: { label: 'Building', color: 'text-blue-400', dot: 'bg-blue-500' },
@@ -535,19 +536,42 @@ function ResourceItem({ resource, onWithdraw }: { resource: LabResource; onWithd
                 onClick={(e) => {
                   e.stopPropagation();
 
-                  if (window.confirm(`Stop "${resource.name}"? This will shut down the container.`)) {
-                    fetch('/api/resource-delete', {
+                  if (
+                    window.confirm(
+                      `Remove "${resource.name}"? This will stop the container, clean up the image, and remove it from your resources.`,
+                    )
+                  ) {
+                    fetch(`/api/deploy?id=${encodeURIComponent(resource.id)}&action=remove`, {
                       method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ resourceId: resource.id }),
-                    }).then(() => {
-                      onWithdraw?.();
-                    });
+                    })
+                      .then((res) => res.json() as Promise<{ success?: boolean }>)
+                      .then((data) => {
+                        if (data.success) {
+                          toast.success(`"${resource.name}" removed`, {
+                            autoClose: 4000,
+                            position: 'bottom-right',
+                          });
+                          onWithdraw?.();
+                        } else {
+                          toast.error(`Failed to remove "${resource.name}"`, {
+                            autoClose: 5000,
+                            position: 'bottom-right',
+                          });
+                          console.error('[ResourceList] Remove failed:', data);
+                        }
+                      })
+                      .catch((err) => {
+                        toast.error('Remove request failed', {
+                          autoClose: 5000,
+                          position: 'bottom-right',
+                        });
+                        console.error('[ResourceList] Remove request failed:', err);
+                      });
                   }
                 }}
                 style={{ background: 'none' }}
                 className="flex items-center gap-1 text-xs text-gray-400 dark:text-gray-600 hover:text-red-400 transition-colors"
-                title="Stop resource"
+                title="Remove resource"
               >
                 <div className="i-ph:trash text-xs" />
               </button>
@@ -555,6 +579,86 @@ function ResourceItem({ resource, onWithdraw }: { resource: LabResource; onWithd
           </div>
 
           {showLogs && <ResourceLogs resourceId={resource.id} onClose={() => setShowLogs(false)} />}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * ResourceSections — groups resources into Active / Stopped / Deleted
+ * ---------------------------------------------------------------------------
+ */
+
+const ACTIVE_STATUSES = new Set(['running', 'pending', 'building', 'deploying', 'updating']);
+const DELETED_STATUSES = new Set(['deleted']);
+
+function ResourceSections({ resources, onWithdraw }: { resources: LabResource[]; onWithdraw: () => void }) {
+  const [showDeleted, setShowDeleted] = useState(false);
+
+  const active: LabResource[] = [];
+  const stopped: LabResource[] = [];
+  const deleted: LabResource[] = [];
+
+  for (const r of resources) {
+    if (DELETED_STATUSES.has(r.status)) {
+      deleted.push(r);
+    } else if (ACTIVE_STATUSES.has(r.status)) {
+      active.push(r);
+    } else {
+      stopped.push(r);
+    }
+  }
+
+  return (
+    <div className="space-y-2">
+      {/* Active resources — always shown first, no header needed if only section */}
+      {active.length > 0 && (
+        <div className="space-y-1.5">
+          {(stopped.length > 0 || deleted.length > 0) && (
+            <div className="text-[10px] font-medium uppercase tracking-wider text-emerald-500/70 px-1 pt-1">
+              Active ({active.length})
+            </div>
+          )}
+          {active.map((r) => (
+            <ResourceItem key={r.id} resource={r} onWithdraw={onWithdraw} />
+          ))}
+        </div>
+      )}
+
+      {/* Stopped resources */}
+      {stopped.length > 0 && (
+        <div className="space-y-1.5">
+          {(active.length > 0 || deleted.length > 0) && (
+            <div className="text-[10px] font-medium uppercase tracking-wider text-gray-500/70 px-1 pt-1">
+              Stopped ({stopped.length})
+            </div>
+          )}
+          {stopped.map((r) => (
+            <ResourceItem key={r.id} resource={r} onWithdraw={onWithdraw} />
+          ))}
+        </div>
+      )}
+
+      {/* Deleted resources — collapsed by default */}
+      {deleted.length > 0 && (
+        <div className="space-y-1">
+          <button
+            onClick={() => setShowDeleted((prev) => !prev)}
+            className="flex items-center gap-1 text-[10px] font-medium uppercase tracking-wider text-gray-600/50 px-1 pt-1 hover:text-gray-500 transition-colors"
+            style={{ background: 'none' }}
+          >
+            <div className={`i-ph:caret-right text-[9px] transition-transform ${showDeleted ? 'rotate-90' : ''}`} />
+            Deleted ({deleted.length})
+          </button>
+          {showDeleted && (
+            <div className="space-y-1.5 opacity-50">
+              {deleted.map((r) => (
+                <ResourceItem key={r.id} resource={r} onWithdraw={onWithdraw} />
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -715,13 +819,7 @@ export function ResourceList() {
         </div>
       )}
 
-      {!loading && resources.length > 0 && (
-        <div className="space-y-1.5">
-          {resources.map((resource) => (
-            <ResourceItem key={resource.id} resource={resource} onWithdraw={handleWithdraw} />
-          ))}
-        </div>
-      )}
+      {!loading && resources.length > 0 && <ResourceSections resources={resources} onWithdraw={handleWithdraw} />}
     </div>
   );
 }

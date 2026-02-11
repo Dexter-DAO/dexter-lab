@@ -209,7 +209,40 @@ function ResponsePreview({ text }: { text: string }) {
       parsed = obj as Record<string, unknown>;
     }
   } catch {
-    // not JSON or not an object
+    /*
+     * Response may be truncated (e.g., "... [truncated]").
+     * Try to extract parseable JSON from the beginning.
+     */
+    try {
+      const cleanText = text.replace(/\.\.\.\s*\[truncated\]$/, '').trim();
+      let depth = 0;
+      let lastValidEnd = -1;
+
+      for (let i = 0; i < cleanText.length; i++) {
+        if (cleanText[i] === '{') {
+          depth++;
+        }
+
+        if (cleanText[i] === '}') {
+          depth--;
+
+          if (depth === 0) {
+            lastValidEnd = i;
+            break;
+          }
+        }
+      }
+
+      if (lastValidEnd > 0) {
+        const obj = JSON.parse(cleanText.substring(0, lastValidEnd + 1));
+
+        if (obj && typeof obj === 'object' && !Array.isArray(obj)) {
+          parsed = obj as Record<string, unknown>;
+        }
+      }
+    } catch {
+      // truly unparseable
+    }
   }
 
   /* Structured view for flat/shallow JSON objects */
