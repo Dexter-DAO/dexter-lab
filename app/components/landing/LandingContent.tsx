@@ -37,7 +37,7 @@ export function LandingContent(_props: LandingContentProps) {
         </p>
       </section>
 
-      {/* Steps — no containers, just typography */}
+      {/* Steps */}
       <section className="max-w-4xl mx-auto px-6 mb-28">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-14 md:gap-10">
           <div>
@@ -64,18 +64,46 @@ export function LandingContent(_props: LandingContentProps) {
             </div>
             <h3 className="text-base font-semibold text-bolt-elements-textPrimary mb-2">Earn</h3>
             <p className="text-sm text-bolt-elements-textSecondary leading-relaxed">
-              Callers pay per request in USDC. The payment is part of the HTTP flow, built on x402.
+              Callers pay per request in USDC. You keep <span className="text-accent-500 font-semibold">70%</span> of
+              every payment, paid directly to your wallet.
             </p>
           </div>
         </div>
       </section>
 
-      {/* What's Included — split categories, not a paragraph dump */}
+      {/* Revenue Split — the key selling point */}
+      <section className="max-w-3xl mx-auto px-6 mb-28 text-center">
+        <h2 className="font-display text-lg lg:text-xl font-semibold mb-8 text-bolt-elements-textPrimary tracking-wide">
+          Revenue Split
+        </h2>
+        <div className="grid grid-cols-2 gap-8 max-w-md mx-auto mb-8">
+          <div>
+            <div className="font-display text-4xl lg:text-5xl font-bold mb-2" style={GRADIENT_STYLE}>
+              70%
+            </div>
+            <div className="text-sm text-bolt-elements-textSecondary">To you</div>
+            <div className="text-xs text-bolt-elements-textTertiary mt-1">Paid to your wallet</div>
+          </div>
+          <div>
+            <div className="font-display text-4xl lg:text-5xl font-bold mb-2" style={GRADIENT_FADED_STYLE}>
+              30%
+            </div>
+            <div className="text-sm text-bolt-elements-textSecondary">To the platform</div>
+            <div className="text-xs text-bolt-elements-textTertiary mt-1">Funds $DEXTER buybacks</div>
+          </div>
+        </div>
+        <p className="text-sm text-bolt-elements-textSecondary leading-relaxed max-w-lg mx-auto">
+          Automatic payouts at noon and midnight ET. Your earnings land in your Solana wallet every 12 hours. No
+          invoices, no waiting. You can also withdraw anytime from the dashboard.
+        </p>
+      </section>
+
+      {/* What's Included */}
       <section className="max-w-3xl mx-auto px-6 mb-28">
         <h2 className="font-display text-lg lg:text-xl font-semibold mb-10 text-center text-bolt-elements-textPrimary tracking-wide">
           What&apos;s included
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
           <div className="text-center">
             <div className="text-accent-500 text-xs font-mono tracking-widest uppercase mb-3">AI Models</div>
             <div className="text-bolt-elements-textSecondary text-sm">
@@ -83,15 +111,52 @@ export function LandingContent(_props: LandingContentProps) {
             </div>
           </div>
           <div className="text-center">
-            <div className="text-accent-500 text-xs font-mono tracking-widest uppercase mb-3">On-Chain Data</div>
+            <div className="text-accent-500 text-xs font-mono tracking-widest uppercase mb-3">Blockchain Data</div>
             <div className="text-bolt-elements-textSecondary text-sm">
-              Helius&ensp;&middot;&ensp;Birdeye&ensp;&middot;&ensp;Jupiter
+              Helius&ensp;&middot;&ensp;Jupiter&ensp;&middot;&ensp;Birdeye&ensp;&middot;&ensp;Solscan
             </div>
+          </div>
+          <div className="text-center">
+            <div className="text-accent-500 text-xs font-mono tracking-widest uppercase mb-3">Social &amp; Web</div>
+            <div className="text-bolt-elements-textSecondary text-sm">Twitter/X&ensp;&middot;&ensp;Web Proxy</div>
           </div>
         </div>
         <p className="text-center mt-8 text-xs text-bolt-elements-textTertiary">
-          All accessible through Dexter&apos;s proxy. Authenticated and ready to use.
+          All accessible through built-in proxies. Authenticated and ready to use in your resource code.
         </p>
+      </section>
+
+      {/* Managed Infrastructure */}
+      <section className="max-w-3xl mx-auto px-6 mb-28">
+        <h2 className="font-display text-lg lg:text-xl font-semibold mb-10 text-center text-bolt-elements-textPrimary tracking-wide">
+          Everything is managed
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-2xl mx-auto">
+          <div className="text-center">
+            <div className="text-accent-500 text-xs font-mono tracking-widest uppercase mb-2">Managed Wallets</div>
+            <p className="text-sm text-bolt-elements-textSecondary leading-relaxed">
+              Each resource gets its own Solana wallet for payment collection. Revenue tracked in real time.
+            </p>
+          </div>
+          <div className="text-center">
+            <div className="text-accent-500 text-xs font-mono tracking-widest uppercase mb-2">Revenue Dashboard</div>
+            <p className="text-sm text-bolt-elements-textSecondary leading-relaxed">
+              Watch earnings accumulate live. Request counts, revenue totals, and payout history at a glance.
+            </p>
+          </div>
+          <div className="text-center">
+            <div className="text-accent-500 text-xs font-mono tracking-widest uppercase mb-2">On-Chain Identity</div>
+            <p className="text-sm text-bolt-elements-textSecondary leading-relaxed">
+              Every resource is minted as an ERC-8004 agent on Base. Discoverable on 8004scan.
+            </p>
+          </div>
+          <div className="text-center">
+            <div className="text-accent-500 text-xs font-mono tracking-widest uppercase mb-2">Agent Discovery</div>
+            <p className="text-sm text-bolt-elements-textSecondary leading-relaxed">
+              Resources expose A2A agent cards. Other AI agents can find and pay for your API automatically.
+            </p>
+          </div>
+        </div>
       </section>
 
       {/* x402 */}
@@ -106,11 +171,27 @@ export function LandingContent(_props: LandingContentProps) {
         </p>
       </section>
 
-      {/* Pricing */}
-      <section className="max-w-3xl mx-auto px-6 mb-28 text-center">
+      {/* Pricing + Token Access */}
+      <section className="max-w-3xl mx-auto px-6 mb-16 text-center">
         <p className="text-lg lg:text-xl font-semibold text-bolt-elements-textPrimary">Free to build and deploy.</p>
         <p className="text-sm text-bolt-elements-textSecondary mt-2">
-          You set the price for your API. You keep the revenue.
+          You set the price. You keep 70%. Automatic payouts twice a day.
+        </p>
+        <div className="mt-8 inline-block rounded-lg border border-accent-500/20 bg-accent-500/5 px-5 py-3">
+          <p className="text-xs text-accent-500 font-semibold uppercase tracking-wider mb-1">
+            Free for everyone until February 17, 2026
+          </p>
+          <p className="text-xs text-bolt-elements-textTertiary">
+            After the promotional period, resource creation requires $DEXTER token holdings.
+          </p>
+        </div>
+      </section>
+
+      {/* Flywheel */}
+      <section className="max-w-2xl mx-auto px-6 mb-28 text-center">
+        <p className="text-xs text-bolt-elements-textTertiary leading-relaxed">
+          The 30% platform fee funds daily $DEXTER buybacks &mdash; creating a flywheel: more creators build resources,
+          more revenue flows, more buybacks happen, and $DEXTER value grows. Everyone wins.
         </p>
       </section>
 
