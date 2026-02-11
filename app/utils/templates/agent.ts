@@ -26,7 +26,7 @@ const server = createX402Server({
   network: 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp',
 });
 
-const pricing = createTokenPricing({ model: 'gpt-5.2-mini', minUsd: 0.005, maxUsd: 5.0 });
+const pricing = createTokenPricing({ model: 'gpt-5.2', minUsd: 0.005, maxUsd: 5.0 });
 
 // ============================================================
 // TOOL DEFINITIONS
@@ -58,21 +58,21 @@ const TOOLS: Tool[] = [
   // based on the user's natural language request.
 ];
 
-// Build OpenAI-compatible function definitions from tools
-function toolsToFunctions() {
+// Build Responses API function tool definitions
+function toolsForResponsesApi() {
   return TOOLS.map(tool => ({
     type: 'function' as const,
-    function: {
-      name: tool.name,
-      description: tool.description,
-      parameters: {
-        type: 'object',
-        properties: Object.fromEntries(
-          Object.entries(tool.parameters).map(([key, val]) => [key, { type: val.type, description: val.description }])
-        ),
-        required: Object.entries(tool.parameters).filter(([, v]) => v.required).map(([k]) => k),
-      },
+    name: tool.name,
+    description: tool.description,
+    parameters: {
+      type: 'object',
+      properties: Object.fromEntries(
+        Object.entries(tool.parameters).map(([key, val]) => [key, { type: val.type, description: val.description }])
+      ),
+      required: Object.entries(tool.parameters).filter(([, v]) => v.required).map(([k]) => k),
+      additionalProperties: false,
     },
+    strict: true,
   }));
 }
 
@@ -103,15 +103,15 @@ async function executeTool(name: string, args: Record<string, unknown>): Promise
 }
 
 // ============================================================
-// SYSTEM PROMPT
+// INSTRUCTIONS (replaces system prompt in Responses API)
 // Defines the agent's personality and behavior
 // ============================================================
 
-const SYSTEM_PROMPT = \`You are an intelligent API agent. You have access to tools that query an underlying data service.
+const INSTRUCTIONS = \`You are an intelligent API agent. You have access to custom tools that query an underlying data service, plus built-in web search for real-time information.
 
 When a user asks a question:
-1. Determine which tool(s) can answer it
-2. Call the appropriate tool(s)
+1. Determine if you need to call tools or search the web to answer
+2. Call the appropriate tool(s) — use web search for current events, live prices, or anything not covered by your tools
 3. Synthesize the results into a clear, helpful natural language response
 
 Be concise but thorough. If the tools can't answer something, say so honestly.
@@ -133,18 +133,20 @@ h1{font-size:1.5rem;margin-bottom:.25rem;color:#f8fafc}
 p{color:#94a3b8;margin-bottom:1rem;line-height:1.6}
 .endpoint{background:#0f172a;border-radius:8px;padding:1rem;margin-top:1rem}
 .method{color:#22c55e;font-weight:700;font-family:monospace}
-.price{color:#f59e0b;font-size:.85rem}</style></head>
+.price{color:#f59e0b;font-size:.85rem}
+.feat{display:inline-block;padding:2px 8px;border-radius:4px;font-size:.65rem;font-weight:600;background:#1e3a5f;color:#60a5fa;margin-left:6px}</style></head>
 <body><div class="card"><h1>x402 AI Agent</h1><span class="badge">AGENT</span>
-<p>This is an AI-powered agent. Talk to it in natural language via the chat endpoint. It uses tools to fetch real data and synthesize intelligent responses.</p>
-<div class="endpoint"><span class="method">POST</span> /api/chat<br><span class="price">Token-based pricing (from $0.005)</span>
-<p style="margin-top:.5rem;font-size:.85rem">Send: { "message": "your question here" }</p></div>
+<p>AI-powered conversational agent with tool use and web search. Powered by OpenAI Responses API with server-side conversation state. Pass <code>conversation_id</code> to continue conversations across requests.</p>
+<div class="endpoint"><span class="method">POST</span> /api/chat<br><span class="price">Token-based pricing (from $0.005)</span><span class="feat">Web Search</span><span class="feat">Conversation Memory</span>
+<p style="margin-top:.5rem;font-size:.85rem">Send: { "message": "your question", "conversation_id": "optional" }</p></div>
 <div class="endpoint"><span class="method">GET</span> /api/data<br><span class="price">Free (used internally by agent)</span></div>
 </div></body></html>\`);
   }
   res.json({
-    service: 'x402 AI Agent', version: '1.0.0', type: 'agent',
+    service: 'x402 AI Agent', version: '2.0.0', type: 'agent',
+    features: ['responses-api', 'conversation-continuity', 'web-search', 'tool-calling'],
     endpoints: [
-      { path: '/api/chat', method: 'POST', price: 'token-based', description: 'Chat with this agent in natural language' },
+      { path: '/api/chat', method: 'POST', price: 'token-based', description: 'Chat with this agent. Pass conversation_id to continue a conversation.' },
       { path: '/api/data', method: 'GET', price: 'free', description: 'Raw data endpoint (used internally by agent)' },
     ],
     tools: TOOLS.map(t => ({ name: t.name, description: t.description })),
@@ -169,7 +171,8 @@ app.get('/api/data', (req, res) => {
 });
 
 // ============================================================
-// PAID: Chat endpoint — the conversational agent interface
+// PAID: Chat endpoint — OpenAI Responses API with conversation
+// continuity, custom tools, and built-in web search
 // ============================================================
 
 async function settleAndRespond(paymentSig: string, res: express.Response) {
@@ -181,21 +184,21 @@ async function settleAndRespond(paymentSig: string, res: express.Response) {
 }
 
 app.post('/api/chat', async (req, res) => {
-  const { message, history = [] } = req.body;
+  const { message, conversation_id } = req.body;
   if (!message) return res.status(400).json({ error: 'message is required' });
 
   const paymentSig = req.headers['payment-signature'] as string;
 
   // If no payment, return a quote
   if (!paymentSig) {
-    const quote = pricing.calculate(message, SYSTEM_PROMPT);
+    const quote = pricing.calculate(message, INSTRUCTIONS);
     const requirements = await server.buildRequirements({
       amountAtomic: quote.amountAtomic, resourceUrl: '/api/chat',
       description: \`Agent chat: \${quote.inputTokens.toLocaleString()} tokens\`,
     });
     res.setHeader('PAYMENT-REQUIRED', server.encodeRequirements(requirements));
     res.setHeader('X-Quote-Hash', quote.quoteHash);
-    return res.status(402).json({ inputTokens: quote.inputTokens, usdAmount: quote.usdAmount, model: quote.model });
+    return res.status(402).json({ inputTokens: quote.inputTokens, usdAmount: quote.usdAmount, model: 'gpt-5.2' });
   }
 
   // Validate and settle payment
@@ -205,63 +208,87 @@ app.post('/api/chat', async (req, res) => {
   const settle = await settleAndRespond(paymentSig, res);
   if (!settle.success) return res.status(402).json({ error: settle.error });
 
-  // Build conversation messages
-  const messages: Array<{ role: string; content: string; tool_calls?: any; tool_call_id?: string }> = [
-    { role: 'system', content: SYSTEM_PROMPT },
-    ...history.slice(-10), // Keep last 10 messages for context
-    { role: 'user', content: message },
-  ];
-
   try {
-    // First LLM call — may include tool calls
-    let llmRes = await fetch(\`\${PROXY}/openai/v1/chat/completions\`, {
+    // Build the Responses API request
+    const responsesBody: Record<string, unknown> = {
+      model: 'gpt-5.2',
+      instructions: INSTRUCTIONS,
+      input: message,
+      tools: [
+        { type: 'web_search_preview' },            // Built-in web search
+        ...toolsForResponsesApi(),                  // Custom function tools
+      ],
+      max_output_tokens: 4096,
+    };
+
+    // If continuing a conversation, pass the previous response ID
+    // OpenAI maintains the full conversation state server-side
+    if (conversation_id) {
+      responsesBody.previous_response_id = conversation_id;
+    }
+
+    // Call OpenAI Responses API
+    let apiRes = await fetch(\`\${PROXY}/openai/v1/responses\`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'gpt-5.2-mini',
-        messages,
-        tools: toolsToFunctions(),
-        tool_choice: 'auto',
-      }),
+      body: JSON.stringify(responsesBody),
     });
 
-    if (!llmRes.ok) throw new Error(\`LLM error: \${llmRes.status}\`);
-    let data = await llmRes.json() as any;
-    let assistantMsg = data.choices[0].message;
+    if (!apiRes.ok) {
+      const errText = await apiRes.text();
+      throw new Error(\`Responses API error \${apiRes.status}: \${errText}\`);
+    }
 
-    // Handle tool calls (up to 3 rounds to prevent infinite loops)
+    let data = await apiRes.json() as any;
+
+    // Handle function calls (up to 3 rounds)
     let rounds = 0;
-    while (assistantMsg.tool_calls && rounds < 3) {
-      rounds++;
-      messages.push(assistantMsg);
+    while (rounds < 3) {
+      const functionCalls = (data.output || []).filter((o: any) => o.type === 'function_call');
+      if (functionCalls.length === 0) break;
 
-      // Execute each tool call
-      for (const toolCall of assistantMsg.tool_calls) {
-        const args = JSON.parse(toolCall.function.arguments || '{}');
-        const result = await executeTool(toolCall.function.name, args);
-        messages.push({
-          role: 'tool',
-          tool_call_id: toolCall.id,
-          content: result,
+      rounds++;
+      const toolResults: Array<{ type: string; call_id: string; output: string }> = [];
+
+      for (const call of functionCalls) {
+        const args = JSON.parse(call.arguments || '{}');
+        const result = await executeTool(call.name, args);
+        toolResults.push({
+          type: 'function_call_output',
+          call_id: call.call_id,
+          output: result,
         });
       }
 
-      // Follow-up LLM call with tool results
-      llmRes = await fetch(\`\${PROXY}/openai/v1/chat/completions\`, {
+      // Send tool results back — Responses API uses previous_response_id for context
+      apiRes = await fetch(\`\${PROXY}/openai/v1/responses\`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: 'gpt-5.2-mini', messages }),
+        body: JSON.stringify({
+          model: 'gpt-5.2',
+          previous_response_id: data.id,
+          input: toolResults,
+          max_output_tokens: 4096,
+        }),
       });
 
-      if (!llmRes.ok) throw new Error(\`LLM follow-up error: \${llmRes.status}\`);
-      data = await llmRes.json();
-      assistantMsg = data.choices[0].message;
+      if (!apiRes.ok) throw new Error(\`Responses API follow-up error: \${apiRes.status}\`);
+      data = await apiRes.json();
     }
 
+    // Extract the text response from output items
+    const textOutput = (data.output || [])
+      .filter((o: any) => o.type === 'message')
+      .flatMap((o: any) => o.content || [])
+      .filter((c: any) => c.type === 'output_text')
+      .map((c: any) => c.text)
+      .join('\\n\\n');
+
     res.json({
-      response: assistantMsg.content,
+      response: textOutput || 'No response generated',
+      conversation_id: data.id,  // Return for conversation continuity
       toolsUsed: rounds > 0,
-      tokensUsed: data.usage?.total_tokens,
+      tokensUsed: data.usage ? (data.usage.input_tokens + data.usage.output_tokens) : undefined,
       transaction: settle.transaction,
     });
   } catch (error) {
@@ -276,7 +303,7 @@ app.use((err: any, _req: express.Request, res: express.Response, _next: express.
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(\`x402 AI Agent running on port \${PORT}\`));
+app.listen(PORT, () => console.log(\`x402 AI Agent v2.0 running on port \${PORT} (Responses API + web search + conversation continuity)\`));
 `;
 
 export const agentTemplate: Template = {

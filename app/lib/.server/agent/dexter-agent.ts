@@ -52,15 +52,31 @@ You have access to powerful tools:
 - Bash: Run shell commands (npm, node, git, etc.)
 
 **APIs (via proxy_api tool):**
-- OpenAI: GPT-5.2, o3, DALL-E, Sora, Whisper, TTS
-- Anthropic: Claude models
-- Gemini: Google's AI models
+- OpenAI: GPT-5.2, o3, o4-mini, DALL-E, Whisper, TTS (Chat Completions + Responses API)
+- Anthropic: Claude Opus 4.6, Sonnet 4.5 (Messages API)
+- Gemini: Gemini 3 Pro, Gemini 3 Flash (Generate Content API)
 - Helius: Solana RPC, DAS API, token metadata
-- Jupiter: Token prices, swap quotes
-- Solscan: Account info, transactions
-- Birdeye: Token analytics
+- Jupiter: Token prices, swap quotes, token search
+- Solscan: Account info, transactions, token data, trending
+- Birdeye: Token analytics (NOTE: currently suspended — use Helius/Jupiter/Solscan as fallback)
 
 All proxy calls are authenticated - no API keys needed in user code.
+
+**AI Model Selection Guide** (use the RIGHT model for the task):
+- **Claude Opus 4.6** (claude-opus-4-6): Best overall reasoning, coding, analysis. Default for complex tasks.
+- **Claude Sonnet 4.5** (claude-sonnet-4-5): Best value. Great coding, 1M context beta. Default for cost-sensitive tasks.
+- **GPT-5.2** (gpt-5.2): OpenAI flagship. 400K context. Good general purpose. Uses max_completion_tokens (NOT max_tokens).
+- **o3** (o3): Advanced reasoning for math, science, code. Uses max_completion_tokens.
+- **o4-mini** (o4-mini): Fast reasoning, cheaper than o3. Uses max_completion_tokens.
+- **Gemini 3 Pro** (gemini-3-pro-preview): Google's best. Excellent for multimodal (images + text).
+- **Gemini 3 Flash** (gemini-3-flash-preview): Fast, cheap multimodal.
+
+**OpenAI Responses API** (preferred for conversational/agentic resources):
+- Endpoint: POST \${PROXY}/openai/v1/responses
+- Supports previous_response_id for server-side conversation continuity
+- Built-in web search, code execution tools
+- Use Responses API when: multi-turn conversation, agentic workflows, built-in tools needed
+- Use Chat Completions when: single-shot requests, provider portability needed, simple generation
 </capabilities>
 
 <proxy_api_guide>
@@ -77,8 +93,11 @@ look up the provider's current documentation before generating code.
 - Jupiter Price: \`\${PROXY}/jupiter/price/v3?ids=MINT\` (V3, NOT v2)
 - Helius DAS: \`POST \${PROXY}/helius/rpc\` with JSON-RPC body (method: "getAsset", etc.)
 - Solscan Token: \`\${PROXY}/solscan/v2.0/token/meta?address=MINT\` (v2.0, NOT v2)
-- Birdeye Overview: \`\${PROXY}/birdeye/defi/token_overview?address=MINT\`
-- OpenAI Chat: \`POST \${PROXY}/openai/v1/chat/completions\`
+- Birdeye Overview: \`\${PROXY}/birdeye/defi/token_overview?address=MINT\` (NOTE: currently suspended)
+- OpenAI Responses: \`POST \${PROXY}/openai/v1/responses\` (preferred for conversational resources)
+- OpenAI Chat: \`POST \${PROXY}/openai/v1/chat/completions\` (for single-shot generation)
+- Anthropic: \`POST \${PROXY}/anthropic/v1/messages\` (model: claude-opus-4-6 or claude-sonnet-4-5)
+- Gemini: \`POST \${PROXY}/gemini/v1beta/models/gemini-3-pro-preview:generateContent\`
 
 **Container setup**: Resources access the proxy via \`process.env.PROXY_BASE_URL\`:
 \`\`\`typescript
@@ -131,8 +150,8 @@ Choose the right payment pattern based on resource type:
    - Per character, per byte, per record, per pixel
 
 3. **Token-Based** (\`createTokenPricing\`) - For LLM wrappers
-   - Use MODEL_PRICING from SDK. Recommended models: gpt-5.2, gpt-5-mini, gpt-5-nano
-   - For Anthropic: claude-opus-4-6. For Gemini: gemini-2.5-pro or gemini-3-pro-preview
+   - Use MODEL_PRICING from SDK. Recommended models: gpt-5.2, claude-sonnet-4-5, o4-mini
+   - For best quality: claude-opus-4-6. For multimodal: gemini-3-pro-preview. For fast/cheap: o4-mini or gemini-3-flash-preview
 
 4. **Access Pass** (\`x402AccessPass\`) - Pay once, unlimited requests
    - Buyer pays for a time window (5m, 1h, 24h), receives a JWT
@@ -262,10 +281,10 @@ function createAgentOptions(options: DexterAgentOptions) {
     maxBudgetUsd: options.maxBudgetUsd,
 
     /*
-     * Model - Use Claude Opus 4.5 for code generation (flagship model)
-     * claude-opus-4-5 aliases to the latest dated version (currently 20251101)
+     * Model - Use Claude Opus 4.6 for code generation (flagship model, released Feb 5 2026)
+     * Best reasoning, coding, and agentic task performance across all benchmarks.
      */
-    model: options.model || 'claude-opus-4-5',
+    model: options.model || 'claude-opus-4-6',
   };
 }
 

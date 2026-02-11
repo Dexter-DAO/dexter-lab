@@ -21,7 +21,7 @@ const server = createX402Server({
   network: 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp',
 });
 
-const pricing = createTokenPricing({ model: 'gpt-5.2', minUsd: 0.01, maxUsd: 10.0 });
+const pricing = createTokenPricing({ model: 'claude-sonnet-4-5', minUsd: 0.01, maxUsd: 10.0 });
 
 // ============================================================
 // FREE ENDPOINTS
@@ -92,13 +92,13 @@ app.post('/api/generate', async (req, res) => {
   if (!settle.success) return res.status(402).json({ error: settle.error });
 
   try {
-    const llmRes = await fetch(\`\${PROXY}/openai/v1/chat/completions\`, {
+    const llmRes = await fetch(\`\${PROXY}/anthropic/v1/messages\`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: 'gpt-5.2', messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: prompt }] }),
+      body: JSON.stringify({ model: 'claude-sonnet-4-5', max_tokens: 4096, system: systemPrompt, messages: [{ role: 'user', content: prompt }] }),
     });
     if (!llmRes.ok) throw new Error(\`LLM error: \${llmRes.status}\`);
     const data = await llmRes.json();
-    res.json({ content: data.choices[0].message.content, tokensUsed: data.usage.total_tokens, transaction: settle.transaction });
+    res.json({ content: data.content[0].text, tokensUsed: data.usage.input_tokens + data.usage.output_tokens, transaction: settle.transaction });
   } catch (error) {
     console.error('Generation error:', error);
     res.status(500).json({ error: 'Generation failed' });
@@ -130,13 +130,13 @@ app.post('/api/analyze', async (req, res) => {
   if (!settle.success) return res.status(402).json({ error: settle.error });
 
   try {
-    const llmRes = await fetch(\`\${PROXY}/openai/v1/chat/completions\`, {
+    const llmRes = await fetch(\`\${PROXY}/anthropic/v1/messages\`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: 'gpt-5.2', messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: text }] }),
+      body: JSON.stringify({ model: 'claude-sonnet-4-5', max_tokens: 4096, system: systemPrompt, messages: [{ role: 'user', content: text }] }),
     });
     if (!llmRes.ok) throw new Error(\`LLM error: \${llmRes.status}\`);
     const data = await llmRes.json();
-    res.json({ analysis: data.choices[0].message.content, analysisType, tokensUsed: data.usage.total_tokens, transaction: settle.transaction });
+    res.json({ analysis: data.content[0].text, analysisType, tokensUsed: data.usage.input_tokens + data.usage.output_tokens, transaction: settle.transaction });
   } catch (error) {
     console.error('Analysis error:', error);
     res.status(500).json({ error: 'Analysis failed' });
