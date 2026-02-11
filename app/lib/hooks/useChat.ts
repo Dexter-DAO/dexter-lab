@@ -12,6 +12,7 @@ import type { Message } from '~/types/chat';
 import { generateId } from '~/types/chat';
 import type { JSONValue } from '~/types/json';
 import { createScopedLogger } from '~/utils/logger';
+import { setAgentActivity, clearAgentActivity, resetAgentActivity } from '~/lib/stores/agentActivity';
 
 const chatHookLogger = createScopedLogger('useChat');
 
@@ -337,6 +338,9 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
 
                 // Handle different message types
                 if (parsed.type === 'text') {
+                  // Agent is speaking — clear the tool activity indicator
+                  clearAgentActivity();
+
                   /*
                    * Ensure consecutive text chunks are separated.
                    * The agent sends multiple text events (planning, code, result) that get
@@ -375,6 +379,9 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
                   // Use throttled updater for smooth streaming display
                   throttledUpdate(assistantContent);
                 } else if (parsed.type === 'tool_use' && parsed.toolName) {
+                  // Show tool activity in the chat UI
+                  setAgentActivity(parsed.toolName, parsed.toolInput as Record<string, unknown> | undefined);
+
                   // Detect deploy/update tool calls and start live progress tracking
                   if (
                     parsed.toolName === 'mcp__dexter-x402__deploy_x402' ||
@@ -481,6 +488,7 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
         setError(error);
         onError?.(error);
       } finally {
+        resetAgentActivity();
         setIsLoading(false);
         abortControllerRef.current = null;
       }

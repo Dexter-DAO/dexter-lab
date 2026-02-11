@@ -69,14 +69,14 @@ function TestRow({ event, index }: { event: DeployProgressEvent; index: number }
     <motion.div
       initial={{ opacity: 0, x: -12 }}
       animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.35, delay: index * 0.35, ease: [0.25, 0.1, 0.25, 1] }}
+      transition={{ duration: 0.4, delay: index * 0.6, ease: [0.25, 0.1, 0.25, 1] }}
       className="flex items-center justify-between py-1.5 group"
     >
       <div className="flex items-center gap-2.5">
         <motion.div
           initial={{ scale: 0 }}
           animate={{ scale: [0, 1.15, 1] }}
-          transition={{ duration: 0.3, delay: index * 0.35 + 0.15 }}
+          transition={{ duration: 0.35, delay: index * 0.6 + 0.2 }}
           className="flex-shrink-0"
         >
           {test.passed ? (
@@ -464,7 +464,7 @@ export const DeployVerification = memo(({ resourceId }: DeployVerificationProps)
             <motion.span
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: testResults.length * 0.35 + 0.5 }}
+              transition={{ delay: testResults.length * 0.6 + 0.5 }}
               className="text-[10px] px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-semibold uppercase tracking-wider"
             >
               All Passed
@@ -528,7 +528,7 @@ export const DeployVerification = memo(({ resourceId }: DeployVerificationProps)
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: testResults.length * 0.35 + 0.3 }}
+          transition={{ delay: testResults.length * 0.6 + 0.5 }}
           className="px-4 py-3 border-t border-gray-800/30"
         >
           <div className="flex items-center justify-between mb-2">
@@ -542,7 +542,7 @@ export const DeployVerification = memo(({ resourceId }: DeployVerificationProps)
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: testResults.length * 0.35 + 1.8 }}
+              transition={{ delay: testResults.length * 0.6 + 1.8 }}
               className="rounded-md bg-gray-800/30 px-3 py-2 mt-1"
             >
               <p className="text-[11px] text-gray-400 leading-relaxed">{aiNotes}</p>
@@ -556,7 +556,7 @@ export const DeployVerification = memo(({ resourceId }: DeployVerificationProps)
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: testResults.length * 0.35 + 2.0 }}
+          transition={{ delay: testResults.length * 0.6 + 2.0 }}
           className="px-4 py-2.5 border-t border-gray-800/30"
         >
           <div className="text-[10px] uppercase tracking-widest text-gray-600 mb-1.5 font-semibold">Response</div>
@@ -569,7 +569,7 @@ export const DeployVerification = memo(({ resourceId }: DeployVerificationProps)
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: testResults.length * 0.35 + 2.3 }}
+          transition={{ delay: testResults.length * 0.6 + 2.3 }}
           className="px-4 py-2.5 border-t border-gray-800/30"
         >
           <div className="text-[10px] uppercase tracking-widest text-gray-600 mb-1 font-semibold">Transaction</div>
@@ -592,7 +592,7 @@ export const DeployVerification = memo(({ resourceId }: DeployVerificationProps)
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: testResults.length * 0.35 + 2.5 }}
+          transition={{ delay: testResults.length * 0.6 + 2.5 }}
           className="px-4 py-2.5 border-t border-gray-800/30"
         >
           <div className="flex items-center gap-2">
