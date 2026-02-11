@@ -83,16 +83,16 @@ function WorkbenchHeaderButton() {
   return (
     <button
       onClick={() => workbenchStore.showWorkbench.set(!showWorkbench)}
+      style={{ background: showWorkbench ? 'rgba(242,107,26,0.1)' : 'none' }}
       className={classNames(
-        'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm font-medium transition-colors',
+        'flex items-center justify-center w-8 h-8 rounded-lg transition-colors',
         showWorkbench
-          ? 'text-orange-400 bg-orange-500/15 hover:bg-orange-500/25'
-          : 'text-gray-600 dark:text-gray-400 hover:text-orange-400 hover:bg-gray-100 dark:hover:bg-white/10',
+          ? 'text-accent-500 hover:bg-accent-500/20'
+          : 'text-gray-500 dark:text-gray-400 hover:text-accent-500',
       )}
       title={showWorkbench ? 'Close Workbench' : 'Open Workbench'}
     >
-      <div className="i-ph:code text-base" />
-      <span className="hidden sm:inline">Workbench</span>
+      <div className="i-ph:code-bold text-base" />
     </button>
   );
 }

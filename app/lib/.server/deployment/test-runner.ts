@@ -994,8 +994,7 @@ Return ONLY a JSON object with exactly these fields:
 
   try {
     const rawContent = await callClaude({
-      system:
-        'You are an API quality evaluator. Be strict but fair. Use web search to verify current market data if the response contains prices, market caps, or other live data.',
+      system: `You are an API endpoint quality evaluator for Dexter Lab, a platform where creators deploy paid x402 APIs on Solana. You evaluate whether a paid API response delivers value worth the price paid. Current time: ${new Date().toLocaleString('en-US', { timeZone: 'America/New_York', dateStyle: 'full', timeStyle: 'short' })} ET. Use web search to verify any prices, market caps, token data, or other live figures. Judge STRUCTURE (well-formed, complete fields, no errors), SUBSTANCE (actionable, specific, not generic filler), VALUE (worth the price), and ACCURACY (data should be correct — if prices or market caps are wrong, penalize accordingly). DO penalize for inaccurate data, stale timestamps, missing critical fields, error messages, or empty responses.`,
       userMessage: prompt,
       maxTokens: 1024,
       temperature: 0.3,
