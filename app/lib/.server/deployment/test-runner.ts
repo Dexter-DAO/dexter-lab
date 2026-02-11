@@ -56,6 +56,7 @@ async function callClaude(opts: {
   maxTokens?: number;
   temperature?: number;
   webSearch?: boolean;
+  jsonSchema?: Record<string, unknown>;
 }): Promise<string> {
   const body: Record<string, unknown> = {
     model: CLAUDE_MODEL,
@@ -67,6 +68,15 @@ async function callClaude(opts: {
 
   if (opts.webSearch) {
     body.tools = [{ type: 'web_search_20250305', name: 'web_search' }];
+  }
+
+  if (opts.jsonSchema) {
+    body.output_config = {
+      format: {
+        type: 'json_schema',
+        schema: opts.jsonSchema,
+      },
+    };
   }
 
   const response = await fetch(`${PROXY_BASE_URL}/anthropic/v1/messages`, {
@@ -985,13 +995,27 @@ Return ONLY a JSON object with exactly these fields:
   try {
     const rawContent = await callClaude({
       system:
-        'You are an API quality evaluator. Be strict but fair. Use web search to verify current market data if the response contains prices, market caps, or other live data. Return ONLY valid JSON.',
+        'You are an API quality evaluator. Be strict but fair. Use web search to verify current market data if the response contains prices, market caps, or other live data.',
       userMessage: prompt,
-      maxTokens: 300,
+      maxTokens: 1024,
       temperature: 0.3,
       webSearch: true,
+      jsonSchema: {
+        type: 'object',
+        properties: {
+          score: { type: 'integer' },
+          status: { type: 'string', enum: ['pass', 'fail', 'inconclusive'] },
+          notes: { type: 'string' },
+        },
+        required: ['score', 'status', 'notes'],
+        additionalProperties: false,
+      },
     });
 
+    /*
+     * output_config.format guarantees valid JSON from Claude's structured outputs.
+     * Still strip markdown fences as a safety net for edge cases.
+     */
     const cleaned = rawContent.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
 
     const result = JSON.parse(cleaned) as { score?: number; status?: string; notes?: string };

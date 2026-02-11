@@ -165,30 +165,108 @@ function CopyableUrl({ url, method }: { url: string; method?: string }) {
 
 // ─── Response Preview ─────────────────────────────────────────────────────────
 
+/**
+ * Render a single JSON value with type-appropriate coloring.
+ */
+function JsonValue({ value }: { value: unknown }) {
+  if (value === null || value === undefined) {
+    return <span className="text-gray-600 italic">null</span>;
+  }
+
+  if (typeof value === 'boolean') {
+    return <span className={value ? 'text-emerald-400' : 'text-red-400'}>{String(value)}</span>;
+  }
+
+  if (typeof value === 'number') {
+    return <span className="text-amber-400 font-mono">{value.toLocaleString()}</span>;
+  }
+
+  if (typeof value === 'string') {
+    if (value.length > 120) {
+      return <span className="text-emerald-300/80">{value}</span>;
+    }
+
+    return <span className="text-emerald-300/80">&ldquo;{value}&rdquo;</span>;
+  }
+
+  return <span className="text-gray-400">{String(value)}</span>;
+}
+
+/**
+ * Pretty-printed structured response viewer.
+ * Parses JSON and renders key-value pairs with type coloring.
+ * Falls back to formatted code block for non-JSON or deeply nested content.
+ */
 function ResponsePreview({ text }: { text: string }) {
   const [expanded, setExpanded] = useState(false);
 
-  // Try to format as JSON
-  let formatted = text;
-  let isJson = false;
+  let parsed: Record<string, unknown> | null = null;
 
   try {
-    const parsed = JSON.parse(text);
-    formatted = JSON.stringify(parsed, null, 2);
-    isJson = true;
+    const obj = JSON.parse(text);
+
+    if (obj && typeof obj === 'object' && !Array.isArray(obj)) {
+      parsed = obj as Record<string, unknown>;
+    }
   } catch {
-    // not JSON, show raw
+    // not JSON or not an object
   }
 
-  const lines = formatted.split('\n');
+  /* Structured view for flat/shallow JSON objects */
+  if (parsed) {
+    const entries = Object.entries(parsed);
+    const visibleEntries = expanded ? entries : entries.slice(0, 6);
+    const hasMore = entries.length > 6;
+
+    return (
+      <div className="rounded-lg bg-gray-950/60 border border-gray-800/40 overflow-hidden">
+        <div className="divide-y divide-gray-800/30">
+          {visibleEntries.map(([key, val]) => (
+            <div key={key} className="px-3 py-1.5 flex gap-3 items-start">
+              <span className="text-[10px] text-gray-500 font-mono shrink-0 min-w-[80px] pt-0.5 text-right">{key}</span>
+              <div className="text-[11px] leading-relaxed min-w-0 break-words">
+                {Array.isArray(val) ? (
+                  <span className="text-gray-400 font-mono text-[10px]">
+                    [
+                    {val.map((item, i) => (
+                      <span key={i}>
+                        {i > 0 && ', '}
+                        <JsonValue value={item} />
+                      </span>
+                    ))}
+                    ]
+                  </span>
+                ) : typeof val === 'object' && val !== null ? (
+                  <pre className="text-[10px] font-mono text-gray-400 whitespace-pre-wrap">
+                    {JSON.stringify(val, null, 2)}
+                  </pre>
+                ) : (
+                  <JsonValue value={val} />
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+        {hasMore && (
+          <button
+            onClick={() => setExpanded(!expanded)}
+            className="w-full text-[10px] text-accent-400 hover:text-accent-300 py-1.5 bg-transparent border-0 border-t border-gray-800/30 cursor-pointer"
+          >
+            {expanded ? 'Show less' : `+${entries.length - 6} more fields`}
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  /* Fallback: formatted code block for non-JSON or arrays */
+  const lines = text.split('\n');
   const shouldCollapse = lines.length > 8;
-  const displayText = shouldCollapse && !expanded ? lines.slice(0, 8).join('\n') + '\n...' : formatted;
+  const displayText = shouldCollapse && !expanded ? lines.slice(0, 8).join('\n') + '\n...' : text;
 
   return (
     <div className="relative">
-      <pre
-        className={`text-[11px] font-mono leading-relaxed whitespace-pre-wrap break-all p-2.5 rounded-lg bg-gray-950/60 border border-gray-800/40 ${isJson ? 'text-emerald-300/70' : 'text-gray-400'} max-h-48 overflow-y-auto`}
-      >
+      <pre className="text-[11px] font-mono leading-relaxed whitespace-pre-wrap break-all p-2.5 rounded-lg bg-gray-950/60 border border-gray-800/40 text-gray-400 max-h-48 overflow-y-auto">
         {displayText}
       </pre>
       {shouldCollapse && (
@@ -428,14 +506,14 @@ export const DeployVerification = memo(({ resourceId }: DeployVerificationProps)
             </div>
           </div>
           {aiNotes && (
-            <motion.p
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: testResults.length * 0.35 + 1.8 }}
-              className="text-[12px] text-gray-500 italic leading-relaxed"
+              className="rounded-md bg-gray-800/30 px-3 py-2 mt-1"
             >
-              &ldquo;{aiNotes}&rdquo;
-            </motion.p>
+              <p className="text-[11px] text-gray-400 leading-relaxed">{aiNotes}</p>
+            </motion.div>
           )}
         </motion.div>
       )}
