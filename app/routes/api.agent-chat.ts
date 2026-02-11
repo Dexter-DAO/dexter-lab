@@ -30,6 +30,20 @@ function createEventStream(stream: AsyncGenerator<StreamMessage, DexterAgentResu
 
   return new ReadableStream({
     async start(controller) {
+      /*
+       * SSE keepalive: send a comment every 15s to prevent Cloudflare/nginx
+       * from killing the connection during long tool executions (Docker builds,
+       * test runs, etc.) where no agent events are emitted.
+       * SSE comments (lines starting with ':') are ignored by clients.
+       */
+      const keepalive = setInterval(() => {
+        try {
+          controller.enqueue(encoder.encode(': keepalive\n\n'));
+        } catch {
+          clearInterval(keepalive);
+        }
+      }, 15_000);
+
       try {
         let lastResult: DexterAgentResult | undefined;
 
@@ -75,6 +89,8 @@ function createEventStream(stream: AsyncGenerator<StreamMessage, DexterAgentResu
         })}\n\n`;
         controller.enqueue(encoder.encode(errorEvent));
         controller.close();
+      } finally {
+        clearInterval(keepalive);
       }
     },
   });

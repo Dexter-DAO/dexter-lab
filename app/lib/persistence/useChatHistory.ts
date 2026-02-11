@@ -319,7 +319,14 @@ ${value.content}
         chatId.set(nextId);
 
         if (!urlId) {
-          navigateChat(nextId);
+          /*
+           * Generate urlId immediately so the URL survives refresh.
+           * Without this, the URL would be /chat/34 (numeric id) which
+           * breaks on refresh because IndexedDB stores by urlId.
+           */
+          const newUrlId = await getUrlId(db, nextId);
+          setUrlId(newUrlId);
+          navigateChat(newUrlId);
         }
       }
 

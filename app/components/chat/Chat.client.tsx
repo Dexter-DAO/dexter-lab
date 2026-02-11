@@ -360,6 +360,16 @@ export const ChatImpl = memo(
         } else if (errorInfo.message.toLowerCase().includes('quota')) {
           errorType = 'quota';
           title = 'Quota Exceeded';
+        } else if (
+          errorInfo.message.toLowerCase().includes('network') ||
+          errorInfo.message.toLowerCase().includes('failed to fetch') ||
+          errorInfo.message.toLowerCase().includes('aborted')
+        ) {
+          errorType = 'network';
+          title = 'Connection Lost';
+          errorInfo.message =
+            'The connection was interrupted. Your resource may still be deploying — check the sidebar for results. You can also continue the conversation.';
+          errorInfo.isRetryable = false;
         } else if (errorInfo.statusCode >= 500) {
           errorType = 'network';
           title = 'Server Error';
