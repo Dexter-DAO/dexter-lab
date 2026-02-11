@@ -651,6 +651,39 @@ async function runPaidSettlementTest(
     data: { url: publicUrl + testedPath, method: testedMethod, testInput, inputReasoning, priceCents },
   });
 
+  /*
+   * Step 1.5: Ensure the payTo wallet has a USDC ATA (new managed wallets don't have one)
+   * x402 does NOT create the recipient's ATA -- we ask dexter-api to ensure it exists.
+   * The wallet generation endpoint attempts ATA creation but can fail silently.
+   */
+  try {
+    const accepts = (x402Details.paymentRequired as any)?.accepts;
+    const payToAddr = accepts?.[0]?.payTo || (x402Details.paymentRequired as any)?.payTo;
+
+    if (payToAddr) {
+      const ensureRes = await fetch(`${DEXTER_API_BASE}/api/dexter-lab/wallets/ensure-ata`, {
+        method: 'POST',
+        headers: AUTH_HEADERS,
+        body: JSON.stringify({ walletAddress: payToAddr }),
+      });
+
+      if (ensureRes.ok) {
+        const ensureData = (await ensureRes.json()) as { created?: boolean };
+
+        if (ensureData.created) {
+          console.log(`[TestRunner] Created USDC ATA for ${payToAddr.substring(0, 8)}...`);
+
+          // Wait for ATA to be confirmed on-chain
+          await new Promise((resolve) => setTimeout(resolve, 2000));
+        }
+      } else {
+        console.warn(`[TestRunner] ATA ensure endpoint returned ${ensureRes.status} (non-fatal)`);
+      }
+    }
+  } catch (ataErr) {
+    console.warn('[TestRunner] ATA pre-creation failed (non-fatal):', (ataErr as Error).message);
+  }
+
   // Step 2: Make the paid request using wrapFetch
   let responseText: string | undefined;
   let responseStatus: number | undefined;
