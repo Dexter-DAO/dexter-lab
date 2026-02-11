@@ -30,24 +30,14 @@ app.use(express.static(join(__dirname, 'build/client'), {
   immutable: true,
 }));
 
-// Handle all other requests with Remix, with cache-control on HTML responses
-const remixHandler = createRequestHandler({
-  build: await import('./build/server/index.js'),
-  mode: process.env.NODE_ENV || 'production',
-});
-
-app.all('*', (req, res, next) => {
-  // Prevent browsers from caching HTML pages (JS/CSS have content hashes and are immutable via static middleware above)
-  const origEnd = res.end.bind(res);
-  res.end = function(...args) {
-    const ct = res.getHeader('content-type');
-    if (typeof ct === 'string' && ct.includes('text/html') && !res.getHeader('cache-control')) {
-      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-    }
-    return origEnd(...args);
-  };
-  remixHandler(req, res, next);
-});
+// Handle all other requests with Remix
+app.all(
+  '*',
+  createRequestHandler({
+    build: await import('./build/server/index.js'),
+    mode: process.env.NODE_ENV || 'production',
+  })
+);
 
 app.listen(PORT, () => {
   console.log(`🚀 Dexter Lab server running at http://localhost:${PORT}`);

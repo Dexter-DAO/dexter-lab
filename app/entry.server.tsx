@@ -46,6 +46,7 @@ function handleBotRequest(
           responseHeaders.set('Content-Type', 'text/html');
           responseHeaders.set('Cross-Origin-Embedder-Policy', 'require-corp');
           responseHeaders.set('Cross-Origin-Opener-Policy', 'same-origin');
+          responseHeaders.set('Cache-Control', 'no-cache, no-store, must-revalidate');
 
           // Write the opening HTML
           body.write(
@@ -99,6 +100,7 @@ function handleBrowserRequest(
           responseHeaders.set('Content-Type', 'text/html');
           responseHeaders.set('Cross-Origin-Embedder-Policy', 'require-corp');
           responseHeaders.set('Cross-Origin-Opener-Policy', 'same-origin');
+          responseHeaders.set('Cache-Control', 'no-cache, no-store, must-revalidate');
 
           // Write the opening HTML
           body.write(
