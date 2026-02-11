@@ -7,7 +7,7 @@
  */
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { flushSync } from 'react-dom';
+
 import type { Message } from '~/types/chat';
 import { generateId } from '~/types/chat';
 import type { JSONValue } from '~/types/json';
@@ -277,18 +277,16 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
         let assistantContent = '';
         const assistantMessageId = generateId();
 
-        // Add placeholder assistant message with flushSync for immediate render
-        flushSync(() => {
-          setMessages((prev) => [
-            ...prev,
-            {
-              id: assistantMessageId,
-              role: 'assistant',
-              content: '',
-              createdAt: new Date(),
-            },
-          ]);
-        });
+        // Add placeholder assistant message
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: assistantMessageId,
+            role: 'assistant',
+            content: '',
+            createdAt: new Date(),
+          },
+        ]);
 
         // Create throttled updater for smooth streaming animation (~60fps)
         const throttledUpdate = createThrottledUpdater((content: string) => {
@@ -333,7 +331,8 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
 
                 clientEventCount++;
                 console.log(
-                  `[SSE-Client] Event #${clientEventCount}: type=${parsed.type}, contentLen=${parsed.content?.length || 0}`,
+                  `%c[SSE] Event #${clientEventCount}: type=${parsed.type} len=${parsed.content?.length || parsed.toolName?.length || 0}`,
+                  'color: #4ade80; font-weight: bold',
                 );
 
                 // Handle different message types
@@ -389,14 +388,12 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
                     `[SSE-Client] FINAL event received. result.result length=${parsed.result.result?.length || 0}, assistantContent before final=${assistantContent.length}`,
                   );
 
-                  // Final update - use flushSync for immediate render
+                  // Final update
                   if (parsed.result.result) {
                     assistantContent = parsed.result.result;
-                    flushSync(() => {
-                      setMessages((prev) =>
-                        prev.map((m) => (m.id === assistantMessageId ? { ...m, content: assistantContent } : m)),
-                      );
-                    });
+                    setMessages((prev) =>
+                      prev.map((m) => (m.id === assistantMessageId ? { ...m, content: assistantContent } : m)),
+                    );
                   }
 
                   sessionIdRef.current = parsed.result.sessionId;
@@ -437,11 +434,11 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
         }
 
         // Final sync to ensure all content is displayed
-        flushSync(() => {
-          setMessages((prev) =>
-            prev.map((m) => (m.id === assistantMessageId ? { ...m, content: assistantContent } : m)),
-          );
-        });
+        console.log(
+          `%c[SSE] Stream complete. ${clientEventCount} events, assistantContent=${assistantContent.length} chars`,
+          'color: #60a5fa; font-weight: bold',
+        );
+        setMessages((prev) => prev.map((m) => (m.id === assistantMessageId ? { ...m, content: assistantContent } : m)));
 
         // Call onFinish with the final assistant message and response meta
         const finalMessage: Message = {
@@ -453,9 +450,16 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
         onFinish?.(finalMessage, responseMetaRef.current);
       } catch (err) {
         if (err instanceof Error && err.name === 'AbortError') {
-          // Aborted by user
+          console.log('%c[SSE] Stream aborted by user', 'color: #f59e0b');
+
           return;
         }
+
+        console.error(
+          '%c[SSE] Stream error:',
+          'color: #ef4444; font-weight: bold',
+          err instanceof Error ? err.message : err,
+        );
 
         const error = err instanceof Error ? err : new Error('Unknown error');
         setError(error);
@@ -525,17 +529,15 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
         const assistantMessageId = generateId();
 
         // Add placeholder assistant message
-        flushSync(() => {
-          setMessages((prev) => [
-            ...prev,
-            {
-              id: assistantMessageId,
-              role: 'assistant',
-              content: '',
-              createdAt: new Date(),
-            },
-          ]);
-        });
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: assistantMessageId,
+            role: 'assistant',
+            content: '',
+            createdAt: new Date(),
+          },
+        ]);
 
         // Create throttled updater for smooth streaming
         const throttledUpdate = createThrottledUpdater((updatedContent: string) => {
@@ -591,11 +593,9 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
                 } else if (parsed.type === 'final' && parsed.result) {
                   if (parsed.result.result) {
                     assistantContent = parsed.result.result;
-                    flushSync(() => {
-                      setMessages((prev) =>
-                        prev.map((m) => (m.id === assistantMessageId ? { ...m, content: assistantContent } : m)),
-                      );
-                    });
+                    setMessages((prev) =>
+                      prev.map((m) => (m.id === assistantMessageId ? { ...m, content: assistantContent } : m)),
+                    );
                   }
 
                   sessionIdRef.current = parsed.result.sessionId;

@@ -223,28 +223,12 @@ function generateLandingPageHtml(config: ResourceConfig): string {
     })
     .join('\n      ');
 
-  const coverUrl = `https://api.dexter.cash/api/dexter-lab/resources/${config.id}/cover`;
-  const escapedName = config.name.replace(/"/g, '&quot;');
-  const escapedDesc = (config.description || '').replace(/"/g, '&quot;');
-
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${config.name}</title>
-<meta name="description" content="${escapedDesc}">
-<meta property="og:title" content="${escapedName}">
-<meta property="og:description" content="${escapedDesc}">
-<meta property="og:image" content="${coverUrl}">
-<meta property="og:image:width" content="1536">
-<meta property="og:image:height" content="1024">
-<meta property="og:type" content="website">
-<meta property="og:site_name" content="Dexter Lab">
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="${escapedName}">
-<meta name="twitter:description" content="${escapedDesc}">
-<meta name="twitter:image" content="${coverUrl}">
 <style>${PLATFORM_STYLES}</style>
 </head>
 <body>
@@ -406,7 +390,7 @@ async function payAndExecute(i,method,path){
     payload=btoa(payload);
 
     // 5. Build payment header
-    var pSig={x402Version:accept.x402Version||2,resource:requirements.resource,accepted:accept,payload:payload};
+    var pSig={x402Version:accept.x402Version||2,resource:requirements.resource,accepted:accept,payload:{transaction:payload}};
     var pHeader=btoa(JSON.stringify(pSig));
 
     // 6. Execute paid request
@@ -578,10 +562,9 @@ function injectPlatformCode(files: Map<string, string>, config: ResourceConfig):
 /* ------------------------------------------------------------------ */
 const CRYPTO_DEFAULTS = {
   DEXTER_TOKEN: 'EfPoo4wWgxKVToit7yX5VtXXBrhao4G8L7vrbKy6pump',
-  SOL_MINT: 'So11111111111111111111111111111111111111112',
-  USDC_SOL: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
-  SAMPLE_SOL_WALLET: 'DevFFyNWxZPtYLpEjzUnN1PFc9Po6PH7eZCi9f3tTkTw',
-  USDC_BASE: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+
+  // Ansem's wallet - well-known KOL for portfolio demos
+  SAMPLE_SOL_WALLET: 'BFwBkR2EP1Gn3VDGz6UgkhmNFmFGDAGneJfXpCRP4Krg',
   SAMPLE_ETH_WALLET: '0x96836Ea66Be939c36fd4d211Be665b3F2F8d22CC',
 };
 
@@ -610,17 +593,22 @@ DESCRIPTION: ${config.description}
 ENDPOINT DESCRIPTION: ${ep.description || 'No description'}
 METHOD: ${ep.method}
 
-CRYPTO DEFAULTS (use these for any token/wallet fields):
-- Solana token to test with: ${CRYPTO_DEFAULTS.DEXTER_TOKEN} (Dexter token)
-- SOL mint: ${CRYPTO_DEFAULTS.SOL_MINT}
-- USDC on Solana: ${CRYPTO_DEFAULTS.USDC_SOL}
+FORBIDDEN INPUTS (NEVER use any of these -- they produce boring, valueless results):
+- Stablecoins: USDC, USDT, DAI, or any pegged/stable asset
+- Native tokens: SOL (So11111111111111111111111111111111111111112), ETH, WETH, wSOL
+- Wrapped tokens of any kind
+These tokens have no interesting risk profile, price action, or analysis value.
+
+DEFAULT TOKEN (use this for ANY token/mint field unless the endpoint specifically requires something else):
+- Dexter token: ${CRYPTO_DEFAULTS.DEXTER_TOKEN} (EfPoo4wWgxKVToit7yX5VtXXBrhao4G8L7vrbKy6pump)
+
+OTHER DEFAULTS:
 - Sample Solana wallet: ${CRYPTO_DEFAULTS.SAMPLE_SOL_WALLET}
-- USDC on Base: ${CRYPTO_DEFAULTS.USDC_BASE}
 - Sample EVM wallet: ${CRYPTO_DEFAULTS.SAMPLE_ETH_WALLET}
 
 INSTRUCTIONS:
 1. Generate a realistic, SPECIFIC input that a real paying user would send
-2. If the endpoint is about crypto/trading, use the Dexter token or provided defaults
+2. For ANY token/mint field, ALWAYS use the Dexter token above -- never stablecoins or SOL
 3. Be specific - don't say "test" or "example", give real-sounding values
 4. Match the endpoint's claimed purpose exactly
 
@@ -629,7 +617,8 @@ Return a JSON object with:
 - "reasoning": Brief one-line explanation`;
 
     try {
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      // gpt-5.2-codex is a Responses API model, NOT chat completions
+      const response = await fetch('https://api.openai.com/v1/responses', {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${apiKey}`,
@@ -637,18 +626,31 @@ Return a JSON object with:
         },
         body: JSON.stringify({
           model: 'gpt-5.2-codex',
-          messages: [
-            { role: 'system', content: 'Generate realistic test input for API verification. Return valid JSON only.' },
-            { role: 'user', content: prompt },
-          ],
-          max_completion_tokens: 500,
-          response_format: { type: 'json_object' },
+          instructions: 'Generate realistic test input for API verification. Return valid JSON only.',
+          input: prompt,
+          text: { format: { type: 'json_object' } },
+          max_output_tokens: 500,
         }),
       });
 
       if (response.ok) {
-        const data = (await response.json()) as { choices?: { message?: { content?: string } }[] };
-        const content = data.choices?.[0]?.message?.content;
+        const data = (await response.json()) as {
+          output?: { type: string; content?: { type: string; text?: string }[] }[];
+        };
+
+        // Extract text from the message output item
+        let content: string | undefined;
+
+        for (const item of data.output || []) {
+          if (item.type === 'message') {
+            for (const c of item.content || []) {
+              if (c.type === 'output_text' && c.text) {
+                content = c.text;
+                break;
+              }
+            }
+          }
+        }
 
         if (content) {
           const parsed = JSON.parse(content);
@@ -657,7 +659,8 @@ Return a JSON object with:
           console.log(`[test-data] Generated for ${ep.method} ${ep.path}: ${parsed.reasoning || 'ok'}`);
         }
       } else {
-        console.warn(`[test-data] OpenAI returned ${response.status} for ${ep.path}`);
+        const errBody = await response.text();
+        console.warn(`[test-data] OpenAI returned ${response.status} for ${ep.path}: ${errBody.slice(0, 200)}`);
       }
     } catch (err) {
       console.warn(`[test-data] Failed for ${ep.path}:`, err);
@@ -1419,11 +1422,12 @@ export async function redeploy(
       return result;
     }
 
-    // Update registry -- preserve revenue, bump state
+    // Update registry -- preserve revenue, bump state, persist AI-generated test data
     existing.status = 'running';
     existing.containerId = result.containerId || null;
     existing.healthy = true;
     existing.error = undefined;
+    existing.config = fullConfig;
     existing.sourceFiles = sourceFiles;
     existing.updatedAt = new Date();
     await resourceRegistry.set(resourceId, existing);
