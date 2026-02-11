@@ -40,7 +40,8 @@ const HEALTH_CHECK_INTERVAL_MS = 2_000;
 const PAID_REQUEST_TIMEOUT_MS = 120_000;
 
 // Response preview limit
-const RESPONSE_PREVIEW_MAX = 2000;
+/** Max response size stored for display. Large enough for most API responses to remain valid JSON. */
+const RESPONSE_PREVIEW_MAX = 50_000;
 
 // Claude Opus 4.6 for input generation and evaluation (via Anthropic proxy)
 const CLAUDE_MODEL = 'claude-opus-4-6';
@@ -188,7 +189,7 @@ export async function runPostDeployTests(
         priceCents: result.details?.priceCents as number | undefined,
         priceUsdc: result.details?.priceCents ? Number(result.details.priceCents) / 100 : undefined,
         responseStatus: result.responseStatus,
-        responsePreview: result.responseBodyPreview?.substring(0, 500),
+        responsePreview: result.responseBodyPreview,
       },
       timestamp: Date.now(),
     });
@@ -760,8 +761,7 @@ async function runPaidSettlementTest(
     }
 
     const rawText = await response.text();
-    responseText =
-      rawText.length > RESPONSE_PREVIEW_MAX ? rawText.slice(0, RESPONSE_PREVIEW_MAX) + '... [truncated]' : rawText;
+    responseText = rawText.length > RESPONSE_PREVIEW_MAX ? rawText.slice(0, RESPONSE_PREVIEW_MAX) : rawText;
 
     if (!response.ok) {
       return {
@@ -963,7 +963,7 @@ RESPONSE SIZE: ${(context.responseSizeBytes / 1024).toFixed(1)}KB
 OUR TEST INPUT:
 ${JSON.stringify(context.testInput, null, 2)}
 
-ACTUAL RESPONSE (first ${RESPONSE_PREVIEW_MAX} chars):
+ACTUAL RESPONSE:
 ${context.actualResponse}
 
 IMPORTANT CONTEXT:
