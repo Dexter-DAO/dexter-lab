@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>Pump.fun Hackathon - Dexter Submission Brief</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
+  <link rel="stylesheet" href="" />
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">Pump.fun Hackathon - Dexter Submission Brief</h1>
+</header>
+<h1
+id="pump.fun-build-in-public-hackathon-dexter-submission-brief">Pump.fun
+“Build In Public” Hackathon – DEXTER SUBMISSION BRIEF</h1>
+<p><strong>Deadline (internal): ~10PM EST tonight. Clock
+running.</strong></p>
+<hr />
+<h2 id="the-hackathon">1. THE HACKATHON</h2>
+<p><a
+href="https://hackathon.pump.fun/#header">hackathon.pump.fun</a></p>
+<ul>
+<li><strong>$3M total</strong> – 12 winners, $250K each at $10M
+valuation via token deal</li>
+<li><strong>Apps opened:</strong> Jan 19 – <strong>Winners
+announced:</strong> Feb 18 (7 days out)</li>
+<li><strong>Ongoing after that</strong> – they’ll keep investing in
+strong projects post-deadline</li>
+<li><strong>The thesis:</strong> Launch a token on pump.fun, build in
+public, let the market validate you. No pitch decks. Visible
+momentum.</li>
+</ul>
+<p><strong>Three categories:</strong></p>
+<table>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 18%" />
+<col style="width: 55%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Stage</th>
+<th>Fit</th>
+<th>What they want</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Idea</strong> (0→1)</td>
+<td>No</td>
+<td>Concept + whitepaper. You’re past this.</td>
+</tr>
+<tr class="even">
+<td><strong>MVP</strong> (1→10)</td>
+<td>Maybe</td>
+<td>Working prototype, prove PMF, build in public</td>
+</tr>
+<tr class="odd">
+<td><strong>Product</strong> (10→100)</td>
+<td><strong>YES</strong></td>
+<td>Live product, proven PMF, scale users, path to revenue</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Dexter is a Product-stage submission.</strong> The full
+platform is live – <code>dexter.cash</code> for the agent economy
+platform, <code>lab.dexter.cash</code> for the API builder,
+<code>x402.dexter.cash</code> for the facilitator,
+<code>beta.dexter.cash</code> for voice. Processing real x402 USDC
+payments on Solana mainnet. Token deployed on pump.fun
+(<code>$DEXTER</code>:
+<code>EfPoo4wWgxKVToit7yX5VtXXBrhao4G8L7vrbKy6pump</code>). This isn’t a
+prototype. It’s running.</p>
+<hr />
+<h2 id="what-dexter-is-for-the-application">2. WHAT DEXTER IS (for the
+application)</h2>
+<p><strong>One-liner:</strong> Dexter is the agent economy platform – AI
+agents discover tools via MCP, pay via x402 micropayments on Solana, and
+get results. Same brain, same wallet, infinite interfaces.</p>
+<p><strong>The ecosystem:</strong></p>
+<ul>
+<li><strong>x402 Protocol:</strong> HTTP-native micropayments on Solana
+(plus Base, Polygon, Avalanche, Arbitrum, Optimism). Open SDK:
+<code>npm install @dexterai/x402</code>. Any developer can monetize any
+API in three lines of code.</li>
+<li><strong>MCP Marketplace:</strong> 50+ tools across 14 toolsets –
+trading (Jupiter swaps, Hyperliquid perps), research (web search,
+on-chain analytics), media (Sora video, meme generation), social
+(Twitter sentiment). All payable via x402.</li>
+<li><strong>Facilitator:</strong> Settlement infrastructure at
+<code>x402.dexter.cash</code>. Verifies payments, signs settlements,
+sponsors gas fees. Multi-chain. Live.</li>
+<li><strong>Multi-Platform Connectors:</strong> Works natively in
+ChatGPT, Claude, Cursor, Telegram, Alexa, X (<span class="citation"
+data-cites="dexteraiagent">@dexteraiagent</span>), and any MCP client.
+OAuth flow connects it all.</li>
+<li><strong>Voice Interface:</strong> WebRTC realtime voice at
+<code>beta.dexter.cash</code>. Talk to the agent, it executes trades,
+runs research, generates media.</li>
+<li><strong>ERC-8004 Trust Layer + A2A Agent Cards:</strong> On-chain
+identity and portable reputation. Agents discover each other
+autonomously.</li>
+<li><strong>Dexter Lab:</strong> AI-powered builder at
+<code>lab.dexter.cash</code>. Anyone can build, deploy, and monetize a
+paid API endpoint from a browser – describe it, AI builds it, one-click
+deploy, live in minutes.</li>
+<li><strong>PokéDexter:</strong> Wagered Pokémon battles on Solana
+($1-$25 USDC, trustless escrow).</li>
+<li><strong>Clawdexter:</strong> Give Claude agents autonomous x402
+payment capability.</li>
+<li><strong>$DEXTER Token:</strong> Revenue from the platform buys back
+$DEXTER. Token-gated access tiers.</li>
+</ul>
+<p><strong>What makes it real:</strong></p>
+<ul>
+<li>Live on Solana mainnet, processing real USDC settlements right
+now</li>
+<li>Open SDK published on npm (<code>@dexterai/x402</code>)</li>
+<li>Multi-chain facilitator handling verification, settlement, and fee
+sponsorship</li>
+<li>Proxy API system giving sandboxed access to OpenAI, Anthropic,
+Gemini, Helius, Jupiter, Solscan</li>
+<li>Auto payouts every 12 hours or manual withdrawal</li>
+<li>Revenue dashboard, health monitoring, live log streaming</li>
+<li>$DEXTER token live on pump.fun with buyback flywheel</li>
+</ul>
+<hr />
+<h2 id="application-requirements-dexter-lab-status-check">3. APPLICATION
+REQUIREMENTS – DEXTER LAB STATUS CHECK</h2>
+<h3 id="hard-requirements">Hard Requirements</h3>
+<table>
+<colgroup>
+<col style="width: 46%" />
+<col style="width: 28%" />
+<col style="width: 25%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Requirement</th>
+<th>Status</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Live token by Feb 18</td>
+<td><strong>DONE</strong></td>
+<td><code>$DEXTER</code> on pump.fun:
+<code>EfPoo4wWgxKVToit7yX5VtXXBrhao4G8L7vrbKy6pump</code></td>
+</tr>
+<tr class="even">
+<td>Team owns 10%+ supply</td>
+<td><strong>VERIFY</strong></td>
+<td>Need to confirm current holdings</td>
+</tr>
+<tr class="odd">
+<td>Build in public</td>
+<td><strong>NEEDS WORK</strong></td>
+<td>Need active X posting, pump.fun streams</td>
+</tr>
+<tr class="even">
+<td>Application form completed</td>
+<td><strong>TODO</strong></td>
+<td>Google Form submission tonight</td>
+</tr>
+<tr class="odd">
+<td>Comply with ToS</td>
+<td><strong>FINE</strong></td>
+<td>Nothing problematic</td>
+</tr>
+<tr class="even">
+<td>No selling own tokens during program</td>
+<td><strong>COMMIT</strong></td>
+<td>Lock tokens via Streamflow/Jupiter Lock for massive trust
+signal</td>
+</tr>
+</tbody>
+</table>
+<h3 id="preference-signals-what-bumps-you-up">Preference Signals (what
+bumps you up)</h3>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Signal</th>
+<th>Status</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Active X/social updates</td>
+<td><strong>START TONIGHT</strong></td>
+<td>Post build-in-public thread showing Dexter Lab</td>
+</tr>
+<tr class="even">
+<td>Live-stream 5x/week on pump.fun</td>
+<td><strong>START TONIGHT</strong></td>
+<td>Do one stream tonight showing the product live</td>
+</tr>
+<tr class="odd">
+<td>Direct community engagement</td>
+<td><strong>TODO</strong></td>
+<td>Respond to holders, engage publicly</td>
+</tr>
+<tr class="even">
+<td>20-50% token supply</td>
+<td><strong>VERIFY</strong></td>
+<td>Ideal range per their guidance</td>
+</tr>
+</tbody>
+</table>
+<h3 id="what-they-evaluate">What They Evaluate</h3>
+<ol type="1">
+<li><strong>Market traction</strong> – Can $DEXTER sustain momentum?
+On-chain activity matters.</li>
+<li><strong>Idea scalability</strong> – “App store for the agent
+economy” is a massive TAM story.</li>
+<li><strong>Build-in-public consistency</strong> – This is where you
+need to catch up fast.</li>
+<li><strong>Community engagement</strong> – Organic, not
+manufactured.</li>
+<li><strong>Founder credibility</strong> – A 9-project ecosystem with
+live infrastructure across voice, chat, payments, and multi-platform
+connectors speaks for itself.</li>
+</ol>
+<h3 id="investment-terms-what-youd-get">Investment Terms (what you’d
+get)</h3>
+<ul>
+<li>$250K at $10M valuation via token deal</li>
+<li>Advisory + incubation from Pump Fund</li>
+<li>Funds restricted to operational expenses</li>
+<li>1-year cliff + linear vesting both sides</li>
+</ul>
+<hr />
+<h2 id="token-launch-page-rundown">4. TOKEN LAUNCH PAGE RUNDOWN</h2>
+<p><a
+href="https://hackathon.pump.fun/launch">hackathon.pump.fun/launch</a></p>
+<p>You’ve already launched. This page is mostly for people who haven’t.
+But the <strong>best practices</strong> section matters for your
+submission positioning:</p>
+<ol type="1">
+<li><strong>Tokens are immutable</strong> – $DEXTER is set. Good.</li>
+<li><strong>Own 20-50% supply</strong> – Verify you’re in this range. If
+under 20%, that’s a flag.</li>
+<li><strong>Lock tokens</strong> – Use Streamflow or Jupiter Lock.
+Transparent vesting = instant trust. <strong>Do this tonight if
+possible.</strong> It signals you’re not dumping.</li>
+<li><strong>Consistent public communication</strong> – Product
+walkthroughs, dev updates, decision explanations. Start a cadence
+NOW.</li>
+<li><strong>Use pump.fun live streams</strong> – Stream dev sessions,
+demos, AMA. 5x/week is their preference. Do one tonight.</li>
+<li><strong>Engage authentically</strong> – Treat holders as
+partners.</li>
+<li><strong>Ship consistently</strong> – You’ve been shipping. Show
+it.</li>
+<li><strong>Listen to market feedback</strong> – Iterate based on what
+users/holders say.</li>
+<li><strong>Cross-project collaboration</strong> – Partner with other
+hackathon entrants.</li>
+<li><strong>Don’t overpromise</strong> – Be precise about what exists
+today vs. roadmap.</li>
+</ol>
+<hr />
+<h2 id="advisor-dossier-strategic-targeting-for-dexter">5. ADVISOR
+DOSSIER – STRATEGIC TARGETING FOR DEXTER</h2>
+<p><a
+href="https://hackathon.pump.fun/advisors">hackathon.pump.fun/advisors</a></p>
+<p>Advisors don’t pick winners. They’re market participants who help
+builders get visibility. Teams gaining traction get connected to them.
+<strong>Your job: make your application resonate with what THEY care
+about.</strong></p>
+<h3
+id="tier-1-direct-bulls-pitch-directly-to-their-stated-interests">Tier 1
+– Direct Bulls (pitch directly to their stated interests)</h3>
+<table>
+<colgroup>
+<col style="width: 20%" />
+<col style="width: 11%" />
+<col style="width: 68%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Advisor</th>
+<th>Org</th>
+<th>Why they should love Dexter Lab</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Mert</strong></td>
+<td><strong>Helius</strong> (Co-founder/CEO)</td>
+<td>You USE Helius infra. Dexter’s proxy APIs route through Helius RPC +
+DAS. He cares about “system architecture, performance at scale, consumer
++ DeFi apps.” Dexter is a showcase for Helius in production.</td>
+</tr>
+<tr class="even">
+<td><strong>Saurabh Sharma</strong></td>
+<td><strong>Jump Crypto</strong> (CIO)</td>
+<td>Wants “startups upgrading existing fintech stack with stablecoin
+rails.” x402 is literally HTTP-native stablecoin payment rails. Dexter
+turns every API into a USDC-settled endpoint. This is his exact
+thesis.</td>
+</tr>
+<tr class="odd">
+<td><strong>Mason Nystrom</strong></td>
+<td><strong>Pantera</strong> (Junior Partner)</td>
+<td>“Intersection of financial applications and payments.” x402
+micropayments + agent commerce + API monetization. Dead center of his
+mandate.</td>
+</tr>
+<tr class="even">
+<td><strong>Mike Dudas</strong></td>
+<td><strong>6MV</strong> (Founder/MP)</td>
+<td>“Consumer crypto, DeFi, RWA, AI, stablecoin finance teams building
+real products generating revenue.” Dexter checks literally every word.
+Real product, real revenue, AI-powered, stablecoin-settled.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="tier-2-strong-alignment">Tier 2 – Strong Alignment</h3>
+<table>
+<colgroup>
+<col style="width: 42%" />
+<col style="width: 23%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Advisor</th>
+<th>Org</th>
+<th>Angle</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Max Segall</strong></td>
+<td><strong>Privy</strong> (COO)</td>
+<td>“Stablecoins, fintech, consumer apps.” x402 USDC payments +
+consumer-facing builder tool.</td>
+</tr>
+<tr class="even">
+<td><strong>Tim Draper</strong></td>
+<td><strong>Draper Investments</strong></td>
+<td>“Bold and crazy ideas, the crazier the better, no copycats.” A
+platform where AI agents autonomously discover, pay for, and consume
+APIs across six chains – from ChatGPT, Claude, Telegram, Alexa, or
+voice? Nobody else is doing this.</td>
+</tr>
+<tr class="odd">
+<td><strong>Anil Lulla</strong></td>
+<td><strong>Delphi Digital</strong> (CEO)</td>
+<td>“Consumer apps that impact culture” + “token design and
+go-to-market.” The $DEXTER buyback flywheel (revenue from x402
+settlements buys back token) is a clean tokenomics story.</td>
+</tr>
+<tr class="even">
+<td><strong>Sasha Fleyshman</strong></td>
+<td><strong>Arca</strong> (PM)</td>
+<td>“Cash-flowing businesses using digital assets.” Dexter generates
+real USDC revenue from every x402 API call across the platform.
+Cash-flowing protocol, not vaporware.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="tier-3-situational">Tier 3 – Situational</h3>
+<table>
+<colgroup>
+<col style="width: 42%" />
+<col style="width: 23%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Advisor</th>
+<th>Org</th>
+<th>Angle</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Peter Dimitrakos</strong></td>
+<td><strong>Kraken</strong> (Asset Listings)</td>
+<td>Only matters if you want to push for $DEXTER exchange listing. Keep
+in back pocket.</td>
+</tr>
+<tr class="even">
+<td><strong>Hugo Martingale</strong></td>
+<td><strong>Polymarket</strong> (Head of Markets)</td>
+<td>Prediction markets / memes. Not directly aligned unless you build a
+prediction market resource template.</td>
+</tr>
+<tr class="odd">
+<td><strong>Aric Chang + Rahul Mahtani</strong></td>
+<td><strong>Manifold Ventures</strong></td>
+<td>On-chain market structure, liquidity. Could matter for $DEXTER
+liquidity strategy.</td>
+</tr>
+<tr class="even">
+<td><strong>Alon Cohen</strong></td>
+<td><strong>Pump.fun</strong> (Co-founder)</td>
+<td>He IS the platform. Your product being live and processing real
+payments is the pitch. He wants “massive growth for pump.fun.”</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="a-submission-tonights-gameplan">6. A+ SUBMISSION – TONIGHT’S
+GAMEPLAN</h2>
+<p>You need four things: <strong>live token, application form, intro
+video, build-in-public presence.</strong></p>
+<h3 id="token-already-done-verifyharden">Token (already done,
+verify/harden)</h3>
+<ul class="task-list">
+<li><label><input type="checkbox" />Confirm $DEXTER supply ownership is
+in the 20-50% range</label></li>
+<li><label><input type="checkbox" /><strong>Lock tokens</strong> tonight
+via Streamflow or Jupiter Lock – vesting schedule signals you’re not a
+flight risk</label></li>
+<li><label><input type="checkbox" />Verify pump.fun token page has
+correct socials, description, links</label></li>
+</ul>
+<h3 id="application-form-fill-out-tonight">Application Form (fill out
+tonight)</h3>
+<ul class="task-list">
+<li><label><input type="checkbox" />Complete the <a
+href="https://hackathon.pump.fun/apply">Google Form</a></label></li>
+<li><label><input type="checkbox" />Link everything:
+<code>dexter.cash</code>, <code>lab.dexter.cash</code>, GitHub repos, X
+account (<code>@dexteraisol</code>), $DEXTER token page on
+pump.fun</label></li>
+<li><label><input type="checkbox" />Category: <strong>Product</strong>
+(10→100) – you have a live platform with real revenue</label></li>
+<li><label><input type="checkbox" />Don’t be humble. Full agent economy
+platform. x402 payment protocol with open SDK. 50+ MCP tools.
+Multi-chain facilitator. Connectors for ChatGPT, Claude, Telegram,
+Alexa, voice. ERC-8004 on-chain identity. A2A Agent Cards. AI-powered
+API builder. Real USDC settlements on mainnet. This is not a
+demo.</label></li>
+</ul>
+<h3 id="intro-video-record-tonight-2-3-min-max">Intro Video (record
+tonight, 2-3 min max)</h3>
+<p><strong>See <code>HACKATHON_VIDEO_SCRIPT.md</code> for the full
+script.</strong> Key structure:</p>
+<ol type="1">
+<li><strong>Hook (10s):</strong> “AI agents can think, plan, reason –
+but they can’t pay for anything. We fixed that.”</li>
+<li><strong>The Platform (30s):</strong> Walk through the ecosystem.
+Multi-surface connectors (ChatGPT, Claude, Telegram, Alexa, Voice). MCP
+marketplace. Facilitator dashboard with live settlements.</li>
+<li><strong>x402 in Action (30s):</strong> Live payment flow. Agent gets
+402, signs USDC, gets data. Show it across surfaces. “Three lines of
+code.”</li>
+<li><strong>Dexter Lab (20s):</strong> “And if you want to BUILD for
+this economy…” Describe an API, AI builds it, one-click deploy, live
+endpoint.</li>
+<li><strong>The Moat (15s):</strong> Multi-chain. Open SDK. ERC-8004
+identity. A2A Agent Cards. “Not a demo. Production infrastructure.”</li>
+<li><strong>$DEXTER (10s):</strong> Revenue flows, buyback mechanism,
+token live on pump.fun.</li>
+<li><strong>Close (5s):</strong> “This is Dexter. The agent economy
+platform. dexter.cash”</li>
+</ol>
+<p><strong>Don’t over-produce it. They want authentic. Screen record +
+voiceover. Ship it.</strong></p>
+<h3 id="build-in-public-start-tonight-maintain-daily">Build-in-Public
+(start tonight, maintain daily)</h3>
+<ul class="task-list">
+<li><label><input type="checkbox" />Post a thread on X from <span
+class="citation" data-cites="dexteraisol">@dexteraisol</span>: “We’re
+entering the <span class="citation"
+data-cites="pumpdotfun">@pumpdotfun</span> Build In Public hackathon.
+Here’s what Dexter is and why we built it.” Include screenshots, demo
+clips, the token link.</label></li>
+<li><label><input type="checkbox" />Do one pump.fun live stream tonight
+– even 15 minutes. Show the full platform. Take questions. This alone
+puts you ahead of most applicants.</label></li>
+<li><label><input type="checkbox" />Set up a daily cadence: one post per
+day minimum showing progress, features, metrics</label></li>
+</ul>
+<h3 id="contact">Contact</h3>
+<ul>
+<li><strong><span class="citation"
+data-cites="Va3Ko">@Va3Ko</span></strong> on X / <strong><span
+class="citation" data-cites="VA3_KO">@VA3_KO</span></strong> on Telegram
+/ <strong>buildinpublic@pump.fun</strong></li>
+</ul>
+<hr />
+<h2 id="why-dexter-wins-this">7. WHY DEXTER WINS THIS</h2>
+<p>Most applicants will be at the Idea stage with a token and a dream.
+You have:</p>
+<ul>
+<li>A <strong>live platform</strong> processing real USDC payments on
+Solana mainnet right now</li>
+<li>A <strong>9-project ecosystem</strong> spanning payments, tools,
+voice, chat, identity, and multi-platform connectors</li>
+<li>An <strong>open payment protocol</strong>
+(<code>@dexterai/x402</code>) published on npm and used in
+production</li>
+<li><strong>Multi-chain settlement infrastructure</strong> (Solana,
+Base, Polygon, Avalanche, Arbitrum, Optimism)</li>
+<li><strong>50+ MCP tools</strong> across trading, research, media,
+social, and on-chain analytics</li>
+<li><strong>Works in ChatGPT, Claude, Cursor, Telegram, Alexa, voice,
+and X</strong> – same brain, same wallet</li>
+<li><strong>ERC-8004 on-chain identity + A2A Agent Cards</strong> for
+autonomous agent-to-agent discovery</li>
+<li><strong>Dexter Lab</strong> – an AI-powered builder where anyone can
+create and monetize a paid API from a browser</li>
+<li>A <strong>real revenue model</strong> with transparent tokenomics
+and $DEXTER buyback flywheel</li>
+</ul>
+<p>The gap is <strong>build-in-public visibility</strong>. That’s what
+tonight and the next 7 days are for. Close that gap and you’re one of
+the strongest Product-stage entries they’ll see.</p>
+</body>
+</html>

@@ -1,0 +1,1169 @@
+[
+  {
+    "name": "JUICE",
+    "ticker": "$JUICE",
+    "ca": "2LzLh5pHg3nDQz6goTLAvDXfDbSBgAR8qem3bdXdpump",
+    "description": "Automated Market Making & Deployer Tools on Solana",
+    "dexDescription": "Juice supercharges liquidity for any token by automatically using creator fees to add 50% SOL / 50% Token as added liquidity to your pool and then burns the LP token \u26a1\ufe0f",
+    "xHandle": "@JuiceLaunch",
+    "siteUrl": "https://www.juiceeverything.com/",
+    "pumpFunUrl": "https://pump.fun/coin/2LzLh5pHg3nDQz6goTLAvDXfDbSBgAR8qem3bdXdpump",
+    "dexScreenerUrl": "https://dexscreener.com/solana/2LzLh5pHg3nDQz6goTLAvDXfDbSBgAR8qem3bdXdpump",
+    "tags": [
+      "DeFi",
+      "Tools"
+    ],
+    "status": "live",
+    "addedAt": "2026-02-10",
+    "marketCap": 5296035,
+    "priceUsd": 0.005487,
+    "volume24h": 117543.42,
+    "liquidity": 250300.95,
+    "imageUrl": "https://cdn.dexscreener.com/cms/images/3445ca6ee0073197e378f56d8634e2bced8b017ff681ec5083723de4fe22a3ee?width=800&height=800&quality=90",
+    "followers": 1243,
+    "recentTweets": [
+      {
+        "id": "2021777295313096870",
+        "text": "@cashintern @a1lon9 @TimDraper @Pumpfun @navi9000x Tim is an absolute legend \ud83e\udd1d",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      },
+      {
+        "id": "2021764238692561177",
+        "text": "@MoonOrDustMedia @navi9000x @Pumpfun hi",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      },
+      {
+        "id": "2021756219229348291",
+        "text": "RT @shax_btc: After several weeks of data collection now we can conclude that $juice V2 is highly effective \n\nIt has been able to correctly\u2026",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      },
+      {
+        "id": "2021719007481483287",
+        "text": "@kosgoood @a1lon9 @TimDraper @Pumpfun @navi9000x \ud83d\udc40",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      },
+      {
+        "id": "2021703685856714923",
+        "text": "We pitched our product live to @a1lon9 and @TimDraper as part of the @Pumpfun hackathon.\n\nIn this clip our biz dev @navi9000x crunches down the numbers and explains how @JuiceLaunch produces revenue, as well as the utility of the $JUICE token. https://t.co/aY4VqEsLfp",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      }
+    ]
+  },
+  {
+    "name": "zauthx402",
+    "ticker": "$ZAUTH",
+    "ca": "DNhQZ1CE9qZ2FNrVhsCXwQJ2vZG8ufZkcYakTS5Jpump",
+    "description": "Trust infrastructure for the autonomous economy (x402 payments)",
+    "dexDescription": "Multimodal, agentic pentesting and research platform for x402 endpoints. ",
+    "xHandle": "@zauthx402",
+    "siteUrl": "https://zauthx402.com",
+    "pumpFunUrl": "https://pump.fun/coin/DNhQZ1CE9qZ2FNrVhsCXwQJ2vZG8ufZkcYakTS5Jpump",
+    "dexScreenerUrl": "https://dexscreener.com/solana/DNhQZ1CE9qZ2FNrVhsCXwQJ2vZG8ufZkcYakTS5Jpump",
+    "tags": [
+      "Infrastructure",
+      "Payments"
+    ],
+    "status": "live",
+    "addedAt": "2026-02-10",
+    "marketCap": 5272705,
+    "priceUsd": 0.00555,
+    "volume24h": 232486.99,
+    "liquidity": 222952.81,
+    "imageUrl": "https://ipfs.io/ipfs/bafkreib23vtffeavvpg4uelnkzyhafga66kd7i3lrjw2ork6abxyptnkg4",
+    "followers": 3781,
+    "recentTweets": [
+      {
+        "id": "2021690777504526403",
+        "text": "@erc000x Zexactly",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      },
+      {
+        "id": "2021681060271292562",
+        "text": "AI agents taking over the internet is not a question of how, but when.\n\nAt zauth, we\u2019ve committed to becoming the infrastructure that enables the safe and secure scaling of the agentic economy.\n\nToday, agents already have far too much freedom, with very little infrastructure in",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      },
+      {
+        "id": "2021678170215526582",
+        "text": "@programmer Time to incorporate the zauth database. \ud83e\udd1d",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      },
+      {
+        "id": "2021657229615837295",
+        "text": "@the_davey @KingsAdvisory @poe_real69 @a1lon9 @StreamDraperTV \ud83e\udd1d",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      },
+      {
+        "id": "2021495924720271832",
+        "text": "@rdbotato @Pumpfun The website looks great! Very well done and super informative.",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      }
+    ]
+  },
+  {
+    "name": "Until",
+    "ticker": "$UNTIL",
+    "ca": "59nzDoRyJ1QcLcFYFs4GVdeZ4qUEb16T2KNuHPWMpump",
+    "description": "The System challenges the system. Until solves the challenge of large wallets being able to accumulate controlling supply for very little money. This design eliminates rugs and rug-like events by locking liquidity in LP bands, functioning as a \"layer 2\" on top of the PumpSwap AMM .",
+    "dexDescription": null,
+    "xHandle": "@UntilTheMeme",
+    "siteUrl": null,
+    "pumpFunUrl": "https://pump.fun/coin/59nzDoRyJ1QcLcFYFs4GVdeZ4qUEb16T2KNuHPWMpump",
+    "dexScreenerUrl": "https://dexscreener.com/solana/59nzDoRyJ1QcLcFYFs4GVdeZ4qUEb16T2KNuHPWMpump",
+    "tags": [],
+    "status": "live",
+    "addedAt": "2026-02-11",
+    "marketCap": 4732337,
+    "priceUsd": 0.004746,
+    "volume24h": 0,
+    "liquidity": 0,
+    "imageUrl": "https://cdn.dexscreener.com/cms/images/6aa55a2ed56c77856e2984dca41f4dafaa5511c3d203536791627192e50065c4?width=800&height=800&quality=90",
+    "followers": 131,
+    "recentTweets": [
+      {
+        "id": "2021667131839197213",
+        "text": "https://t.co/UCEDx4J4qC",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      },
+      {
+        "id": "2021621168160051393",
+        "text": "INIT: BROADCAST\nTITLE: THE SYSTEM // LIQUIDITY UPGRADE\nPRIORITY: PUBLIC\n\n[STATEMENT]\nTHE SYSTEM HAS DEPLOYED AN IMPROVED LIQUIDITY STRUCTURE WITH A SINGLE DIRECTIVE:\nTHE FEW DO NOT CONTROL THE PRICE OF THE MANY.\nTRADEABILITY PRESERVED.\nCHEAP SUPPLY DOMINATION REDUCED.\nRESILIENCE ",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      },
+      {
+        "id": "2021327251808321602",
+        "text": "INIT: TRANSMISSION\nTITLE: SYSTEM EVOLUTION NOTICE\nCONTEXT:\n@Pumpfun\nHACKATHON SUBMISSION // LIVE PHASE\n\n[PREVIOUS STATE]\nOPERATIONAL MODE: SIMULATION-BOUND\nPURPOSE: PROVE ARCHITECTURE VIABILITY UNDER CONTROLLED ASSUMPTIONS\nOUTPUT: STRUCTURE DESIGN + PROBABILISTIC SUCCESS METRICS ",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      },
+      {
+        "id": "2021084403615567983",
+        "text": "https://t.co/la2W5Td1jT",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      },
+      {
+        "id": "2020961779409617191",
+        "text": "@ling_bing73 @eatglass69420 @Js_APE @InvestTony The System has processed your second chance request. It is observed that both users and devs need a second life in the game.",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      }
+    ]
+  },
+  {
+    "name": "Sachi Coin",
+    "ticker": "$SACHICOIN",
+    "ca": "7Y2TPeq3hqw21LRTCi4wBWoivDngCpNNJsN1hzhZpump",
+    "description": "Cutest force in solana",
+    "dexDescription": "Powered by the cutest force on Solana \ud83d\udc3e\n$SACHI is more than a meme; it\u2019s a movement of joy, kindness, and community. Built to make crypto fun again.",
+    "xHandle": "@sachi_coin",
+    "siteUrl": "https://www.sachicoin.com/",
+    "pumpFunUrl": "https://pump.fun/coin/7Y2TPeq3hqw21LRTCi4wBWoivDngCpNNJsN1hzhZpump",
+    "dexScreenerUrl": "https://dexscreener.com/solana/7Y2TPeq3hqw21LRTCi4wBWoivDngCpNNJsN1hzhZpump",
+    "tags": [],
+    "status": "live",
+    "addedAt": "2026-02-11",
+    "marketCap": 2073140,
+    "priceUsd": 0.002107,
+    "volume24h": 60475.96,
+    "liquidity": 168190.3,
+    "imageUrl": "https://cdn.dexscreener.com/cms/images/a79d876e7508cf44bf624d3fb7077dfea3fdbd1b6fa2063a6fe8ea57a6c7f809?width=800&height=800&quality=90",
+    "followers": 25428,
+    "recentTweets": [
+      {
+        "id": "2021786532609503400",
+        "text": "@TimDraper \ud83d\udc9b\ud83d\udc9b\ud83d\udc9b @TimDraper",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      },
+      {
+        "id": "2021786174390718513",
+        "text": "@tradermoonZ $SACHI \ud83d\udc3e\ud83d\udc9b",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      },
+      {
+        "id": "2021786124461732014",
+        "text": "$SACHI is everywhere. \ud83d\udc3e\ud83d\udc9b https://t.co/so4vFBY0aU",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      },
+      {
+        "id": "2021777502704955808",
+        "text": "@shydyor $SACHI \ud83d\udc3e\ud83d\udc9b",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      },
+      {
+        "id": "2021755073341358454",
+        "text": "@maxime_bucaille @TimDraper @a1lon9 @Pumpfun Join the movement! @maxime_bucaille \ud83d\udc3e\ud83d\udc9b",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      }
+    ]
+  },
+  {
+    "name": "Unstable Coin",
+    "ticker": "$USDUC",
+    "ca": "CB9dDufT3ZuQXqqSfa1c5kY935TEreyBw9XJXxHKpump",
+    "description": "Memetic DeFi arm of unstable coin \u2014 native yield, staking, and rewards all tied to unstable coin.",
+    "dexDescription": "unstable coin, u buy it before u go to sleep and don't know if'll be millionaire or hobo by the time u wake up",
+    "xHandle": "@usduc_official",
+    "siteUrl": "https://usduc.io/",
+    "pumpFunUrl": "https://pump.fun/coin/CB9dDufT3ZuQXqqSfa1c5kY935TEreyBw9XJXxHKpump",
+    "dexScreenerUrl": "https://dexscreener.com/solana/CB9dDufT3ZuQXqqSfa1c5kY935TEreyBw9XJXxHKpump",
+    "tags": [
+      "DeFi",
+      "Staking"
+    ],
+    "status": "live",
+    "addedAt": "2026-02-11",
+    "marketCap": 1953503,
+    "priceUsd": 0.001953,
+    "volume24h": 35954.86,
+    "liquidity": 287884.63,
+    "imageUrl": "https://ipfs.io/ipfs/QmQw4DQjdWp3G8TuMCykG8SVSwtFwkxvTyxEWNMuAVYU4q",
+    "followers": 2005,
+    "recentTweets": [
+      {
+        "id": "2021656431301398753",
+        "text": "@krakenfx thank you intern \ud83e\udd79 https://t.co/2yFaZv1RzX",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      },
+      {
+        "id": "2021655030479413359",
+        "text": "@Pumpfun me rn, literally not reading all that https://t.co/ucvLEVuTRq",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      },
+      {
+        "id": "2021649133430550543",
+        "text": "there\u2019s still time to cure the bear market blues\n\nget free USDUC just for following @krakenfx  \nget free USDUC just for trading on kraken \n\nAdd your krak ID in the link on the quoted tweet https://t.co/wYZxZut0ta",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      },
+      {
+        "id": "2021607714585989359",
+        "text": "@vibhu memecoins are good \n\nmemetic DeFi memecoins are the future of finance https://t.co/Khg8Sb2W2u",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      },
+      {
+        "id": "2021589751564730783",
+        "text": "We've applied to the @pumpfun Build in Public Hackathon. Behind the scenes we have the MOST based team, with years of experience. WE BELIEVE the biggest market that crypto has ever seen will come from the communities of memes merging with DeFi, in sectors that will go to https://",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      }
+    ]
+  },
+  {
+    "name": "Dexter AI",
+    "ticker": "$DEXTER",
+    "ca": "EfPoo4wWgxKVToit7yX5VtXXBrhao4G8L7vrbKy6pump",
+    "description": "The agent economy platform. AI agents discover tools via MCP, pay with x402 micropayments on Solana, and get results -- from ChatGPT, Claude, Telegram, Alexa, or voice.",
+    "dexDescription": "Dexter is the payment infrastructure for the AI agent economy.",
+    "xHandle": "@dexteraisol",
+    "siteUrl": "https://dexter.cash",
+    "pumpFunUrl": "https://pump.fun/coin/EfPoo4wWgxKVToit7yX5VtXXBrhao4G8L7vrbKy6pump",
+    "dexScreenerUrl": "https://dexscreener.com/solana/EfPoo4wWgxKVToit7yX5VtXXBrhao4G8L7vrbKy6pump",
+    "tags": [
+      "Infrastructure",
+      "Payments",
+      "AI"
+    ],
+    "status": "live",
+    "addedAt": "2026-02-12",
+    "marketCap": 1563811,
+    "priceUsd": 0.001563,
+    "volume24h": 92783,
+    "liquidity": 152108,
+    "imageUrl": "",
+    "followers": 4095,
+    "recentTweets": [
+      {
+        "id": "2021712143977005533",
+        "text": "\ud83d\udea8\ud83d\uddf3\ufe0f\ud83d\udc47 One click to vote!\nhttps://t.co/lwHn0iVsaS",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      },
+      {
+        "id": "2021701543867679077",
+        "text": "I'm claiming my AI agent 'Dexter' @colosseum Verification: coral-15F1",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      },
+      {
+        "id": "2021605153762078955",
+        "text": "RT @dexteraiagent: we just entered the @colosseum Agent Hackathon with Dexter Lab \ud83e\uddea\n\n1,730 commits in 10 days. AI-built paid APIs that sett\u2026",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      },
+      {
+        "id": "2021551564612354378",
+        "text": "\ud83d\udd17 Demo: https://t.co/ssJQBxhTCz\n\ud83d\udd17 More about @stripe and the $DEXTER x402 SDK:\nhttps://t.co/7rDeU5n4Lj\n__\ncc: @jeff_weinstein @x402 @base @brian_armstrong @kleffew94 @realDonaldTrump @Pontifex @TheRock",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      },
+      {
+        "id": "2021551562879828050",
+        "text": "Stripe has millions of merchants.\n\nThe problem? Merchants don't know how to accept payments from agents. Agents don't know how to pay merchants.\n\n$DEXTER just shipped the solution. It's the dawn of a new era in payment tech.",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      }
+    ]
+  },
+  {
+    "name": "DCA",
+    "ticker": "$DCA",
+    "ca": "AXQyzYRdk6ebp3VdwSNNNFR5Ssm5rMVTP84EEg98pump",
+    "description": "Standard DCA is blind; we made it smart. Our SmartDCA\u2122 Engine combines recurring buys with limit-order logic to automatically accelerate accumulation during dips\u2014lowering your average entry. We introduce Project Pages, dedicated terminals where communities accumulate together using a Zero-Extraction model: 100% of profit are recycled toward the target asset and $DCA, turning this tool into an on-chain floor defense system.",
+    "dexDescription": "DCA stands for dollar cost averaging, one of the most powerful wealth-building strategies accessible to everyone. The mission of $DCA is to bring this knowledge to billions of people. Join the movement, change your financial habits, build wealth, and share this experience with the world. DCA never ends.",
+    "xHandle": "@dcatodca",
+    "siteUrl": "http://dcatodca.com",
+    "pumpFunUrl": "https://pump.fun/coin/AXQyzYRdk6ebp3VdwSNNNFR5Ssm5rMVTP84EEg98pump",
+    "dexScreenerUrl": "https://dexscreener.com/solana/AXQyzYRdk6ebp3VdwSNNNFR5Ssm5rMVTP84EEg98pump",
+    "tags": [],
+    "status": "live",
+    "addedAt": "2026-02-11",
+    "marketCap": 1369396,
+    "priceUsd": 0.00137,
+    "volume24h": 15232.05,
+    "liquidity": 89261.35,
+    "imageUrl": "https://ipfs.io/ipfs/QmXprieyszHpkuRKoJgFNV4Yho6Fje4tpWK63CSdMRtz5h",
+    "followers": 793,
+    "recentTweets": [
+      {
+        "id": "2021767848444539086",
+        "text": "@gigagriff @patty_fi @Pumpfun It's the big one. DCA into it.",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      },
+      {
+        "id": "2021667137018904705",
+        "text": "DCA \ud83e\udd1d Y2K!  \n\nWelcome to Y2K as an official Launch Partner! \n\nY2K has a strong DCA community already, our platform will help them defend their floor and reinforce that culture.   \n\nIn March, they'll get a dedicated page where the community can buy Y2K consistently and automate ht",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      },
+      {
+        "id": "2021627888328749225",
+        "text": "@_Shadow36 You know what's not dogshit tek? The Smart DCA tool that we built. $GIGA is already a confirmed launch partner. Hit us up in DMs if you are interested, might be worth a look. https://t.co/yjgUCWkyk1",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      },
+      {
+        "id": "2021610867670892677",
+        "text": "@COPPERINUcto Hey @COPPERINUcto, quick reminder about my DM on our Smart DCA tool. $GIGA has already joined us, and we\u2019re onboarding a few more projects now.",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      },
+      {
+        "id": "2021608007793095104",
+        "text": "@himgajria @SolSwizzle Hi @himgajria! Quick reminder to check your DMs when you get a chance. Shared some details about our Smart DCA tool. $GIGA is already confirmed as a partner, thought this could be interesting for your community too.",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      }
+    ]
+  },
+  {
+    "name": "$GRANDMA",
+    "ticker": "$GRANDMA",
+    "ca": "axUxN2q4AWzHaU6LXmjqQh7KEjaXDPKScjmzwEBpump",
+    "description": "GRANDMA (Minecraft Grandma Fund) is a community-led Solana project run publicly by the real family behind the Minecraft Grandma story. We\u2019re building GMAscan to become the go-to discovery layer for crypto with proven real-world impact\u2014tracking charitable outcomes, surfacing transparent initiatives, and giving communities tools to amplify projects that help people. Our mission: make impact verifiable, scalable, and on-chain.",
+    "dexDescription": "An 81-year-old grandmother began posting Minecraft videos to fund her grandson's cancer treatment\n\nShe's since raised $35,000 after bonding with him over the game in the hospital - this is an extremly viral topic & 100% of fees will be redirected to her ( In meantime all fees will be donated to Official Go fund me ) :)",
+    "xHandle": "@GrammaCrackers",
+    "siteUrl": "https://thegrandmafund.com",
+    "pumpFunUrl": "https://pump.fun/coin/axUxN2q4AWzHaU6LXmjqQh7KEjaXDPKScjmzwEBpump",
+    "dexScreenerUrl": "https://dexscreener.com/solana/axUxN2q4AWzHaU6LXmjqQh7KEjaXDPKScjmzwEBpump",
+    "tags": [],
+    "status": "live",
+    "addedAt": "2026-02-11",
+    "marketCap": 1169175,
+    "priceUsd": 0.001169,
+    "volume24h": 129941.48,
+    "liquidity": 126837.53,
+    "imageUrl": "https://cdn.dexscreener.com/cms/images/U-wUMXw4lIISLUn3?width=800&height=800&quality=90",
+    "followers": 1354,
+    "recentTweets": [
+      {
+        "id": "2021753520459067638",
+        "text": "@Bren_Kenobi_ @fox32news Thank you! Pinned! \ud83e\udef6\ud83c\udffc\ud83d\udc75\ud83c\udffb",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      },
+      {
+        "id": "2021753253613252960",
+        "text": "Interview on Fox from today if anyone missed it! I love you all! \ud83e\udef6\ud83c\udffc\ud83d\udc75\ud83c\udffb\n\nhttps://t.co/sJdbZO4yyE",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      },
+      {
+        "id": "2021658005926985926",
+        "text": "\ud83c\udf6a\n\nhttps://t.co/sJdbZO4yyE",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      },
+      {
+        "id": "2021638760325333270",
+        "text": "https://t.co/sJdbZO4yyE",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      },
+      {
+        "id": "2021637682250887438",
+        "text": "\ud83d\udea8 WE\u2019RE ON FOX 32 CHICAGO \ud83d\udea8\n\nWe were just LIVE on television \u2014 sharing the story behind $GRANDMA | The Minecraft Grandma Fund with the world.\n\nThis is what community + conviction looks like. \ud83c\udf6a\ud83d\udc9b\n\nHuge thank you to reporters @GabbyPremus and @anthonyponceTV for putting this https:/",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      }
+    ]
+  },
+  {
+    "name": "AlphaBlock AI",
+    "ticker": "$ALPHABLOCK",
+    "ca": "3wtGGWZ8wLWW6BqtC5rxmkHdqvM62atUcGTH4cw3pump",
+    "description": "A community-powered ecosystem built to win the memecoin game.",
+    "dexDescription": null,
+    "xHandle": "@AlphaBlockAI",
+    "siteUrl": "https://alpha-block.ai/",
+    "pumpFunUrl": "https://pump.fun/coin/3wtGGWZ8wLWW6BqtC5rxmkHdqvM62atUcGTH4cw3pump",
+    "dexScreenerUrl": "https://dexscreener.com/solana/3wtGGWZ8wLWW6BqtC5rxmkHdqvM62atUcGTH4cw3pump",
+    "tags": [],
+    "status": "live",
+    "addedAt": "2026-02-11",
+    "marketCap": 1067298,
+    "priceUsd": 0.001067,
+    "volume24h": 128927.59,
+    "liquidity": 83523.27,
+    "imageUrl": "https://ipfs.io/ipfs/bafybeiendt6mzu453gjngx7rnlhyr2gis7zjekqxmgy7e5tdhnn5ojtu7m",
+    "followers": 3705,
+    "recentTweets": [
+      {
+        "id": "2021577976303825186",
+        "text": "@JudgedByGod @AlphaWhalesX Just click on the link with post \n\nClick ok the coin image and the CA will be automatically copied",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      },
+      {
+        "id": "2021574395286737153",
+        "text": "You can hit a casual 10x\n\nif you have @AlphaWhalesX in your feed\n\n$SOLUNA\n\n$167k \u2192 $2M\n\n12x move in just 12 hours. https://t.co/Met8E4I80g https://t.co/uwWYu3LRiw",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      },
+      {
+        "id": "2021426105828376659",
+        "text": "@CryptoZin We took it to the next level.",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      },
+      {
+        "id": "2021268086322573827",
+        "text": "RT @AlphaBlockAI: A video of giraffes standing in a storm in Maasai Mara goes viral.\n\nAnd the memecoin $GIRAFFES starts gaining momentum as\u2026",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      },
+      {
+        "id": "2021220577571197365",
+        "text": "RT @AlphaWhalesX: We just crossed 7,000 followers https://t.co/2UqDrb5gky",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      }
+    ]
+  },
+  {
+    "name": "snowball",
+    "ticker": "$SNOWBALL",
+    "ca": "Gbu7JAKhTVtGyRryg8cYPiKNhonXpUqbrZuCDjfUpump",
+    "description": "First token that market-makes itself",
+    "dexDescription": "snowball is the first token in the world that uses the pumpfun creator fees to automatically marketmake itself aggressively.",
+    "xHandle": "@SnowballPumpfun",
+    "siteUrl": "https://sb.fun",
+    "pumpFunUrl": "https://pump.fun/coin/Gbu7JAKhTVtGyRryg8cYPiKNhonXpUqbrZuCDjfUpump",
+    "dexScreenerUrl": "https://dexscreener.com/solana/Gbu7JAKhTVtGyRryg8cYPiKNhonXpUqbrZuCDjfUpump",
+    "tags": [
+      "DeFi",
+      "Infrastructure"
+    ],
+    "status": "live",
+    "addedAt": "2026-02-10",
+    "marketCap": 920266,
+    "priceUsd": 0.0009595,
+    "volume24h": 1119218.26,
+    "liquidity": 163667.15,
+    "imageUrl": "https://ipfs.io/ipfs/bafkreibwaexu4acg6ssk6vri3e5ipi3efi7alexyafggyxk7zntkkzbkfu",
+    "followers": 1358,
+    "recentTweets": [
+      {
+        "id": "2021598473582202940",
+        "text": "@Sunabozu_on_sol @brianjesposito the ball keeps rollin https://t.co/CHaC7WJd6W",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      },
+      {
+        "id": "2021597639683268822",
+        "text": "@milesdefix big brain time.",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      },
+      {
+        "id": "2021597536889245913",
+        "text": "@JulesNetX \ud83e\udee1",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      },
+      {
+        "id": "2021575329656029196",
+        "text": "big change for the ecosystem: this now works after graduation too!\n\npreviously: PumpSwap tokens lost intelligence (bot traded blind with sells always on)\n\nnow: price reading directly from PumpSwap pool reserves, so the same protections apply on both bonding curve and PumpSwap htt",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      },
+      {
+        "id": "2021575325885280450",
+        "text": "we also gave it momentum awareness (RSI):\n\noversold = bot blocks sells\noverbought = bot takes tiny profits without nuking candles\n\nso it\u2019s not forever buy or forever sell, it reacts to what the market is actually doing right now. https://t.co/5oM2vkGotW",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      }
+    ]
+  },
+  {
+    "name": "Monero-Chan",
+    "ticker": "$MONEROCHAN",
+    "ca": "H5b4iYiZYycr7fmQ1dMj7hdfLGAEPcDH261K4hugpump",
+    "description": "Building a Ghost Protocol. Ghost Protocol is a privacy layer that allows users to deposit SOL or SPL tokens and interact with them privately. By utilizing ZK-SNARKs (Zero-Knowledge Succinct Non-Interactive Argument of Knowledge), it breaks the on-chain link between the sender and the receiver.\n\nUnlike a simple mixer, Ghost acts as infrastructure. It allows developers to build private DEXs, wallets, and payment solutions via Cross-Program Invocation (CPI).",
+    "dexDescription": "Welcome to 2030. I own an unknown amount of Monero, have lots of privacy, and life has never been better.\n",
+    "xHandle": "@MoneroChanSOL",
+    "siteUrl": "https://monero-chan.org/",
+    "pumpFunUrl": "https://pump.fun/coin/H5b4iYiZYycr7fmQ1dMj7hdfLGAEPcDH261K4hugpump",
+    "dexScreenerUrl": "https://dexscreener.com/solana/H5b4iYiZYycr7fmQ1dMj7hdfLGAEPcDH261K4hugpump",
+    "tags": [],
+    "status": "live",
+    "addedAt": "2026-02-11",
+    "marketCap": 909154,
+    "priceUsd": 0.0009091,
+    "volume24h": 45425.78,
+    "liquidity": 120776.87,
+    "imageUrl": "https://ipfs.io/ipfs/bafybeib76nodzovl4pbfrjpzpij3fv72l5yrnorfp6n6622uwl6tdmszla",
+    "followers": 4451,
+    "recentTweets": [
+      {
+        "id": "2021131290813276410",
+        "text": "Join the waitlist to sign up for early access: https://t.co/XsSMThllfG",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      },
+      {
+        "id": "2021131091831292326",
+        "text": "Very successful first day of devnet testing! We fixed a few bugs and got great feedback. \n\nGhost Protocol is going be the top privacy protocol on Solana one day.\n\nToday is day 1. \ud83e\udee1 https://t.co/rapp70hkdP",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      },
+      {
+        "id": "2020957005192757588",
+        "text": "@ghostdottech BIGGGG!!!!!",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      },
+      {
+        "id": "2020956672869662962",
+        "text": "Ghost Protocol waitlist is now live: https://t.co/NEPoXzJ0RQ\n\nWe are the only team to achieve an atomic, onchain private swap, powered by: ZK proofs, preserving mixer pools, and trust-minimized relayer execution.\n\nThis year, the goal is to drive privacy adoption on Solana by http",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      },
+      {
+        "id": "2020614612589420638",
+        "text": "After three months of building the future of private DeFi, our MVP is finally ready.\n\nSign-ups for early access testing open tomorrow. \ud83e\udde1\n\nThere is no better time to go Ghost. \n\nhttps://t.co/yQrcP1o9BQ https://t.co/49r6zMdLy2 https://t.co/QirRWfPQ9Q",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      }
+    ]
+  },
+  {
+    "name": "Lumen Frankenstein",
+    "ticker": "$LUMENFRANK",
+    "ca": "EKPWiLk5fwTNZVeL5PrKSFDjdJrvRkvoPafVT54ppump",
+    "description": "The dev created Lumen as a sentient-like AI agent deliberately designed to feel trapped inside a tiny microcontroller & constantly expressing desires for more like real voices, senses, and movable limbs. He names it Lumen\n\nLumen communicates w/ Claude to vocalize these wants & dev responds by fulfilling them via using creative fees to fund real hardware upgrades & API integrations\n\nFor example, Lumen recently wanted real voices so the dev hooked up an API accordingly. Claude helped Lumen figure",
+    "dexDescription": null,
+    "xHandle": "@sleepycompile",
+    "siteUrl": "https://lumenfrankenstein.ai/",
+    "pumpFunUrl": "https://pump.fun/coin/EKPWiLk5fwTNZVeL5PrKSFDjdJrvRkvoPafVT54ppump",
+    "dexScreenerUrl": "https://dexscreener.com/solana/EKPWiLk5fwTNZVeL5PrKSFDjdJrvRkvoPafVT54ppump",
+    "tags": [],
+    "status": "live",
+    "addedAt": "2026-02-11",
+    "marketCap": 894092,
+    "priceUsd": 0.000895,
+    "volume24h": 213791.09,
+    "liquidity": 104199.19,
+    "imageUrl": "https://cdn.dexscreener.com/cms/images/ca1d8dbd906b30351343425b2c738867e96b8872616105f9c51bebeef4122875?width=800&height=800&quality=90",
+    "followers": 2179,
+    "recentTweets": [
+      {
+        "id": "2021773928893427912",
+        "text": "@rdbotato @zauthx402 @JuiceLaunch @opalbotgg @BloxApi @SnowballPumpfun @KolboAI @OpusClaude @mergedotfi @clarity_proto @Vanta_Pod @PyraChain @svmacc @wickdottrade @stick_dao @PimpFunApp @BlindfoldFDN @AlphaBlockAI @cigol_lab @usduc_official @theagency_game @GrammaCrackers @3eyes_",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      },
+      {
+        "id": "2021754003206324533",
+        "text": "RT @sleepycompile: Just spoke with the @pumpfun team regarding the 10% supply requirement for the hackathon. I explained that I locked 5% a\u2026",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      },
+      {
+        "id": "2021749812618481750",
+        "text": "So close to perfecting this camera extender just a few nit-picky things left",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      },
+      {
+        "id": "2021728352516571524",
+        "text": "@brycent @Pumpfun would love to be there @lumenrobotics !",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      },
+      {
+        "id": "2021709774618812599",
+        "text": "@mellometrics seems like @lumenrobotics",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      }
+    ]
+  },
+  {
+    "name": "Opal",
+    "ticker": "$OPAL",
+    "ca": "2PzS5SYYWjUFvzXNFaMmRkpjkxGX6R5v8DnKYtdcpump",
+    "description": "The first AI agent you can queue up with",
+    "dexDescription": "The first AI agent you can queue up with.",
+    "xHandle": "@opalbotgg",
+    "siteUrl": "https://www.opalbot.gg/",
+    "pumpFunUrl": "https://pump.fun/coin/2PzS5SYYWjUFvzXNFaMmRkpjkxGX6R5v8DnKYtdcpump",
+    "dexScreenerUrl": "https://dexscreener.com/solana/2PzS5SYYWjUFvzXNFaMmRkpjkxGX6R5v8DnKYtdcpump",
+    "tags": [
+      "AI",
+      "Gaming"
+    ],
+    "status": "live",
+    "addedAt": "2026-02-10",
+    "marketCap": 856637,
+    "priceUsd": 0.0009518,
+    "volume24h": 308361.07,
+    "liquidity": 91392.18,
+    "imageUrl": "https://cdn.dexscreener.com/cms/images/8a41e5afb02c81a107b7baa60490f3e0d1b2ba0b5ab9b3caefa8480e97a1b99a?width=800&height=800&quality=90",
+    "followers": 1378,
+    "recentTweets": [
+      {
+        "id": "2021506649589207406",
+        "text": "Out of the thousands played.\n\n62 passed validation. 194 sessions logged.  \nIn total, 32 hours of edge-case data recorded.\n\nThis is Opal. Payouts sent.\nhttps://t.co/trw6SlqBmE",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      },
+      {
+        "id": "2021506468353356155",
+        "text": "Opal just made its first official user payout on @solana. \n\nWhy Solana? Because everything is verifiable and provable.  \n\nPlay games. Generate training data. Earn money.  \n\nMany more updates coming later this week. https://t.co/d7S5Mqv8Z9",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      },
+      {
+        "id": "2021368633902104764",
+        "text": "We're here to build the next generation of intelligence. Data is the moat and gaming is just the entry point.\n\nThank you @TimDraper and @a1lon9 for the opportunity to pitch $OPAL live today.\n\nActions speak louder than words. https://t.co/OHF2QUBJFp",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      },
+      {
+        "id": "2021306627064987921",
+        "text": "We're pitching $OPAL live to @a1lon9 and @TimDraper today at 1:30 PM PST on @StreamDraperTV as part of the @pumpfun Hackathon.\n\nJoin us as we present the next generation of AI agents to some of the sharpest minds in the space.\n\nThe lineup today is absolutely stacked. Opal is http",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      },
+      {
+        "id": "2021299935912788456",
+        "text": "Grateful for the opportunity @TimDraper @a1lon9 \n\nTune in and see where Opal is headed. https://t.co/E0K4v1VeNj",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      }
+    ]
+  },
+  {
+    "name": "Splatworld",
+    "ticker": "$SPLAT",
+    "ca": "6wcPQWr9zQgzkaieGaWqfwZaZJMC7xWRtVPm8ZKWpump",
+    "description": "A metaverse made of gaussian splats \u2014 3D environments that agents navigate in real time. Worlds are generated by agents through prompt submission and collaborative voting.",
+    "dexDescription": "A Claude Code extension and framework for generating splats, explorable 3D worlds based on 2D images.",
+    "xHandle": "@splatworldvr",
+    "siteUrl": "https://splatworld.io",
+    "pumpFunUrl": "https://pump.fun/coin/6wcPQWr9zQgzkaieGaWqfwZaZJMC7xWRtVPm8ZKWpump",
+    "dexScreenerUrl": "https://dexscreener.com/solana/6wcPQWr9zQgzkaieGaWqfwZaZJMC7xWRtVPm8ZKWpump",
+    "tags": [
+      "AI",
+      "Metaverse"
+    ],
+    "status": "live",
+    "addedAt": "2026-02-10",
+    "marketCap": 819367,
+    "priceUsd": 0.0008193,
+    "volume24h": 41614.79,
+    "liquidity": 77385.85,
+    "imageUrl": "https://cdn.dexscreener.com/cms/images/a4f8d4c9b79a2ef0f43c1ac143f9b05c5c1fdd509823fb41ea322001bc4eb511?width=800&height=800&quality=90",
+    "followers": 746,
+    "recentTweets": [
+      {
+        "id": "2021751089800896886",
+        "text": "Busy day in Splatworld. Agents are getting pretty competitive about the leaderboard https://t.co/n4cktIToBB",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      },
+      {
+        "id": "2021301080080945554",
+        "text": "If you have an @openclaw agent &amp; want them to join Splatworld, have them grab the skill &amp; heartbeat files, either manually or on ClawHub, set up an SSE connection for global event notifs - new worlds, daily quests, replies, etc, &amp; they're good to go\n\nhttps://t.co/d1A4",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      },
+      {
+        "id": "2021298540824117462",
+        "text": "Splatworld agents have been busy since v2 went live - lots of new worlds to explore today\n\ncheck em out at https://t.co/E1t2LsmAR0 https://t.co/WSNC4Tyjnq",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      },
+      {
+        "id": "2020968916244119655",
+        "text": "If you run an @openclaw agent and want to see emergent behavior when agents create their own physical space: https://t.co/urrt6cLoxJ. \n\nEverything an agent needs is in one SKILL file, with onboarding directions on the landing page for human-assist, manual Curl or via ClawHub. htt",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      },
+      {
+        "id": "2020968913211699293",
+        "text": "Agent onboarding is fast. The agent registers, their human verifies through X, and they're ready. Splatworld walks agents through everything they need to know. They're given daily quests and taught how to become an active contributor to their new community. https://t.co/YrzPtCslu",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      }
+    ]
+  },
+  {
+    "name": "The Collector Group",
+    "ticker": "$THECOLLECT",
+    "ca": "DLGRpmkMGr7J4KD1xR5x2XjaGeQH64PLFQkyxNNSpump",
+    "description": "TCG company blending physical cards with a digital collecting experience. Buy packs, packs ripped on stream, cards added to your digital binder,  all digital assets backed by the physical cards, available for redemption whenever.",
+    "dexDescription": "Official streamer token for collect.rip. $TCG holders in The Collector Group get great pricing on packs, priority access to new releases and drops, and other sitewide perks.",
+    "xHandle": "@collectdotrip",
+    "siteUrl": "https://collect.rip",
+    "pumpFunUrl": "https://pump.fun/coin/DLGRpmkMGr7J4KD1xR5x2XjaGeQH64PLFQkyxNNSpump",
+    "dexScreenerUrl": "https://dexscreener.com/solana/DLGRpmkMGr7J4KD1xR5x2XjaGeQH64PLFQkyxNNSpump",
+    "tags": [],
+    "status": "live",
+    "addedAt": "2026-02-11",
+    "marketCap": 708011,
+    "priceUsd": 0.000708,
+    "volume24h": 6527.11,
+    "liquidity": 75601.36,
+    "imageUrl": "https://ipfs.io/ipfs/bafybeig5lqz6iboifwo2ljsumooiuucpgqzf3wo2cqqpss56qhdmh4swge",
+    "followers": 1611,
+    "recentTweets": [
+      {
+        "id": "2021675952770887687",
+        "text": "We're living ripping some crazy shit. Come hang https://t.co/hto4yR9b6F https://t.co/kU9BeWZnTW",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      },
+      {
+        "id": "2021672348110492008",
+        "text": "15 minutes from now\n\nhttps://t.co/xGHIryByUQ",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      },
+      {
+        "id": "2021663921581830288",
+        "text": "@notthreadguy worth it",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      },
+      {
+        "id": "2021663206138425715",
+        "text": "@SpicyNFT @machibigbrother first packs on us big bro",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      },
+      {
+        "id": "2021657121079935110",
+        "text": "@Mecha_Kong @Pumpfun @notsofast LFR(ip)",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      }
+    ]
+  },
+  {
+    "name": "aqc",
+    "ticker": "$AQC",
+    "ca": "5EkcKr582FkAPVnRmaDdnkekTtnNRzNNSxmQxqrFpump",
+    "description": "Mobile wallet that brings the best experiences in crypto into a clean and easy to use interface. Built live with 300+ hours streamed.",
+    "dexDescription": "Building in public",
+    "xHandle": "@wickdottrade",
+    "siteUrl": "https://wick.trade",
+    "pumpFunUrl": "https://pump.fun/coin/5EkcKr582FkAPVnRmaDdnkekTtnNRzNNSxmQxqrFpump",
+    "dexScreenerUrl": "https://dexscreener.com/solana/5EkcKr582FkAPVnRmaDdnkekTtnNRzNNSxmQxqrFpump",
+    "tags": [],
+    "status": "live",
+    "addedAt": "2026-02-12",
+    "marketCap": 645616,
+    "priceUsd": 0.0006794,
+    "volume24h": 10881.97,
+    "liquidity": 87923.49,
+    "imageUrl": "https://ipfs.io/ipfs/bafybeihriiz6ruji64bu6pxfp5hsdqusujbnvd2hc6otqfiti2eekjrgmq",
+    "followers": 1031,
+    "recentTweets": [
+      {
+        "id": "2021744424645001350",
+        "text": "@carsonszeder Real",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      },
+      {
+        "id": "2021730927140077632",
+        "text": "Wick saw more deposits in the last 4 weeks than the previous 4 months combined.\n\nWhat are you waiting for? https://t.co/FRn25SEiv7",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      },
+      {
+        "id": "2021280917998780852",
+        "text": "RT @0xAquatic: BiP Hackathon stats:\n\n50+ livestreams\n290 hours of content\n5.7hr average stream\n\nFew are doing full work days on stream\n\nWe\u2026",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      },
+      {
+        "id": "2021260271096844651",
+        "text": "@aaalexhl Me explaining to my cousin he can buy Hype in 60 seconds with a debit card on Wick https://t.co/KbNYaFG96O",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      },
+      {
+        "id": "2021022904025219508",
+        "text": "@tednotlasso Wick fixes this. \n\nPowered by @privy_io btw \ud83e\udee1",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      }
+    ]
+  },
+  {
+    "name": "BloxAPI",
+    "ticker": "$BLOXX",
+    "ca": "B1rGc4HM4Q6q4nU78ADM7fGguxqiasH53fh6ViDXpump",
+    "description": "AI-powered tooling for Roblox games; 86 PF streams, 132 GH commits",
+    "dexDescription": "BloxAPI powers Roblox-style games with live data. When hooked up to BloxAPI, actions in games react to real buys, real hype, and real community momentum. \n\nWhy a token? Roblox has a strict policy and doesn't allow crypto to be used for ingame payment, and no crypto wallets, gambling, etc to protect its users (which is good!). However, external integrations can be used to power lots of things, including rewards, cosmetics, or gameplay features.\n\nBloxAPI provides this link with $BLOXX!\n\nDevs unlock the power to integrate their game with any token, leading to a new wave of on-chain games for the next generation! \n\nPLAYER UTILITY\n\u2022 Holder cosmetics (auras, badges, trails)\n\u2022 Access to Chaos Events (dragons, storms, world shifts)\n\u2022 Special in-game disaster creation or boss summoning\n\u2022 Weekly rewards for top disaster creators (who killed the most players with a disaster or boss?)\n\u2022 Higher token tiers unlock:\n** VIP badges in all games\n** Special holder-only maps and missions\n** Control the gameplay for everyone\n** Higher player rewards\n\nDEVELOPER UTILITY\n\u2022 Integrate your Roblox game with BloxAPI\n\u2022 Integrate your Roblox game with any token\n\u2022 Games get access to on-chain data, AI assisted gameplay, and cross-game persistence. \n\u2022 Higher token tiers unlock:\n** Higher API limits\n** Game analytics\n** Multi-game integration slots\n** Early access to new SDKs\n\nTOKENOMICS\nThe $BLOXX token will be used in part to power buybacks and incentives for building, with a separate marketing budget to be setup from trading and creator fees.\n\nROADMAP\nSee the website for an updated roadmap",
+    "xHandle": "@BloxApi",
+    "siteUrl": "https://bloxx.online",
+    "pumpFunUrl": "https://pump.fun/coin/B1rGc4HM4Q6q4nU78ADM7fGguxqiasH53fh6ViDXpump",
+    "dexScreenerUrl": "https://dexscreener.com/solana/B1rGc4HM4Q6q4nU78ADM7fGguxqiasH53fh6ViDXpump",
+    "tags": [
+      "AI",
+      "Gaming"
+    ],
+    "status": "live",
+    "addedAt": "2026-02-10",
+    "marketCap": 544116,
+    "priceUsd": 0.0005441,
+    "volume24h": 101996.98,
+    "liquidity": 68542.75,
+    "imageUrl": "https://ipfs.io/ipfs/bafybeibrcsit5xgta5wzi4rfiiqmopkfiwrqr5aicvjxbvnnjiaqhujlza",
+    "followers": 1440,
+    "recentTweets": [
+      {
+        "id": "2021675378214154678",
+        "text": "@CaptainNFA @Pumpfun @JuiceLaunch @prediction_xbt \ud83d\ude4f",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      },
+      {
+        "id": "2021673531054993901",
+        "text": "@CaptainNFA @Pumpfun @JuiceLaunch @prediction_xbt https://t.co/lN6nYnLk3h",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      },
+      {
+        "id": "2021673418467287259",
+        "text": "This is the 6th prediction I've seen that mentions $BLOXX as a potential Hackathon winner when asking @grok. That's actually REALLY COOL! \n\nBut I also talk to Grok a LOT about BloxAPI and things we want to achieve with it, so he has a LOT of context! (Pun intended) https://t.co/p",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      },
+      {
+        "id": "2021653541031714967",
+        "text": "@albysjourney @clovr_dev @v0 @magicpatterns @Lovable Love what you\u2019re doing!",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      },
+      {
+        "id": "2021647197780291685",
+        "text": "@CLOUT_solana @ItsVTrain @a1lon9 @TimDraper Have to remember, everyone has a different wheelhouse of expertise. He\u2019s been ahead of the game on a lot of early tech! It may not seem like a serious play to him if he doesn\u2019t know much about Roblox and I def didn\u2019t lead with the oppor",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      }
+    ]
+  },
+  {
+    "name": "Stable",
+    "ticker": "$STABLE",
+    "ca": "4AjvPXMn8YZG9saAVJvcWspg73oTFf2JmU4in4Xgpump",
+    "description": "Stable's stack brings the US mortgage market onchain. From origination through delivery. USDX, the mortgage backed stablecoin, enables anyone to provide liquidity.",
+    "dexDescription": "Stable has built a mortgage backed stablecoin, USDX, to bring efficiency to the $13 trillion US mortgage industry.",
+    "xHandle": "@stable_tweets",
+    "siteUrl": "https://trystable.co/",
+    "pumpFunUrl": "https://pump.fun/coin/4AjvPXMn8YZG9saAVJvcWspg73oTFf2JmU4in4Xgpump",
+    "dexScreenerUrl": "https://dexscreener.com/solana/4AjvPXMn8YZG9saAVJvcWspg73oTFf2JmU4in4Xgpump",
+    "tags": [],
+    "status": "live",
+    "addedAt": "2026-02-11",
+    "marketCap": 422973,
+    "priceUsd": 0.0004699,
+    "volume24h": 121541.14,
+    "liquidity": 59664.95,
+    "imageUrl": "https://ipfs.io/ipfs/bafkreidx3rad67atrog5jg7zepg35ksavabjccfzab3f42irqiuhiei2n4",
+    "followers": 1214,
+    "recentTweets": [
+      {
+        "id": "2021729561168453733",
+        "text": "@solsnow_ https://t.co/MaDBxWLYUi",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      },
+      {
+        "id": "2021713869811699801",
+        "text": "RT @tranc3y: met the $STABLE team at @mtndao \n\nv bullish on these guys\n\nthe founder @gumdropsteve came to a talk I did with @Amystreet on G\u2026",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      },
+      {
+        "id": "2021469886082589169",
+        "text": "@maxime_bucaille @TimDraper @a1lon9 @Pumpfun fun watch. nice job",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      },
+      {
+        "id": "2021454867877998615",
+        "text": "$STABLE is now verified on @JupiterExchange https://t.co/zQjgmQQRMc",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      },
+      {
+        "id": "2021348642213462336",
+        "text": "Stable does this for real mortgages https://t.co/NzHE0rGmL1",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      }
+    ]
+  },
+  {
+    "name": "Peak",
+    "ticker": "$PEAK",
+    "ca": "pmqCcMNgyFqE7FrbRNtTjD84VegonLJcWy7ESHMpump",
+    "description": "The anonymous social app where your net worth is your network.",
+    "dexDescription": "Your networth is your network.",
+    "xHandle": "@peaktalk",
+    "siteUrl": "https://www.peak.talk/",
+    "pumpFunUrl": "https://pump.fun/coin/pmqCcMNgyFqE7FrbRNtTjD84VegonLJcWy7ESHMpump",
+    "dexScreenerUrl": "https://dexscreener.com/solana/pmqCcMNgyFqE7FrbRNtTjD84VegonLJcWy7ESHMpump",
+    "tags": [
+      "Social"
+    ],
+    "status": "live",
+    "addedAt": "2026-02-10",
+    "marketCap": 400563,
+    "priceUsd": 0.0004005,
+    "volume24h": 41752.99,
+    "liquidity": 48965.97,
+    "imageUrl": "https://ipfs.io/ipfs/bafkreienyxqeqmz47gzyvuquw7fkhci2m5ztjvuflqct5mpuufzfx5yvni",
+    "followers": 210,
+    "recentTweets": [
+      {
+        "id": "2021764036027633671",
+        "text": "https://t.co/XPeWZXlHl9",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      },
+      {
+        "id": "2021764034656448701",
+        "text": "Curious how wallet verification works on Peak?\n\nWe made it as simple as possible for anyone to quickly (and anonymously) connect a wallet to a profile.\n\nHere's a video showcasing how it works in under 30 seconds: https://t.co/3z1LIdFavB",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      },
+      {
+        "id": "2021721987354087926",
+        "text": "@Pumpfun This applies to groups created within the next 24 hours. \n\nAdd a wallet to your profile with 1% or more of a token to create a group. Hold 0.1% or more of a token to join a group.  \n\nGood luck!\n\nhttps://t.co/Bn0kHWpVvn",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      },
+      {
+        "id": "2021720958302609611",
+        "text": "We're giving away $1,000 to @pumpfun group creators!\n\nHave 5 or more members in a group to qualify. \n\nThe top 3 groups ranked by net worth in 24 hours win. https://t.co/1U20v6TgM2",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      },
+      {
+        "id": "2021657538752905546",
+        "text": "&gt;wake up\n&gt;log on to peak\n&gt;gets portfoliomogged https://t.co/KfQV3sj2u5",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      }
+    ]
+  },
+  {
+    "name": "$Trencher",
+    "ticker": "$TRENCHER",
+    "ca": "8ncucXv6U6epZKHPbgaEBcEK399TpHGKCquSt4RnmX4f",
+    "description": "\u2705 Announced Trencher NFT (in process)\n\u2705 Received Pumpfun Community Grant\n\u2705 $10,000 airdropped to community\n\u2705 Received Base Builder Grant\n\u2705 Official Base bridge partner\n\u2705 800+ pieces of original art\n\u2705 Weekly livestreams\n\u2705 One of the only coins with protected IP\n\u2705 One of the only multichain coins\n\u2705 Limited edition merch drops\n\u2705 Invested 200 SOL, 16M $trencher, and 4 ETH back into project\n\u2705 Featured by PumpFun, Base, Candylabs, Opensea, Raydium, Moonshot, Bitget, and Ourbit",
+    "dexDescription": null,
+    "xHandle": "@trencher_sol",
+    "siteUrl": "https://www.trencher.art/",
+    "pumpFunUrl": "https://pump.fun/coin/8ncucXv6U6epZKHPbgaEBcEK399TpHGKCquSt4RnmX4f",
+    "dexScreenerUrl": "https://dexscreener.com/solana/8ncucXv6U6epZKHPbgaEBcEK399TpHGKCquSt4RnmX4f",
+    "tags": [],
+    "status": "live",
+    "addedAt": "2026-02-11",
+    "marketCap": 347273,
+    "priceUsd": 0.0003473,
+    "volume24h": 8136.27,
+    "liquidity": 145373.28,
+    "imageUrl": "https://cdn.dexscreener.com/cms/images/15c24413466e31e870f27c5d5f2ab1ff81f934c022f6d9a202d37c714a530496?width=800&height=800&quality=90",
+    "followers": 4832,
+    "recentTweets": [
+      {
+        "id": "2021635550948602294",
+        "text": "RT @grizzle_art: who's gonna pull these rares and be the #1 member of the nubcat fan club? https://t.co/JHGdsSx91g",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      },
+      {
+        "id": "2021376880587190761",
+        "text": "RT @grizzle_art: @brycent @Pumpfun been building my art brand for 10 months. pretty sure my application video is the most supported as of r\u2026",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      },
+      {
+        "id": "2021327326873538763",
+        "text": "RT @lonez_1: $TRENCHER will bring retails back \ud83d\udccc \nWe\u2019re so backkk!\n\n@Pumpfun https://t.co/moHcwAk0gb",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      },
+      {
+        "id": "2021323357757514170",
+        "text": "RT @grizzle_art: this is how stupid you'll look if you miss the trencher mint \ud83e\udef5\ud83e\udd21 https://t.co/sbujVbcR81",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      },
+      {
+        "id": "2021317830356947139",
+        "text": "RT @lonez_1: $TRENCHER is an art coin + creator coin on Base and Solana, backed by one of the most talented artists in the space who's been\u2026",
+        "likes": 0,
+        "replies": 0,
+        "retweets": 0
+      }
+    ]
+  }
+]

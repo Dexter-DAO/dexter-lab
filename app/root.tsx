@@ -1,6 +1,7 @@
 import { useStore } from '@nanostores/react';
 import type { LinksFunction } from '@remix-run/cloudflare';
-import { Links, Meta, Outlet, Scripts, ScrollRestoration } from '@remix-run/react';
+import { Links, Meta, Outlet, Scripts, ScrollRestoration, useRouteError, isRouteErrorResponse } from '@remix-run/react';
+import { captureRemixErrorBoundaryError } from '@sentry/remix';
 import tailwindReset from '@unocss/reset/tailwind-compat.css?url';
 import { themeStore } from './lib/stores/theme';
 import { stripIndents } from './utils/stripIndent';
@@ -164,5 +165,41 @@ export default function App() {
       <ClientOnly>{() => <WalletSync />}</ClientOnly>
       <Outlet />
     </Layout>
+  );
+}
+
+/**
+ * Root ErrorBoundary — catches all unhandled React/Remix errors.
+ * Sends the error to Sentry and renders a user-friendly fallback page.
+ */
+export function ErrorBoundary() {
+  const error = useRouteError();
+  captureRemixErrorBoundaryError(error);
+
+  const isResponse = isRouteErrorResponse(error);
+  const title = isResponse ? `${error.status} ${error.statusText}` : 'Something went wrong';
+  const message = isResponse
+    ? error.data?.message || 'The page you requested could not be loaded.'
+    : error instanceof Error
+      ? error.message
+      : 'An unexpected error occurred. The team has been notified.';
+
+  return (
+    <html lang="en" data-theme="dark">
+      <head>
+        <meta charSet="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>{title} | Dexter Lab</title>
+      </head>
+      <body style={{ margin: 0, fontFamily: 'Inter, system-ui, sans-serif', background: '#0a0a0f', color: '#e4e4e7', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
+        <div style={{ textAlign: 'center', padding: '2rem', maxWidth: '480px' }}>
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 600, marginBottom: '0.5rem' }}>{title}</h1>
+          <p style={{ color: '#a1a1aa', lineHeight: 1.6 }}>{message}</p>
+          <a href="/" style={{ display: 'inline-block', marginTop: '1.5rem', padding: '0.5rem 1.5rem', background: '#6d28d9', color: '#fff', borderRadius: '0.5rem', textDecoration: 'none', fontSize: '0.875rem' }}>
+            Back to Dexter Lab
+          </a>
+        </div>
+      </body>
+    </html>
   );
 }

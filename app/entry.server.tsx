@@ -6,6 +6,7 @@
  */
 import type { EntryContext } from '@remix-run/node';
 import { RemixServer } from '@remix-run/react';
+import * as Sentry from '@sentry/remix';
 import { isbot } from 'isbot';
 import { PassThrough } from 'stream';
 import { renderToPipeableStream } from 'react-dom/server';
@@ -14,6 +15,19 @@ import { Head } from './root';
 import { themeStore } from '~/lib/stores/theme';
 
 const ABORT_DELAY = 5_000;
+
+/**
+ * Sentry server-side error handler.
+ * Captures all unhandled errors from Remix loaders, actions, and rendering
+ * with full request context (route, params, headers).
+ */
+export const handleError = Sentry.wrapHandleErrorWithSentry((error, { request }) => {
+  // Log to console as well for PM2 log capture
+  if (error instanceof Error) {
+    const req = request as Request;
+    console.error(`[Sentry] Unhandled error on ${req.method} ${req.url}:`, error.message);
+  }
+});
 
 export default function handleRequest(
   request: Request,

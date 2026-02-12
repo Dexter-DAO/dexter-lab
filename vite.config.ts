@@ -1,4 +1,5 @@
 import { cloudflareDevProxyVitePlugin as remixCloudflareDevProxy, vitePlugin as remixVitePlugin } from '@remix-run/dev';
+import { sentryVitePlugin } from '@sentry/vite-plugin';
 import UnoCSS from 'unocss/vite';
 import { defineConfig, type ViteDevServer } from 'vite';
 import { nodePolyfills } from 'vite-plugin-node-polyfills';
@@ -11,6 +12,7 @@ dotenv.config({ path: '.env.local' });
 dotenv.config({ path: '.env' });
 dotenv.config();
 
+// @ts-expect-error -- conditional plugin array with mixed types is valid at runtime
 export default defineConfig((config) => {
   // We're running in Node.js via PM2, so we should use native Node.js APIs for SSR
   // Only polyfill for client-side builds
@@ -20,9 +22,13 @@ export default defineConfig((config) => {
     define: {
       'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV),
       'global': 'globalThis',
+      // Expose Sentry DSN to client-side code (DSN is a public identifier, not a secret)
+      'import.meta.env.SENTRY_DSN': JSON.stringify(process.env.SENTRY_DSN || ''),
     },
     build: {
       target: 'esnext',
+      // Source maps for Sentry (hidden = not referenced in bundle, uploaded separately)
+      sourcemap: 'hidden',
       // For SSR builds, don't bundle Node.js built-ins - use native APIs
       rollupOptions: isSSR ? {
         external: ['buffer', 'stream', 'util', 'events', 'path', 'fs', 'crypto', 'http', 'https', 'url', 'querystring', 'os', 'child_process', 'worker_threads', 'net', 'tls', 'zlib', 'dns', 'tty', 'assert'],
@@ -61,6 +67,16 @@ export default defineConfig((config) => {
       tsconfigPaths(),
       chrome129IssuePlugin(),
       config.mode === 'production' && optimizeCssModules({ apply: 'build' }),
+      // Sentry source map uploads (only in production builds when auth token is available)
+      config.mode === 'production' && process.env.SENTRY_AUTH_TOKEN && sentryVitePlugin({
+        org: process.env.SENTRY_ORG || '',
+        project: process.env.SENTRY_PROJECT || 'dexter-lab',
+        authToken: process.env.SENTRY_AUTH_TOKEN,
+        // Automatically clean up source maps after upload
+        sourcemaps: {
+          filesToDeleteAfterUpload: ['./build/**/*.map'],
+        },
+      }),
     ].filter(Boolean),
     envPrefix: [
       'VITE_',

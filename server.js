@@ -5,9 +5,14 @@
  * which provides full Node.js API access required by the Claude Agent SDK.
  */
 
+// Sentry MUST be imported before everything else
+import './instrument.server.mjs';
+import * as Sentry from '@sentry/remix';
+
 import { createRequestHandler } from '@remix-run/express';
 import { installGlobals } from '@remix-run/node';
 import express from 'express';
+import morgan from 'morgan';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import * as dotenv from 'dotenv';
@@ -24,6 +29,28 @@ installGlobals();
 const app = express();
 const PORT = process.env.PORT || 5173;
 
+// ─── Scanner Noise Filter ──────────────────────────────────────────────────────
+// Drop requests from WordPress/PHP vulnerability scanners before they
+// pollute logs, hit Remix routing, or get sent to Sentry.
+const SCANNER_PATHS = /^\/(wp-|wordpress|xmlrpc|\.env|cgi-bin|admin|phpmyadmin|\.git|\.well-known\/security)/i;
+const SCANNER_EXTENSIONS = /\.(php|asp|aspx|jsp|cgi)$/i;
+
+app.use((req, res, next) => {
+  if (SCANNER_PATHS.test(req.path) || SCANNER_EXTENSIONS.test(req.path)) {
+    res.status(404).end();
+    return;
+  }
+  next();
+});
+
+// ─── Request Logging (Morgan) ──────────────────────────────────────────────────
+// Apache combined format: IP, timestamp, method, path, status, size, referer, UA
+// Output goes to stdout → captured by PM2 in dexter-lab-out.log
+app.use(morgan('[:date[iso]] :method :url :status :res[content-length] - :response-time ms ":user-agent"', {
+  // Skip health check requests to keep logs clean
+  skip: (req) => req.url === '/api/health',
+}));
+
 // Serve static files from the client build
 app.use(express.static(join(__dirname, 'build/client'), {
   maxAge: '1y',
@@ -39,8 +66,17 @@ app.all(
   })
 );
 
+// ─── Sentry Error Handler ──────────────────────────────────────────────────────
+// MUST be after all routes/middleware. Captures unhandled errors and sends to Sentry.
+Sentry.setupExpressErrorHandler(app);
+
 app.listen(PORT, () => {
   console.log(`🚀 Dexter Lab server running at http://localhost:${PORT}`);
+  if (process.env.SENTRY_DSN) {
+    console.log('[Sentry] Server-side error tracking active');
+  } else {
+    console.log('[Sentry] No SENTRY_DSN configured — error tracking disabled');
+  }
 
   // Container lifecycle management
   // Call the reconcile endpoint on startup to sync Redis with Docker,
