@@ -121,8 +121,10 @@ export const loader = async ({ request: _request }: LoaderFunctionArgs) => {
     checks,
   };
 
-  // Return 200 for healthy/degraded, 503 for unhealthy
-  // UptimeRobot will alert on non-2xx status codes
+  /*
+   * Return 200 for healthy/degraded, 503 for unhealthy
+   * UptimeRobot will alert on non-2xx status codes
+   */
   return json(response, {
     status: overallStatus === 'unhealthy' ? 503 : 200,
     headers: {

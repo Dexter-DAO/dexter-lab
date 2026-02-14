@@ -14,6 +14,8 @@
     "deploy": "npm run build && wrangler pages deploy",
     "build": "NODE_OPTIONS='--max-old-space-size=8192' remix vite:build",
     "dev": "node pre-start.cjs  && remix vite:dev",
+    "dev:clean": "pnpm run zombies && pnpm run dev",
+    "zombies": "bash scripts/cleanup-zombies.sh",
     "test": "vitest --run",
     "test:watch": "vitest",
     "lint": "eslint --cache --cache-location ./node_modules/.cache/eslint app",

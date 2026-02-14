@@ -271,6 +271,15 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
     const handleSendMessage = (event: React.UIEvent, messageInput?: string) => {
       if (sendMessage) {
+        // GA: track prompt submission
+        import('~/lib/analytics')
+          .then(({ trackEvent }) => {
+            trackEvent('prompt_submitted', {
+              prompt_length: (messageInput || '').length,
+            });
+          })
+          .catch(() => {});
+
         sendMessage(event, messageInput);
         setSelectedElement?.(null);
 

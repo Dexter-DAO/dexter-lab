@@ -246,6 +246,14 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
       // Create abort controller
       abortControllerRef.current = new AbortController();
 
+      // GA: track agent started
+      const agentStartTime = Date.now();
+      import('~/lib/analytics')
+        .then(({ trackEvent }) => {
+          trackEvent('agent_started');
+        })
+        .catch(() => {});
+
       try {
         const response = await fetch(api, {
           method: 'POST',
@@ -411,9 +419,10 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
                     `[SSE-Client] FINAL event received. result.result length=${parsed.result.result?.length || 0}, assistantContent before final=${assistantContent.length}`,
                   );
 
-                  // Final update
+                  // Final update -- ensure content is always a string (SDK may return content blocks)
                   if (parsed.result.result) {
-                    assistantContent = parsed.result.result;
+                    const raw = parsed.result.result;
+                    assistantContent = typeof raw === 'string' ? raw : String(raw);
                     setMessages((prev) =>
                       prev.map((m) => (m.id === assistantMessageId ? { ...m, content: assistantContent } : m)),
                     );
@@ -456,6 +465,16 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
           }
         }
 
+        // GA: track agent completed
+        import('~/lib/analytics')
+          .then(({ trackEvent }) => {
+            trackEvent('agent_completed', {
+              success: true,
+              duration_ms: Date.now() - agentStartTime,
+            });
+          })
+          .catch(() => {});
+
         // Final sync to ensure all content is displayed
         console.log(
           `%c[SSE] Stream complete. ${clientEventCount} events, assistantContent=${assistantContent.length} chars`,
@@ -477,6 +496,17 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
 
           return;
         }
+
+        // GA: track agent error
+        import('~/lib/analytics')
+          .then(({ trackEvent }) => {
+            trackEvent('agent_completed', {
+              success: false,
+              error: err instanceof Error ? err.message : String(err),
+              duration_ms: Date.now() - agentStartTime,
+            });
+          })
+          .catch(() => {});
 
         console.error(
           '%c[SSE] Stream error:',
@@ -626,8 +656,10 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
                 } else if (parsed.type === 'system' && parsed.sessionId) {
                   sessionIdRef.current = parsed.sessionId;
                 } else if (parsed.type === 'final' && parsed.result) {
+                  // Ensure content is always a string (SDK may return content blocks)
                   if (parsed.result.result) {
-                    assistantContent = parsed.result.result;
+                    const raw = parsed.result.result;
+                    assistantContent = typeof raw === 'string' ? raw : String(raw);
                     setMessages((prev) =>
                       prev.map((m) => (m.id === assistantMessageId ? { ...m, content: assistantContent } : m)),
                     );

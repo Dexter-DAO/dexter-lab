@@ -14,6 +14,18 @@ import { toast } from 'react-toastify';
 import { $walletAddress, $walletConnected } from '~/lib/stores/wallet';
 import { closeSidebar } from '~/lib/stores/sidebar';
 import { ResourceLogs } from './ResourceLogs';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Filler,
+  Tooltip as ChartTooltip,
+} from 'chart.js';
+import { Line } from 'react-chartjs-2';
+
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Filler, ChartTooltip);
 
 const DEXTER_API_BASE = 'https://api.dexter.cash';
 
@@ -60,6 +72,24 @@ interface PayoutResult {
   message: string;
   signature?: string;
   creator_amount_usdc?: number;
+}
+
+interface PayoutEvent {
+  id: string;
+  created_at: string;
+  message: string | null;
+  data: {
+    signature?: string;
+    creator_amount_usdc?: number;
+    platform_amount_usdc?: number;
+    automatic?: boolean;
+  };
+}
+
+interface RevenuePoint {
+  date: string;
+  revenue_usdc: number;
+  requests: number;
 }
 
 /*
@@ -189,6 +219,164 @@ function formatSyncAge(isoString: string | null | undefined): string | null {
 
 /*
  * ---------------------------------------------------------------------------
+ * RevenueSparkline — 30-day mini chart (Chart.js)
+ * ---------------------------------------------------------------------------
+ */
+
+function RevenueSparkline({ resourceId }: { resourceId: string }) {
+  const [series, setSeries] = useState<RevenuePoint[] | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const res = await fetch(`${DEXTER_API_BASE}/api/dexter-lab/resources/${resourceId}/revenue-series?days=30`);
+
+        if (res.ok && !cancelled) {
+          const data = (await res.json()) as { series: RevenuePoint[] };
+          setSeries(data.series);
+        }
+      } catch {
+        /* silent */
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [resourceId]);
+
+  if (!series || series.length < 2) {
+    return null;
+  }
+
+  return (
+    <div className="h-12 -mx-0.5">
+      <Line
+        data={{
+          labels: series.map((p) => p.date),
+          datasets: [
+            {
+              data: series.map((p) => p.revenue_usdc),
+              borderColor: '#f97316',
+              backgroundColor: 'rgba(249, 115, 22, 0.08)',
+              borderWidth: 1.5,
+              pointRadius: 0,
+              pointHitRadius: 8,
+              fill: true,
+              tension: 0.3,
+            },
+          ],
+        }}
+        options={{
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              enabled: true,
+              callbacks: {
+                title: (items) => items[0]?.label ?? '',
+                label: (item) => `$${(item.raw as number).toFixed(4)} USDC`,
+              },
+              displayColors: false,
+              bodyFont: { size: 10 },
+              titleFont: { size: 10 },
+              padding: 4,
+            },
+          },
+          scales: {
+            x: { display: false },
+            y: { display: false, beginAtZero: true },
+          },
+          interaction: { mode: 'index', intersect: false },
+          animation: { duration: 400 },
+        }}
+      />
+    </div>
+  );
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * PayoutHistory — expandable list of past payouts
+ * ---------------------------------------------------------------------------
+ */
+
+function PayoutHistory({ resourceId }: { resourceId: string }) {
+  const [payouts, setPayouts] = useState<PayoutEvent[] | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const res = await fetch(`${DEXTER_API_BASE}/api/dexter-lab/resources/${resourceId}/payouts?limit=10`);
+
+        if (res.ok && !cancelled) {
+          const data = (await res.json()) as { payouts: PayoutEvent[] };
+          setPayouts(data.payouts);
+        }
+      } catch {
+        /* silent */
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [resourceId]);
+
+  if (loading) {
+    return <div className="text-[10px] text-gray-500 py-1">Loading history...</div>;
+  }
+
+  if (!payouts || payouts.length === 0) {
+    return <div className="text-[10px] text-gray-500 py-1">No payouts yet</div>;
+  }
+
+  return (
+    <div className="space-y-1 max-h-36 overflow-y-auto sidebar-scroll">
+      {payouts.map((p) => (
+        <div key={p.id} className="flex items-center justify-between text-[10px] py-0.5">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className="text-gray-500">{formatSyncAge(p.created_at) ?? 'unknown'}</span>
+            <span
+              className={`px-1 py-px rounded text-[9px] font-medium ${
+                p.data.automatic ? 'bg-blue-500/10 text-blue-400' : 'bg-purple-500/10 text-purple-400'
+              }`}
+            >
+              {p.data.automatic ? 'Auto' : 'Manual'}
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <span className="text-emerald-500 font-medium">{formatUsdc(p.data.creator_amount_usdc ?? 0)}</span>
+            {p.data.signature && (
+              <a
+                href={`https://solscan.io/tx/${p.data.signature}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-gray-400 hover:text-accent-500 transition-colors"
+                title="View on Solscan"
+              >
+                <div className="i-ph:arrow-square-out text-[10px]" />
+              </a>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/*
+ * ---------------------------------------------------------------------------
  * ResourceItem
  * ---------------------------------------------------------------------------
  */
@@ -197,6 +385,7 @@ function ResourceItem({ resource, onWithdraw }: { resource: LabResource; onWithd
   const [expanded, setExpanded] = useState(false);
   const [balance, setBalance] = useState<ResourceBalance | null>(null);
   const [showLogs, setShowLogs] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
   const [withdrawing, setWithdrawing] = useState(false);
   const [payoutResult, setPayoutResult] = useState<PayoutResult | null>(null);
   const statusCfg = getStatusConfig(resource.status);
@@ -233,7 +422,18 @@ function ResourceItem({ resource, onWithdraw }: { resource: LabResource; onWithd
   }, [expanded, resource.id]);
 
   const handleToggle = () => {
-    setExpanded((prev) => !prev);
+    setExpanded((prev) => {
+      if (!prev) {
+        // GA: track resource viewed (expanding)
+        import('~/lib/analytics')
+          .then(({ trackEvent }) => {
+            trackEvent('resource_viewed', { resource_id: resource.id, resource_name: resource.name });
+          })
+          .catch(() => {});
+      }
+
+      return !prev;
+    });
     setPayoutResult(null);
   };
 
@@ -241,6 +441,13 @@ function ResourceItem({ resource, onWithdraw }: { resource: LabResource; onWithd
     if (withdrawing) {
       return;
     }
+
+    // GA: track payout requested
+    import('~/lib/analytics')
+      .then(({ trackEvent }) => {
+        trackEvent('payout_requested', { resource_id: resource.id });
+      })
+      .catch(() => {});
 
     setWithdrawing(true);
     setPayoutResult(null);
@@ -359,6 +566,11 @@ function ResourceItem({ resource, onWithdraw }: { resource: LabResource; onWithd
                         key={i}
                         onClick={() => {
                           navigator.clipboard.writeText(fullUrl);
+                          import('~/lib/analytics')
+                            .then(({ trackEvent }) => {
+                              trackEvent('resource_url_copied', { resource_id: resource.id });
+                            })
+                            .catch(() => {});
                         }}
                         title="Click to copy endpoint URL"
                         className="flex items-center gap-1.5 text-xs w-full text-left bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-700/50 rounded-lg px-2 py-1.5 -mx-1 transition-colors group"
@@ -377,6 +589,11 @@ function ResourceItem({ resource, onWithdraw }: { resource: LabResource; onWithd
                 <button
                   onClick={() => {
                     navigator.clipboard.writeText(resource.public_url!);
+                    import('~/lib/analytics')
+                      .then(({ trackEvent }) => {
+                        trackEvent('resource_url_copied', { resource_id: resource.id });
+                      })
+                      .catch(() => {});
                   }}
                   title="Click to copy URL"
                   className="flex items-center gap-1.5 text-xs text-accent-500 hover:text-accent-400 transition-colors w-full text-left group"
@@ -406,6 +623,17 @@ function ResourceItem({ resource, onWithdraw }: { resource: LabResource; onWithd
               {formatUsdc(resource.creator_earnings_usdc)}
             </div>
 
+            {Number(resource.platform_fees_usdc) > 0 && (
+              <>
+                <div className="text-gray-500 dark:text-gray-500">
+                  Platform Fee <span className="text-gray-400 dark:text-gray-600 text-[10px]">(30%)</span>
+                </div>
+                <div className="text-gray-400 dark:text-gray-500 text-right">
+                  {formatUsdc(resource.platform_fees_usdc)}
+                </div>
+              </>
+            )}
+
             {resource.erc8004_agent_id && (
               <>
                 <div className="text-gray-500 dark:text-gray-500">On-chain</div>
@@ -422,6 +650,9 @@ function ResourceItem({ resource, onWithdraw }: { resource: LabResource; onWithd
               </>
             )}
           </div>
+
+          {/* ── Revenue sparkline ── */}
+          {hasRevenue && <RevenueSparkline resourceId={resource.id} />}
 
           {/* ── Pending payout section ── */}
           {balance !== null && (
@@ -445,27 +676,56 @@ function ResourceItem({ resource, onWithdraw }: { resource: LabResource; onWithd
                 </div>
               )}
 
-              {/* Withdraw Now — only when pending exceeds threshold */}
-              {canWithdraw && (
-                <button
-                  onClick={handleWithdraw}
-                  disabled={withdrawing}
-                  style={{ background: 'none' }}
-                  className="flex items-center gap-1 text-[11px] font-medium text-accent-500 hover:text-accent-400 transition-colors mt-0.5 disabled:opacity-50"
+              {/* SOL balance + managed wallet link */}
+              <div className="flex items-center justify-between text-[10px]">
+                <span className="text-gray-400 dark:text-gray-600">SOL: {balance.sol.toFixed(4)}</span>
+                <a
+                  href={`https://solscan.io/account/${resource.pay_to_wallet}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-0.5 text-gray-400 dark:text-gray-600 hover:text-accent-500 transition-colors"
+                  title="View managed wallet on Solscan"
                 >
-                  {withdrawing ? (
-                    <>
-                      <div className="i-svg-spinners:90-ring-with-bg text-xs" />
-                      Processing...
-                    </>
-                  ) : (
-                    <>
-                      <div className="i-ph:arrow-up-right text-xs" />
-                      Withdraw Now
-                    </>
-                  )}
-                </button>
-              )}
+                  <div className="i-ph:arrow-square-out text-[10px]" />
+                  <span>Wallet</span>
+                </a>
+              </div>
+
+              {/* Withdraw Now + History toggle */}
+              <div className="flex items-center gap-2">
+                {canWithdraw && (
+                  <button
+                    onClick={handleWithdraw}
+                    disabled={withdrawing}
+                    style={{ background: 'none' }}
+                    className="flex items-center gap-1 text-[11px] font-medium text-accent-500 hover:text-accent-400 transition-colors mt-0.5 disabled:opacity-50"
+                  >
+                    {withdrawing ? (
+                      <>
+                        <div className="i-svg-spinners:90-ring-with-bg text-xs" />
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        <div className="i-ph:arrow-up-right text-xs" />
+                        Withdraw Now
+                      </>
+                    )}
+                  </button>
+                )}
+                {hasRevenue && (
+                  <button
+                    onClick={() => setShowHistory((prev) => !prev)}
+                    style={{ background: 'none' }}
+                    className={`flex items-center gap-0.5 text-[11px] transition-colors mt-0.5 ${
+                      showHistory ? 'text-accent-500' : 'text-gray-400 dark:text-gray-500 hover:text-accent-500'
+                    }`}
+                  >
+                    <div className="i-ph:clock-counter-clockwise text-xs" />
+                    History
+                  </button>
+                )}
+              </div>
 
               {/* Payout result feedback */}
               {payoutResult && (
@@ -490,6 +750,9 @@ function ResourceItem({ resource, onWithdraw }: { resource: LabResource; onWithd
                   )}
                 </div>
               )}
+
+              {/* Payout history */}
+              {showHistory && <PayoutHistory resourceId={resource.id} />}
             </div>
           )}
 
@@ -818,6 +1081,39 @@ export function ResourceList() {
           No resources yet. Deploy your first one!
         </div>
       )}
+
+      {/* ── Aggregate stats banner ── */}
+      {!loading &&
+        resources.length > 1 &&
+        (() => {
+          const totalRevenue = resources.reduce((sum, r) => sum + (Number(r.gross_revenue_usdc) || 0), 0);
+          const totalPaid = resources.reduce((sum, r) => sum + (Number(r.creator_earnings_usdc) || 0), 0);
+          const totalPlatform = resources.reduce((sum, r) => sum + (Number(r.platform_fees_usdc) || 0), 0);
+          const totalPending = totalRevenue - totalPaid - totalPlatform;
+
+          if (totalRevenue <= 0) {
+            return null;
+          }
+
+          return (
+            <div className="rounded-md bg-gray-50 dark:bg-gray-800/40 px-2.5 py-2 mb-2">
+              <div className="grid grid-cols-3 gap-1 text-center">
+                <div>
+                  <div className="text-[10px] text-gray-500 dark:text-gray-500">Revenue</div>
+                  <div className="text-xs font-medium text-emerald-500">{formatUsdc(totalRevenue)}</div>
+                </div>
+                <div>
+                  <div className="text-[10px] text-gray-500 dark:text-gray-500">Paid</div>
+                  <div className="text-xs font-medium text-gray-900 dark:text-gray-200">{formatUsdc(totalPaid)}</div>
+                </div>
+                <div>
+                  <div className="text-[10px] text-gray-500 dark:text-gray-500">Pending</div>
+                  <div className="text-xs font-medium text-accent-500">{formatUsdc(Math.max(0, totalPending))}</div>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
       {!loading && resources.length > 0 && <ResourceSections resources={resources} onWithdraw={handleWithdraw} />}
     </div>

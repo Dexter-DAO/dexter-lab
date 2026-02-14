@@ -1,5 +1,6 @@
 import React from 'react';
 import { RecentlyDeployed } from './RecentlyDeployed';
+import { TopCreators } from './TopCreators';
 
 const GRADIENT_STYLE = {
   background: 'linear-gradient(130deg, #d13f00 0%, #ff6b00 42%, #ffb42c 100%)',
@@ -97,6 +98,9 @@ export function LandingContent(_props: LandingContentProps) {
           invoices, no waiting. You can also withdraw anytime from the dashboard.
         </p>
       </section>
+
+      {/* Top Lab Creators Leaderboard */}
+      <TopCreators />
 
       {/* What's Included */}
       <section className="max-w-3xl mx-auto px-6 mb-28">

@@ -122,24 +122,6 @@ export const AvatarDropdown = ({ onSelectTab }: AvatarDropdownProps) => {
               'outline-none',
               'group',
             )}
-            onClick={() =>
-              window.open('https://github.com/stackblitz-labs/bolt.diy/issues/new?template=bug_report.yml', '_blank')
-            }
-          >
-            <div className="i-ph:bug w-4 h-4 text-gray-400 group-hover:text-orange-500 dark:group-hover:text-orange-400 transition-colors" />
-            Report Bug
-          </DropdownMenu.Item>
-
-          <DropdownMenu.Item
-            className={classNames(
-              'flex items-center gap-2 px-4 py-2.5',
-              'text-sm text-gray-700 dark:text-gray-200',
-              'hover:bg-orange-50 dark:hover:bg-orange-500/10',
-              'hover:text-orange-500 dark:hover:text-orange-400',
-              'cursor-pointer transition-all duration-200',
-              'outline-none',
-              'group',
-            )}
             onClick={async () => {
               try {
                 const { downloadDebugLog } = await import('~/utils/debugLogger');

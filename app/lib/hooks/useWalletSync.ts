@@ -31,12 +31,29 @@ export function useWalletSync(): void {
     if (isConnected && address) {
       // AppKit connected — update the store and mark that we've been connected
       setWalletAddress(address);
+
+      if (!wasConnected.current) {
+        // GA: track wallet connected (first time this session)
+        import('~/lib/analytics')
+          .then(({ trackEvent }) => {
+            trackEvent('wallet_connected', { wallet_prefix: address.slice(0, 8) });
+          })
+          .catch(() => {});
+      }
+
       wasConnected.current = true;
     } else if (!isConnected && wasConnected.current) {
       /*
        * AppKit was connected in this session, now disconnected.
        * This is an explicit user disconnect (via AppKit modal) — clear everything.
        */
+      // GA: track wallet disconnected
+      import('~/lib/analytics')
+        .then(({ trackEvent }) => {
+          trackEvent('wallet_disconnected');
+        })
+        .catch(() => {});
+
       disconnectWallet();
       wasConnected.current = false;
     }

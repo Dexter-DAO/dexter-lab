@@ -134,15 +134,27 @@ Available providers and their capabilities:
 - openai: Chat completions, image generation, embeddings, TTS, STT
 - anthropic: Claude messages API
 - gemini: Google's Gemini models
-- helius: Solana RPC, DAS API, token metadata
+- helius: Solana RPC, DAS API, Wallet API, Enhanced Transactions, token metadata
 - jupiter: Token prices, swap quotes, limit orders
 - solscan: Account info, token data, transactions
 - birdeye: Token analytics, OHLCV data, market info
+- dexscreener: Real-time pair data, trending tokens, boosted tokens, token search
+- coingecko: Global market data, historical prices, trending, categories, on-chain DEX data
 
 The proxy handles authentication - no API keys needed in your requests.`,
         {
           provider: z
-            .enum(['openai', 'anthropic', 'gemini', 'helius', 'jupiter', 'solscan', 'birdeye'])
+            .enum([
+              'openai',
+              'anthropic',
+              'gemini',
+              'helius',
+              'jupiter',
+              'solscan',
+              'birdeye',
+              'dexscreener',
+              'coingecko',
+            ])
             .describe('The API provider to call'),
           endpoint: z.string().describe('The API endpoint path (e.g., "/v1/chat/completions" for OpenAI)'),
           method: z.enum(['GET', 'POST', 'PUT', 'DELETE']).describe('HTTP method'),

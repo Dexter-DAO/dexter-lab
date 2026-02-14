@@ -323,6 +323,15 @@ export const Workbench = memo(
 
     useEffect(() => {
       workbenchStore.setDocuments(files);
+
+      // GA: track code generated when files first appear
+      if (files && Object.keys(files).length > 0) {
+        import('~/lib/analytics')
+          .then(({ trackEvent }) => {
+            trackEvent('code_generated', { file_count: Object.keys(files).length });
+          })
+          .catch(() => {});
+      }
     }, [files]);
 
     const onEditorChange = useCallback<OnEditorChange>((update) => {

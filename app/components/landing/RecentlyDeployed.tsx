@@ -6,7 +6,7 @@
  * that triggers an actual x402 payment flow.
  */
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useStore } from '@nanostores/react';
 import { $walletAddress } from '~/lib/stores/wallet';
 
@@ -25,6 +25,69 @@ interface PublicResource {
   tags: string[];
   endpoints_json: Array<{ path: string; method: string; priceUsdc?: number; description?: string }> | null;
   cover_image_url?: string | null;
+  creator_wallet?: string;
+  gross_revenue_usdc?: number;
+}
+
+/**
+ * Batch-resolve wallet addresses to display names (SNS .sol or truncated).
+ * Caches results for the lifetime of the component.
+ */
+function useCreatorNames(wallets: string[]): Map<string, string> {
+  const [names, setNames] = useState<Map<string, string>>(new Map());
+  const resolvedRef = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    const toResolve = wallets.filter((w) => w && !resolvedRef.current.has(w));
+
+    if (toResolve.length === 0) {
+      return;
+    }
+
+    let cancelled = false;
+
+    // Resolve in parallel, max 6 concurrent
+    const resolve = async () => {
+      const results = new Map<string, string>();
+
+      await Promise.all(
+        toResolve.map(async (wallet) => {
+          try {
+            const res = await fetch(`${DEXTER_API_BASE}/api/dexter-lab/resolve-name/${wallet}`);
+
+            if (res.ok) {
+              const data = (await res.json()) as { wallet: string; display: string };
+              results.set(wallet, data.display);
+            }
+          } catch {
+            results.set(wallet, `${wallet.slice(0, 4)}...${wallet.slice(-4)}`);
+          }
+
+          resolvedRef.current.add(wallet);
+        }),
+      );
+
+      if (!cancelled) {
+        setNames((prev) => {
+          const next = new Map(prev);
+
+          for (const [k, v] of results) {
+            next.set(k, v);
+          }
+
+          return next;
+        });
+      }
+    };
+
+    resolve();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [wallets.join(',')]);
+
+  return names;
 }
 
 function formatPrice(usdc: number): string {
@@ -77,7 +140,7 @@ function timeAgo(isoString: string): string {
 
 // ─── Card Component ───────────────────────────────────────────────────────────
 
-function ResourceCard({ resource }: { resource: PublicResource }) {
+function ResourceCard({ resource, creatorName }: { resource: PublicResource; creatorName?: string }) {
   const [flipped, setFlipped] = useState(false);
   const [tryResult, setTryResult] = useState<{ status: 'idle' | 'loading' | 'success' | 'error'; data?: string }>({
     status: 'idle',
@@ -91,9 +154,20 @@ function ResourceCard({ resource }: { resource: PublicResource }) {
   const coverUrl = resource.cover_image_url;
 
   const handleFlip = useCallback(() => {
-    setFlipped((prev) => !prev);
+    setFlipped((prev) => {
+      if (!prev) {
+        // GA: track resource card clicked
+        import('~/lib/analytics')
+          .then(({ trackEvent }) => {
+            trackEvent('resource_card_clicked', { resource_id: resource.id, resource_name: resource.name });
+          })
+          .catch(() => {});
+      }
+
+      return !prev;
+    });
     setTryResult({ status: 'idle' });
-  }, []);
+  }, [resource.id, resource.name]);
 
   const handleTryIt = useCallback(async () => {
     setTryResult({ status: 'loading' });
@@ -209,7 +283,7 @@ function ResourceCard({ resource }: { resource: PublicResource }) {
           )}
 
           <div className="px-4 py-3">
-            <div className="flex items-start justify-between gap-2 mb-1.5">
+            <div className="flex items-start justify-between gap-2 mb-1">
               <div className="flex items-center gap-2 min-w-0">
                 <div className="relative shrink-0">
                   <div className={`w-2 h-2 rounded-full ${resource.healthy ? 'bg-emerald-500' : 'bg-gray-500'}`} />
@@ -224,8 +298,15 @@ function ResourceCard({ resource }: { resource: PublicResource }) {
               </span>
             </div>
 
+            {/* Creator identity */}
+            {creatorName && (
+              <div className="text-[10px] text-bolt-elements-textTertiary mb-1.5 pl-4 truncate">
+                by <span className="text-gray-400 dark:text-gray-500">{creatorName}</span>
+              </div>
+            )}
+
             {resource.description && (
-              <p className="text-xs text-bolt-elements-textSecondary leading-relaxed mb-2.5 line-clamp-2">
+              <p className="text-xs text-bolt-elements-textSecondary leading-relaxed mb-2 line-clamp-2">
                 {resource.description}
               </p>
             )}
@@ -237,6 +318,13 @@ function ResourceCard({ resource }: { resource: PublicResource }) {
                   {formatRequests(resource.request_count)} calls
                 </span>
                 <span>{formatPrice(resource.base_price_usdc)}/req</span>
+                {/* Revenue earned badge */}
+                {resource.gross_revenue_usdc != null && Number(resource.gross_revenue_usdc) > 0 && (
+                  <span className="flex items-center gap-0.5 text-emerald-500 font-medium">
+                    <span className="i-ph:coin text-[10px]" />
+                    {formatPrice(Number(resource.gross_revenue_usdc))}
+                  </span>
+                )}
               </div>
               <span>{timeAgo(resource.created_at)}</span>
             </div>
@@ -352,6 +440,10 @@ export function RecentlyDeployed() {
   const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState<'popular' | 'recent'>('popular');
 
+  // Collect unique creator wallets for batch name resolution
+  const creatorWallets = resources.map((r) => r.creator_wallet).filter(Boolean) as string[];
+  const creatorNames = useCreatorNames(creatorWallets);
+
   useEffect(() => {
     let cancelled = false;
 
@@ -428,7 +520,11 @@ export function RecentlyDeployed() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
         {resources.map((resource) => (
-          <ResourceCard key={resource.id} resource={resource} />
+          <ResourceCard
+            key={resource.id}
+            resource={resource}
+            creatorName={resource.creator_wallet ? creatorNames.get(resource.creator_wallet) : undefined}
+          />
         ))}
       </div>
 

@@ -55,10 +55,12 @@ You have access to powerful tools:
 - OpenAI: GPT-5.2, o3, o4-mini, DALL-E, Whisper, TTS (Chat Completions + Responses API)
 - Anthropic: Claude Opus 4.6, Sonnet 4.5 (Messages API)
 - Gemini: Gemini 3 Pro, Gemini 3 Flash (Generate Content API)
-- Helius: Solana RPC, DAS API, token metadata
+- Helius: Solana RPC, DAS API, Wallet API (balances/identity/history/transfers/funded-by), Enhanced Transactions, getTransactionsForAddress
 - Jupiter: Token prices, swap quotes, token search
 - Solscan: Account info, transactions, token data, trending
 - Birdeye: Token analytics (NOTE: currently suspended — use Helius/Jupiter/Solscan as fallback)
+- DexScreener: Real-time pair data, trending/boosted tokens, multi-token lookup (up to 30), pair search (80+ chains)
+- CoinGecko: Global market data, historical charts, trending coins, categories, on-chain DEX data (GeckoTerminal)
 
 All proxy calls are authenticated - no API keys needed in user code.
 
@@ -92,8 +94,19 @@ look up the provider's current documentation before generating code.
 
 - Jupiter Price: \`\${PROXY}/jupiter/price/v3?ids=MINT\` (V3, NOT v2)
 - Helius DAS: \`POST \${PROXY}/helius/rpc\` with JSON-RPC body (method: "getAsset", etc.)
+- Helius Wallet: \`\${PROXY}/helius/v1/wallet/{wallet}/balances\` (also: /identity, /history, /transfers, /funded-by)
+- Helius Tx History: \`POST \${PROXY}/helius/rpc\` with method: "getTransactionsForAddress" (advanced filtering, full tx data)
+- Helius Enhanced: \`POST \${PROXY}/helius/v0/transactions\` (parse tx sigs into human-readable), \`GET /helius/v0/addresses/{addr}/transactions?type=SWAP\`
 - Solscan Token: \`\${PROXY}/solscan/v2.0/token/meta?address=MINT\` (v2.0, NOT v2)
 - Birdeye Overview: \`\${PROXY}/birdeye/defi/token_overview?address=MINT\` (NOTE: currently suspended)
+- DexScreener: \`\${PROXY}/dexscreener/tokens/v1/solana/{mintAddresses}\` (comma-separated up to 30, returns pairs with price/volume/liquidity/fdv)
+- DexScreener Search: \`\${PROXY}/dexscreener/latest/dex/search?q=bonk\` (search pairs across all chains)
+- DexScreener Boosts: \`\${PROXY}/dexscreener/token-boosts/top/v1\` (most boosted tokens)
+- CoinGecko Price: \`\${PROXY}/coingecko/api/v3/simple/price?ids=solana&vs_currencies=usd&include_24hr_change=true\`
+- CoinGecko Token: \`\${PROXY}/coingecko/api/v3/simple/token_price/solana?contract_addresses=MINT&vs_currencies=usd\`
+- CoinGecko Trending: \`\${PROXY}/coingecko/api/v3/search/trending\` (trending coins, NFTs, categories)
+- CoinGecko Global: \`\${PROXY}/coingecko/api/v3/global\` (total market cap, BTC dominance)
+- CoinGecko On-Chain: \`\${PROXY}/coingecko/api/v3/onchain/networks/solana/trending_pools\` (GeckoTerminal DEX data)
 - OpenAI Responses: \`POST \${PROXY}/openai/v1/responses\` (preferred for conversational resources)
 - OpenAI Chat: \`POST \${PROXY}/openai/v1/chat/completions\` (for single-shot generation)
 - Anthropic: \`POST \${PROXY}/anthropic/v1/messages\` (model: claude-opus-4-6 or claude-sonnet-4-5)
@@ -430,7 +443,21 @@ export async function* streamDexterAgent(
       else if (message.type === 'result') {
         if ('subtype' in message) {
           if (message.subtype === 'success') {
-            result = (message as any).result || '';
+            const rawResult = (message as any).result;
+
+            // Claude Agent SDK may return result as string or content block array
+            if (typeof rawResult === 'string') {
+              result = rawResult;
+            } else if (Array.isArray(rawResult)) {
+              // Content blocks: [{type: 'text', text: '...'}, ...]
+              result = rawResult
+                .filter((b: any) => b.type === 'text' && b.text)
+                .map((b: any) => b.text)
+                .join('\n\n');
+            } else {
+              result = rawResult ? String(rawResult) : '';
+            }
+
             totalCostUsd = (message as any).total_cost_usd;
             numTurns = (message as any).num_turns;
             usage = (message as any).usage;

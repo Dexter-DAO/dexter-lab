@@ -154,6 +154,10 @@ export default defineConfig({
     'i-ph:bug',
     'i-ph:download',
     'i-ph:clipboard-text',
+    'i-ph:paper-plane-tilt',
+    'i-ph:spinner-gap-bold',
+    'i-ph:check-circle-fill',
+    'i-ph:info',
   ],
   shortcuts: {
     'bolt-ease-cubic-bezier': 'ease-[cubic-bezier(0.4,0,0.2,1)]',

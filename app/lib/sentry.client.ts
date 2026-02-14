@@ -36,6 +36,7 @@ Sentry.init({
     Sentry.replayIntegration({
       // Mask all text in recordings for privacy
       maskAllText: false,
+
       // Block media elements to reduce payload
       blockAllMedia: false,
     }),
@@ -45,15 +46,14 @@ Sentry.init({
   tracesSampleRate: 1.0,
 
   // Distributed tracing: propagate trace headers to your own API
-  tracePropagationTargets: [
-    'localhost',
-    /^https:\/\/lab\.dexter\.cash/,
-    /^https:\/\/api\.dexter\.cash/,
-  ],
+  tracePropagationTargets: ['localhost', /^https:\/\/lab\.dexter\.cash/, /^https:\/\/api\.dexter\.cash/],
 
-  // Session Replay sample rates
-  // 10% of normal sessions (general UX review)
+  /*
+   * Session Replay sample rates
+   * 10% of normal sessions (general UX review)
+   */
   replaysSessionSampleRate: 0.1,
+
   // 100% of sessions that encounter an error (critical for debugging)
   replaysOnErrorSampleRate: 1.0,
 

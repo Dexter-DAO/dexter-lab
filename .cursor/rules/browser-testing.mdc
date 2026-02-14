@@ -1,0 +1,22 @@
+---
+description: Rules for browser testing Dexter Lab to avoid false state detection
+globs:
+alwaysApply: true
+---
+
+# Browser Testing - Dexter Lab
+
+## Detecting if agent generation is still running
+
+The accessibility snapshot includes DOM elements that may be hidden or unmounted-but-still-in-tree. **NEVER** trust the snapshot alone to determine streaming state.
+
+### Correct approach:
+1. After sending a message, wait 15-20 seconds then take a **screenshot** (not just a snapshot)
+2. If you need to check programmatically, use `browser_is_visible` on the "Stop generation" button ref
+3. Poll in short intervals (15-30s) with screenshots, NOT long waits (60-240s) with snapshots
+4. If content hasn't changed between two consecutive checks, generation is done regardless of what the snapshot says
+
+### Never do:
+- Wait 60+ seconds blindly based on a snapshot showing "Stop generation"
+- Assume the agent is still working just because a button ref exists in the accessibility tree
+- Stack multiple long waits without visual verification between them

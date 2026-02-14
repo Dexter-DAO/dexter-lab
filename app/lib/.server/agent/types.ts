@@ -71,7 +71,16 @@ export interface StreamMessage {
 }
 
 export interface ProxyApiRequest {
-  provider: 'openai' | 'anthropic' | 'gemini' | 'helius' | 'jupiter' | 'solscan' | 'birdeye';
+  provider:
+    | 'openai'
+    | 'anthropic'
+    | 'gemini'
+    | 'helius'
+    | 'jupiter'
+    | 'solscan'
+    | 'birdeye'
+    | 'dexscreener'
+    | 'coingecko';
   endpoint: string;
   method: 'GET' | 'POST' | 'PUT' | 'DELETE';
   body?: unknown;

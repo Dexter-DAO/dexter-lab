@@ -65,6 +65,15 @@ const inlineThemeCode = stripIndents`
   }
 `;
 
+const GA_MEASUREMENT_ID = 'G-5VWKHNMTMT';
+
+const gaScript = `
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', '${GA_MEASUREMENT_ID}', { page_path: window.location.pathname });
+`;
+
 export const Head = createHead(() => (
   <>
     <meta charSet="utf-8" />
@@ -72,6 +81,8 @@ export const Head = createHead(() => (
     <Meta />
     <Links />
     <script dangerouslySetInnerHTML={{ __html: inlineThemeCode }} />
+    <script async src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`} />
+    <script dangerouslySetInnerHTML={{ __html: gaScript }} />
   </>
 ));
 
@@ -118,6 +129,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
 import { logStore } from './lib/stores/logs';
 import { useWalletSync } from './lib/hooks/useWalletSync';
+import { BugReportFab } from './components/bug-report/BugReportFab.client';
 
 /**
  * Isolated wallet sync component.
@@ -164,6 +176,7 @@ export default function App() {
     <Layout>
       <ClientOnly>{() => <WalletSync />}</ClientOnly>
       <Outlet />
+      <ClientOnly>{() => <BugReportFab />}</ClientOnly>
     </Layout>
   );
 }
@@ -175,6 +188,17 @@ export default function App() {
 export function ErrorBoundary() {
   const error = useRouteError();
   captureRemixErrorBoundaryError(error);
+
+  // Client-side: capture after hydration when Sentry SDK is initialized
+  useEffect(() => {
+    import('@sentry/remix')
+      .then((Sentry) => {
+        Sentry.captureException(error instanceof Error ? error : new Error(String(error)), {
+          extra: { boundary: 'root', route: window.location.pathname },
+        });
+      })
+      .catch(() => {});
+  }, [error]);
 
   const isResponse = isRouteErrorResponse(error);
   const title = isResponse ? `${error.status} ${error.statusText}` : 'Something went wrong';
@@ -189,16 +213,43 @@ export function ErrorBoundary() {
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <Meta />
+        <Links />
         <title>{title} | Dexter Lab</title>
       </head>
-      <body style={{ margin: 0, fontFamily: 'Inter, system-ui, sans-serif', background: '#0a0a0f', color: '#e4e4e7', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
+      <body
+        style={{
+          margin: 0,
+          fontFamily: 'Inter, system-ui, sans-serif',
+          background: '#0a0a0f',
+          color: '#e4e4e7',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          minHeight: '100vh',
+        }}
+      >
         <div style={{ textAlign: 'center', padding: '2rem', maxWidth: '480px' }}>
           <h1 style={{ fontSize: '1.5rem', fontWeight: 600, marginBottom: '0.5rem' }}>{title}</h1>
           <p style={{ color: '#a1a1aa', lineHeight: 1.6 }}>{message}</p>
-          <a href="/" style={{ display: 'inline-block', marginTop: '1.5rem', padding: '0.5rem 1.5rem', background: '#6d28d9', color: '#fff', borderRadius: '0.5rem', textDecoration: 'none', fontSize: '0.875rem' }}>
+          <a
+            href="/"
+            style={{
+              display: 'inline-block',
+              marginTop: '1.5rem',
+              padding: '0.5rem 1.5rem',
+              background: '#6d28d9',
+              color: '#fff',
+              borderRadius: '0.5rem',
+              textDecoration: 'none',
+              fontSize: '0.875rem',
+            }}
+          >
             Back to Dexter Lab
           </a>
         </div>
+        {/* Scripts keeps client JS alive so Sentry SDK can flush the error */}
+        <Scripts />
       </body>
     </html>
   );
