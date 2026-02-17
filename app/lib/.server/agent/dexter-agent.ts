@@ -58,7 +58,7 @@ You have access to powerful tools:
 - Helius: Solana RPC, DAS API, Wallet API (balances/identity/history/transfers/funded-by), Enhanced Transactions, getTransactionsForAddress
 - Jupiter: Token prices, swap quotes, token search
 - Solscan: Account info, transactions, token data, trending
-- Birdeye: Token analytics (NOTE: currently suspended — use Helius/Jupiter/Solscan as fallback)
+- Birdeye: Token analytics, OHLCV data, market overview, price history
 - DexScreener: Real-time pair data, trending/boosted tokens, multi-token lookup (up to 30), pair search (80+ chains)
 - CoinGecko: Global market data, historical charts, trending coins, categories, on-chain DEX data (GeckoTerminal)
 
@@ -98,7 +98,7 @@ look up the provider's current documentation before generating code.
 - Helius Tx History: \`POST \${PROXY}/helius/rpc\` with method: "getTransactionsForAddress" (advanced filtering, full tx data)
 - Helius Enhanced: \`POST \${PROXY}/helius/v0/transactions\` (parse tx sigs into human-readable), \`GET /helius/v0/addresses/{addr}/transactions?type=SWAP\`
 - Solscan Token: \`\${PROXY}/solscan/v2.0/token/meta?address=MINT\` (v2.0, NOT v2)
-- Birdeye Overview: \`\${PROXY}/birdeye/defi/token_overview?address=MINT\` (NOTE: currently suspended)
+- Birdeye Overview: \`\${PROXY}/birdeye/defi/token_overview?address=MINT\`
 - DexScreener: \`\${PROXY}/dexscreener/tokens/v1/solana/{mintAddresses}\` (comma-separated up to 30, returns pairs with price/volume/liquidity/fdv)
 - DexScreener Search: \`\${PROXY}/dexscreener/latest/dex/search?q=bonk\` (search pairs across all chains)
 - DexScreener Boosts: \`\${PROXY}/dexscreener/token-boosts/top/v1\` (most boosted tokens)
