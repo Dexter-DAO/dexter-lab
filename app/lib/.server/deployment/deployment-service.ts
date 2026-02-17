@@ -1180,7 +1180,9 @@ export async function reconcileState(): Promise<{
 
             try {
               if (resource.containerId) {
-                await removeContainer(resource.containerId, true).catch(() => {});
+                await removeContainer(resource.containerId, true).catch(() => {
+                  /* best-effort */
+                });
               }
 
               await removeImage(`dexter-resource-${resourceId}:latest`);
@@ -1216,13 +1218,17 @@ export async function reconcileState(): Promise<{
 
           try {
             await removeContainer(container.id, true);
-            await removeImage(`dexter-resource-${container.resourceId}:latest`).catch(() => {});
+            await removeImage(`dexter-resource-${container.resourceId}:latest`).catch(() => {
+              /* best-effort */
+            });
 
             // Also mark as stopped in API DB so frontend doesn't show it
             persistResourceUpdateToApi(container.resourceId, {
               status: 'stopped',
               healthy: false,
-            }).catch(() => {});
+            }).catch(() => {
+              /* best-effort */
+            });
             orphansRemoved++;
           } catch (orphanErr) {
             console.warn(`[Reconcile] Failed to remove orphan ${container.resourceId}:`, orphanErr);

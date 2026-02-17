@@ -192,12 +192,14 @@ export function ErrorBoundary() {
   // Client-side: capture after hydration when Sentry SDK is initialized
   useEffect(() => {
     import('@sentry/remix')
-      .then((Sentry) => {
-        Sentry.captureException(error instanceof Error ? error : new Error(String(error)), {
+      .then((sentryModule) => {
+        sentryModule.captureException(error instanceof Error ? error : new Error(String(error)), {
           extra: { boundary: 'root', route: window.location.pathname },
         });
       })
-      .catch(() => {});
+      .catch(() => {
+        /* Sentry SDK not available */
+      });
   }, [error]);
 
   const isResponse = isRouteErrorResponse(error);

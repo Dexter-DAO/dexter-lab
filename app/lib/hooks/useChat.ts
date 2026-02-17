@@ -252,7 +252,9 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
         .then(({ trackEvent }) => {
           trackEvent('agent_started');
         })
-        .catch(() => {});
+        .catch(() => {
+          /* ignore */
+        });
 
       try {
         const response = await fetch(api, {
@@ -473,7 +475,9 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
               duration_ms: Date.now() - agentStartTime,
             });
           })
-          .catch(() => {});
+          .catch(() => {
+            /* ignore */
+          });
 
         // Final sync to ensure all content is displayed
         console.log(
@@ -506,7 +510,9 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
               duration_ms: Date.now() - agentStartTime,
             });
           })
-          .catch(() => {});
+          .catch(() => {
+            /* ignore */
+          });
 
         console.error(
           '%c[SSE] Stream error:',

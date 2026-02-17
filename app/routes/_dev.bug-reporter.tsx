@@ -14,7 +14,7 @@ import { ClientOnly } from 'remix-utils/client-only';
  * - HMR for instant design updates
  */
 
-export async function loader({ request }: LoaderFunctionArgs) {
+export async function loader({ request: _request }: LoaderFunctionArgs) {
   // Only allow in development
   if (process.env.NODE_ENV === 'production') {
     throw new Response('Not Found', { status: 404 });

@@ -278,7 +278,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               prompt_length: (messageInput || '').length,
             });
           })
-          .catch(() => {});
+          .catch(() => {
+            /* ignore */
+          });
 
         sendMessage(event, messageInput);
         setSelectedElement?.(null);

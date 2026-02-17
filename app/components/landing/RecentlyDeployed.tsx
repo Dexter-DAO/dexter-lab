@@ -41,7 +41,7 @@ function useCreatorNames(wallets: string[]): Map<string, string> {
     const toResolve = wallets.filter((w) => w && !resolvedRef.current.has(w));
 
     if (toResolve.length === 0) {
-      return;
+      return undefined;
     }
 
     let cancelled = false;
@@ -161,7 +161,9 @@ function ResourceCard({ resource, creatorName }: { resource: PublicResource; cre
           .then(({ trackEvent }) => {
             trackEvent('resource_card_clicked', { resource_id: resource.id, resource_name: resource.name });
           })
-          .catch(() => {});
+          .catch(() => {
+            /* ignore */
+          });
       }
 
       return !prev;

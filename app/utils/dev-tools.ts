@@ -22,7 +22,7 @@ export const devFlags = {
  * Available in browser console or dev panel
  */
 if (isDev && typeof window !== 'undefined') {
-  // @ts-ignore
+  // @ts-ignore -- attaching dev tools to window for console access
   window.__DEV__ = {
     // Toggle bug reporter force-show
     toggleBugReporter: () => {

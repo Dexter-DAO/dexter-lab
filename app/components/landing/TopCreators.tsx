@@ -47,7 +47,7 @@ function useCreatorNames(wallets: string[]): Map<string, string> {
     const toResolve = wallets.filter((w) => w && !resolvedRef.current.has(w));
 
     if (toResolve.length === 0) {
-      return;
+      return undefined;
     }
 
     let cancelled = false;
@@ -103,7 +103,7 @@ function useCountUp(target: number, isVisible: boolean, duration = COUNTUP_DURAT
 
   useEffect(() => {
     if (!isVisible || target <= 0) {
-      return;
+      return undefined;
     }
 
     const start = performance.now();
@@ -145,7 +145,7 @@ function useInView(threshold = 0.2): [React.RefObject<HTMLElement | null>, boole
     const el = ref.current;
 
     if (!el) {
-      return;
+      return undefined;
     }
 
     const observer = new IntersectionObserver(
@@ -261,9 +261,7 @@ function CreatorRow({
       {/* Creator info */}
       <div className="relative flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold text-bolt-elements-textPrimary truncate">
-            {creator.displayName}
-          </span>
+          <span className="text-sm font-semibold text-bolt-elements-textPrimary truncate">{creator.displayName}</span>
           {rank === 1 && <span className="i-ph:crown-simple-fill text-amber-400 text-sm shrink-0" />}
         </div>
         <div className="text-[10px] text-bolt-elements-textTertiary mt-0.5 truncate">

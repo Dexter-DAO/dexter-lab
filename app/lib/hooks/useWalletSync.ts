@@ -38,7 +38,9 @@ export function useWalletSync(): void {
           .then(({ trackEvent }) => {
             trackEvent('wallet_connected', { wallet_prefix: address.slice(0, 8) });
           })
-          .catch(() => {});
+          .catch(() => {
+            /* ignore */
+          });
       }
 
       wasConnected.current = true;
@@ -52,7 +54,9 @@ export function useWalletSync(): void {
         .then(({ trackEvent }) => {
           trackEvent('wallet_disconnected');
         })
-        .catch(() => {});
+        .catch(() => {
+          /* ignore */
+        });
 
       disconnectWallet();
       wasConnected.current = false;

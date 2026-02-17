@@ -469,7 +469,9 @@ export const action: ActionFunction = async ({ request }) => {
           method: 'PATCH',
           headers: AUTH_HEADERS,
           body: JSON.stringify({ pay_to_wallet: managedWalletAddress }),
-        }).catch(() => {});
+        }).catch(() => {
+          /* fire-and-forget */
+        });
 
         console.log(
           `[Deploy API] Resource ${result.resourceId}: payTo=${managedWalletAddress}, creator=${resolvedWallet}`,
@@ -632,7 +634,9 @@ export const action: ActionFunction = async ({ request }) => {
             persistResourceUpdateToApi(result.resourceId, {
               erc8004_agent_id: mintData.agentId,
               erc8004_agent_registry: 'eip155:8453:0x8004A169FB4a3325136EB29fA0ceB6D2e539a432',
-            }).catch(() => {});
+            }).catch(() => {
+              /* fire-and-forget */
+            });
           }
 
           persistEventToApi({
@@ -641,7 +645,9 @@ export const action: ActionFunction = async ({ request }) => {
             message: `ERC-8004 identity minted on Base: agent #${mintData.agentId}`,
             data: { agentId: mintData.agentId, txHash: mintData.txHash, chain: 'base' },
             actor_system: true,
-          }).catch(() => {});
+          }).catch(() => {
+            /* fire-and-forget */
+          });
         } else {
           const errText = await mintRes.text();
           erc8004Result = { error: `HTTP ${mintRes.status}: ${errText}` };
@@ -653,7 +659,9 @@ export const action: ActionFunction = async ({ request }) => {
             message: `ERC-8004 mint failed: ${erc8004Result.error}`,
             data: { error: erc8004Result.error },
             actor_system: true,
-          }).catch(() => {});
+          }).catch(() => {
+            /* fire-and-forget */
+          });
         }
       } catch (mintErr) {
         const errMsg = mintErr instanceof Error ? mintErr.message : String(mintErr);

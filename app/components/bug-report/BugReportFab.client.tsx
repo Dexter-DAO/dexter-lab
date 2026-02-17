@@ -1,3 +1,4 @@
+/* eslint-disable @blitz/lines-around-comment */
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence, useMotionValue, useTransform, type Variants } from 'framer-motion';
 import { useStore } from '@nanostores/react';
@@ -144,6 +145,8 @@ export function BugReportFab() {
       const t = setTimeout(() => textareaRef.current?.focus(), 200);
       return () => clearTimeout(t);
     }
+
+    return undefined;
   }, [isOpen, submitted]);
 
   const close = useCallback(() => {
@@ -228,7 +231,6 @@ export function BugReportFab() {
     >
       <AnimatePresence mode="wait">
         {!isOpen ? (
-
           /* ---- Pill ---- */
           <motion.button
             key="pill"
@@ -256,7 +258,6 @@ export function BugReportFab() {
             <span className="hidden sm:inline">Report Bug</span>
           </motion.button>
         ) : (
-
           /* ---- Expanded card ---- */
           <motion.div
             key="card"
@@ -283,7 +284,6 @@ export function BugReportFab() {
           >
             <AnimatePresence mode="wait">
               {submitted ? (
-
                 /* ---- Success state ---- */
                 <motion.div
                   key="success"
@@ -300,7 +300,6 @@ export function BugReportFab() {
                   <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">We&apos;ll look into it.</p>
                 </motion.div>
               ) : (
-
                 /* ---- Form ---- */
                 <motion.div
                   key="form"

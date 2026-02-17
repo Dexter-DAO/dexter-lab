@@ -223,9 +223,7 @@ export function LandingContent(_props: LandingContentProps) {
           <span className="i-ph:lightning text-base" />
           Start building your API
         </button>
-        <p className="text-[10px] text-bolt-elements-textTertiary mt-3">
-          Free to build and deploy. You set the price.
-        </p>
+        <p className="text-[10px] text-bolt-elements-textTertiary mt-3">Free to build and deploy. You set the price.</p>
       </section>
 
       {/* Bottom fade */}

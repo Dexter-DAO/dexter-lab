@@ -429,7 +429,9 @@ function ResourceItem({ resource, onWithdraw }: { resource: LabResource; onWithd
           .then(({ trackEvent }) => {
             trackEvent('resource_viewed', { resource_id: resource.id, resource_name: resource.name });
           })
-          .catch(() => {});
+          .catch(() => {
+            /* ignore */
+          });
       }
 
       return !prev;
@@ -447,7 +449,9 @@ function ResourceItem({ resource, onWithdraw }: { resource: LabResource; onWithd
       .then(({ trackEvent }) => {
         trackEvent('payout_requested', { resource_id: resource.id });
       })
-      .catch(() => {});
+      .catch(() => {
+        /* ignore */
+      });
 
     setWithdrawing(true);
     setPayoutResult(null);
@@ -570,7 +574,9 @@ function ResourceItem({ resource, onWithdraw }: { resource: LabResource; onWithd
                             .then(({ trackEvent }) => {
                               trackEvent('resource_url_copied', { resource_id: resource.id });
                             })
-                            .catch(() => {});
+                            .catch(() => {
+                              /* ignore */
+                            });
                         }}
                         title="Click to copy endpoint URL"
                         className="flex items-center gap-1.5 text-xs w-full text-left bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-700/50 rounded-lg px-2 py-1.5 -mx-1 transition-colors group"
@@ -593,7 +599,9 @@ function ResourceItem({ resource, onWithdraw }: { resource: LabResource; onWithd
                       .then(({ trackEvent }) => {
                         trackEvent('resource_url_copied', { resource_id: resource.id });
                       })
-                      .catch(() => {});
+                      .catch(() => {
+                        /* ignore */
+                      });
                   }}
                   title="Click to copy URL"
                   className="flex items-center gap-1.5 text-xs text-accent-500 hover:text-accent-400 transition-colors w-full text-left group"

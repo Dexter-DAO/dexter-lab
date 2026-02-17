@@ -47,7 +47,9 @@ function formatDataStreamPart(type: string, data: unknown): string {
  */
 // eslint-disable-next-line @typescript-eslint/naming-convention
 class Experimental_StdioMCPTransport {
-  constructor(_options: unknown) {}
+  constructor(_options: unknown) {
+    /* stub */
+  }
 }
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import { z } from 'zod';

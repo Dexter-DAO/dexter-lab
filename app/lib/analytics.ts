@@ -14,55 +14,56 @@ declare global {
 
 export const GA_MEASUREMENT_ID = import.meta.env.VITE_GA_MEASUREMENT_ID || 'G-5VWKHNMTMT';
 
+/* eslint-disable @blitz/lines-around-comment */
 type EventName =
-
-  // Engagement
+  /* Engagement */
   | 'prompt_submitted'
   | 'agent_started'
   | 'agent_completed'
 
-  // Code
+  /* Code */
   | 'code_generated'
 
-  // Wallet
+  /* Wallet */
   | 'wallet_connected'
   | 'wallet_disconnected'
 
-  // Deploy
+  /* Deploy */
   | 'deploy_started'
   | 'deploy_building'
   | 'deploy_testing'
   | 'deploy_succeeded'
   | 'deploy_failed'
 
-  // Post-deploy
+  /* Post-deploy */
   | 'resource_viewed'
   | 'resource_url_copied'
   | 'payout_requested'
   | 'payout_completed'
 
-  // Landing
+  /* Landing */
   | 'resource_card_clicked';
+/* eslint-enable @blitz/lines-around-comment */
 
 interface EventParams {
-  // Prompt
+  /* Prompt */
   prompt_length?: number;
   model?: string;
   provider?: string;
 
-  // Agent
+  /* Agent */
   success?: boolean;
   turn_count?: number;
   duration_ms?: number;
   error?: string;
 
-  // Code
+  /* Code */
   file_count?: number;
 
-  // Wallet
+  /* Wallet */
   wallet_prefix?: string;
 
-  // Deploy
+  /* Deploy */
   resource_id?: string;
   resource_name?: string;
   price_usdc?: number;
@@ -70,11 +71,11 @@ interface EventParams {
   failure_reason?: string;
   test_count?: number;
 
-  // Payout
+  /* Payout */
   amount?: number;
   tx_signature?: string;
 
-  // Generic
+  /* Generic */
   [key: string]: unknown;
 }
 

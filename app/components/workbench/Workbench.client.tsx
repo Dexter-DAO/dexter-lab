@@ -330,7 +330,9 @@ export const Workbench = memo(
           .then(({ trackEvent }) => {
             trackEvent('code_generated', { file_count: Object.keys(files).length });
           })
-          .catch(() => {});
+          .catch(() => {
+            /* ignore */
+          });
       }
     }, [files]);
 
