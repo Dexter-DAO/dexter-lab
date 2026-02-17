@@ -21,6 +21,17 @@ interface LandingContentProps {
 }
 
 export function LandingContent(_props: LandingContentProps) {
+  const scrollToChat = () => {
+    const textarea = document.querySelector('textarea');
+
+    if (textarea) {
+      textarea.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setTimeout(() => textarea.focus(), 500);
+    } else {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
   return (
     <div className="w-full pb-24 mt-16">
       {/* Divider */}
@@ -72,6 +83,9 @@ export function LandingContent(_props: LandingContentProps) {
         </div>
       </section>
 
+      {/* Top Lab Creators — social proof early, right after explaining how it works */}
+      <TopCreators />
+
       {/* Revenue Split — the key selling point */}
       <section className="max-w-3xl mx-auto px-6 mb-28 text-center">
         <h2 className="font-display text-lg lg:text-xl font-semibold mb-8 text-bolt-elements-textPrimary tracking-wide">
@@ -98,9 +112,6 @@ export function LandingContent(_props: LandingContentProps) {
           invoices, no waiting. You can also withdraw anytime from the dashboard.
         </p>
       </section>
-
-      {/* Top Lab Creators Leaderboard */}
-      <TopCreators />
 
       {/* What's Included */}
       <section className="max-w-3xl mx-auto px-6 mb-28">
@@ -183,7 +194,7 @@ export function LandingContent(_props: LandingContentProps) {
         </p>
         <div className="mt-8 inline-block rounded-lg border border-accent-500/20 bg-accent-500/5 px-5 py-3">
           <p className="text-xs text-accent-500 font-semibold uppercase tracking-wider mb-1">
-            Free for everyone until February 17, 2026
+            Free for everyone until February 24, 2026
           </p>
           <p className="text-xs text-bolt-elements-textTertiary">
             After the promotional period, resource creation requires $DEXTER token holdings.
@@ -202,8 +213,23 @@ export function LandingContent(_props: LandingContentProps) {
       {/* Live Resources Feed */}
       <RecentlyDeployed />
 
+      {/* CTA — after browsing resources, give them a next step */}
+      <section className="max-w-xl mx-auto px-6 mt-12 mb-8 text-center">
+        <button
+          onClick={scrollToChat}
+          style={{ background: 'none' }}
+          className="inline-flex items-center gap-2 px-6 py-3 rounded-full border border-accent-500/30 hover:border-accent-500/60 bg-accent-500/5 hover:bg-accent-500/10 text-accent-400 hover:text-accent-300 text-sm font-semibold transition-all duration-200"
+        >
+          <span className="i-ph:lightning text-base" />
+          Start building your API
+        </button>
+        <p className="text-[10px] text-bolt-elements-textTertiary mt-3">
+          Free to build and deploy. You set the price.
+        </p>
+      </section>
+
       {/* Bottom fade */}
-      <div className="w-12 h-px mx-auto mt-24 bg-gradient-to-r from-transparent via-accent-500/15 to-transparent" />
+      <div className="w-12 h-px mx-auto mt-16 bg-gradient-to-r from-transparent via-accent-500/15 to-transparent" />
     </div>
   );
 }

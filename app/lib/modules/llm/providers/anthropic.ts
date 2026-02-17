@@ -9,6 +9,7 @@ export default class AnthropicProvider extends BaseProvider {
   getApiKeyLink = 'https://console.anthropic.com/settings/keys';
 
   config = {
+    baseUrlKey: 'ANTHROPIC_API_BASE_URL',
     apiTokenKey: 'ANTHROPIC_API_KEY',
   };
 
@@ -80,11 +81,11 @@ export default class AnthropicProvider extends BaseProvider {
     settings?: IProviderSetting,
     serverEnv?: Record<string, string>,
   ): Promise<ModelInfo[]> {
-    const { apiKey } = this.getProviderBaseUrlAndKey({
+    const { baseUrl, apiKey } = this.getProviderBaseUrlAndKey({
       apiKeys,
       providerSettings: settings,
       serverEnv: serverEnv as any,
-      defaultBaseUrlKey: '',
+      defaultBaseUrlKey: 'ANTHROPIC_API_BASE_URL',
       defaultApiTokenKey: 'ANTHROPIC_API_KEY',
     });
 
@@ -92,7 +93,9 @@ export default class AnthropicProvider extends BaseProvider {
       throw `Missing Api Key configuration for ${this.name} provider`;
     }
 
-    const response = await fetch(`https://api.anthropic.com/v1/models`, {
+    const fetchBase = baseUrl || 'https://api.anthropic.com';
+
+    const response = await fetch(`${fetchBase}/v1/models`, {
       headers: {
         'x-api-key': `${apiKey}`,
         'anthropic-version': '2023-06-01',
@@ -149,14 +152,15 @@ export default class AnthropicProvider extends BaseProvider {
     providerSettings?: Record<string, IProviderSetting>;
   }) => LanguageModelV1 = (options) => {
     const { apiKeys, providerSettings, serverEnv, model } = options;
-    const { apiKey } = this.getProviderBaseUrlAndKey({
+    const { baseUrl, apiKey } = this.getProviderBaseUrlAndKey({
       apiKeys,
       providerSettings,
       serverEnv: serverEnv as any,
-      defaultBaseUrlKey: '',
+      defaultBaseUrlKey: 'ANTHROPIC_API_BASE_URL',
       defaultApiTokenKey: 'ANTHROPIC_API_KEY',
     });
     const anthropic = createAnthropic({
+      baseURL: baseUrl || 'https://api.anthropic.com',
       apiKey,
       headers: { 'anthropic-beta': 'output-128k-2025-02-19' },
     });

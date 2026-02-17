@@ -5,14 +5,15 @@
  * and displays a ranked leaderboard with both "generated" (100%) and "earned" (70%) figures.
  *
  * Features:
- *  - Hero stat: aggregate total earned across all creators
- *  - Top resource name per creator (their highest-earning API)
+ *  - Hero stat: aggregate total earned across ALL creators (not just top 5)
+ *  - Top resource name + URL per creator (their highest-earning API)
  *  - Proportional revenue bars (relative to #1)
  *  - Animated count-up on scroll into view
+ *  - Clickable rows link to creator's top resource
  *  - Responsive: stacks revenue columns on mobile, shows only "Earned"
  */
 
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef } from 'react';
 
 const DEXTER_API_BASE = 'https://api.dexter.cash';
 const CREATOR_TAKE = 0.7;
@@ -21,6 +22,7 @@ const COUNTUP_DURATION_MS = 1200;
 interface PublicResource {
   id: string;
   name: string;
+  public_url: string;
   creator_wallet?: string;
   gross_revenue_usdc?: number;
 }
@@ -29,7 +31,8 @@ interface CreatorStats {
   wallet: string;
   displayName: string;
   resourceCount: number;
-  topResourceName: string; // name of their highest-earning resource
+  topResourceName: string;
+  topResourceUrl: string;
   revenueGenerated: number; // 100% — total gross
   revenueEarned: number; // 70% — creator cut
 }
@@ -149,7 +152,7 @@ function useInView(threshold = 0.2): [React.RefObject<HTMLElement | null>, boole
       ([entry]) => {
         if (entry.isIntersecting) {
           setInView(true);
-          observer.disconnect(); // only trigger once
+          observer.disconnect();
         }
       },
       { threshold },
@@ -236,8 +239,11 @@ function CreatorRow({
   const animatedEarned = useCountUp(creator.revenueEarned, isVisible);
 
   return (
-    <div
-      className={`group relative overflow-hidden flex items-center gap-3 md:gap-4 px-3 md:px-4 py-3 rounded-lg border ${style.ring} ${style.glow} bg-white/[0.02] dark:bg-gray-900/20 hover:bg-white/[0.04] dark:hover:bg-gray-900/40 transition-all duration-200`}
+    <a
+      href={creator.topResourceUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={`group relative overflow-hidden flex items-center gap-3 md:gap-4 px-3 md:px-4 py-3 rounded-lg border ${style.ring} ${style.glow} bg-white/[0.02] dark:bg-gray-900/20 hover:bg-white/[0.04] dark:hover:bg-gray-900/40 transition-all duration-200 no-underline cursor-pointer`}
     >
       {/* Revenue proportion bar (background) */}
       <div
@@ -255,12 +261,17 @@ function CreatorRow({
       {/* Creator info */}
       <div className="relative flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold text-bolt-elements-textPrimary truncate">{creator.displayName}</span>
+          <span className="text-sm font-semibold text-bolt-elements-textPrimary truncate">
+            {creator.displayName}
+          </span>
           {rank === 1 && <span className="i-ph:crown-simple-fill text-amber-400 text-sm shrink-0" />}
         </div>
         <div className="text-[10px] text-bolt-elements-textTertiary mt-0.5 truncate">
-          <span className="text-accent-500/70">{creator.topResourceName}</span>
+          <span className="text-accent-500/70 group-hover:text-accent-400 transition-colors">
+            {creator.topResourceName}
+          </span>
           {creator.resourceCount > 1 && <span> +{creator.resourceCount - 1} more</span>}
+          <span className="i-ph:arrow-up-right text-[8px] text-bolt-elements-textTertiary ml-1 opacity-0 group-hover:opacity-100 transition-opacity" />
         </div>
       </div>
 
@@ -281,13 +292,21 @@ function CreatorRow({
         </div>
         <div className="text-sm font-bold font-mono text-emerald-500">{formatUsd(animatedEarned)}</div>
       </div>
-    </div>
+    </a>
   );
 }
 
 // ─── Hero Stat ───────────────────────────────────────────────────────────────
 
-function HeroStat({ totalEarned, isVisible }: { totalEarned: number; isVisible: boolean }) {
+function HeroStat({
+  totalEarned,
+  creatorCount,
+  isVisible,
+}: {
+  totalEarned: number;
+  creatorCount: number;
+  isVisible: boolean;
+}) {
   const animated = useCountUp(totalEarned, isVisible, 1600);
 
   return (
@@ -295,7 +314,9 @@ function HeroStat({ totalEarned, isVisible }: { totalEarned: number; isVisible: 
       <div className="font-display text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight" style={GRADIENT_STYLE}>
         {formatUsd(animated)}
       </div>
-      <div className="text-sm text-bolt-elements-textSecondary mt-2">earned by creators</div>
+      <div className="text-sm text-bolt-elements-textSecondary mt-2">
+        earned by {creatorCount} {creatorCount === 1 ? 'creator' : 'creators'}
+      </div>
     </div>
   );
 }
@@ -304,6 +325,8 @@ function HeroStat({ totalEarned, isVisible }: { totalEarned: number; isVisible: 
 
 export function TopCreators() {
   const [creators, setCreators] = useState<CreatorStats[]>([]);
+  const [platformTotalEarned, setPlatformTotalEarned] = useState(0);
+  const [totalCreatorCount, setTotalCreatorCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [sectionRef, isVisible] = useInView(0.15);
 
@@ -339,7 +362,7 @@ export function TopCreators() {
         // Aggregate by creator wallet, track top resource per creator
         const byCreator = new Map<
           string,
-          { revenue: number; count: number; topResource: string; topResourceRevenue: number }
+          { revenue: number; count: number; topResource: string; topResourceUrl: string; topResourceRevenue: number }
         >();
 
         for (const resource of data.resources) {
@@ -354,6 +377,7 @@ export function TopCreators() {
             revenue: 0,
             count: 0,
             topResource: resource.name,
+            topResourceUrl: resource.public_url,
             topResourceRevenue: 0,
           };
           existing.revenue += revenue;
@@ -361,13 +385,21 @@ export function TopCreators() {
 
           if (revenue > existing.topResourceRevenue) {
             existing.topResource = resource.name;
+            existing.topResourceUrl = resource.public_url;
             existing.topResourceRevenue = revenue;
           }
 
           byCreator.set(wallet, existing);
         }
 
-        // Sort by revenue descending, take top 5
+        // Compute platform-wide totals BEFORE slicing to top 5
+        let allCreatorsEarned = 0;
+
+        for (const [, stats] of byCreator) {
+          allCreatorsEarned += stats.revenue * CREATOR_TAKE;
+        }
+
+        // Sort by revenue descending, take top 5 for display
         const sorted = Array.from(byCreator.entries())
           .sort(([, a], [, b]) => b.revenue - a.revenue)
           .slice(0, 5)
@@ -377,6 +409,7 @@ export function TopCreators() {
               displayName: `${wallet.slice(0, 4)}...${wallet.slice(-4)}`,
               resourceCount: stats.count,
               topResourceName: stats.topResource,
+              topResourceUrl: stats.topResourceUrl,
               revenueGenerated: stats.revenue,
               revenueEarned: stats.revenue * CREATOR_TAKE,
             }),
@@ -384,6 +417,8 @@ export function TopCreators() {
 
         if (!cancelled) {
           setCreators(sorted);
+          setPlatformTotalEarned(allCreatorsEarned);
+          setTotalCreatorCount(byCreator.size);
         }
       } catch {
         /* silent */
@@ -401,8 +436,6 @@ export function TopCreators() {
     };
   }, []);
 
-  // Derived stats
-  const totalEarned = creators.reduce((sum, c) => sum + c.revenueEarned, 0);
   const maxRevenue = creators.length > 0 ? creators[0].revenueGenerated : 0;
 
   // Don't render if no creators with revenue
@@ -423,8 +456,8 @@ export function TopCreators() {
 
   return (
     <section ref={sectionRef as React.RefObject<HTMLElement>} className="max-w-2xl mx-auto px-6 mb-28">
-      {/* Hero stat */}
-      <HeroStat totalEarned={totalEarned} isVisible={isVisible} />
+      {/* Hero stat — platform-wide total, not just top 5 */}
+      <HeroStat totalEarned={platformTotalEarned} creatorCount={totalCreatorCount} isVisible={isVisible} />
 
       {/* Header */}
       <div className="text-center mb-8">

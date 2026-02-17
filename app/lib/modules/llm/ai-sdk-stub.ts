@@ -59,7 +59,7 @@ export function createOpenAI(_options: { baseURL?: string; apiKey?: string }) {
 /**
  * Stub for createAnthropic from @ai-sdk/anthropic
  */
-export function createAnthropic(_options: { apiKey?: string; headers?: Record<string, string> }) {
+export function createAnthropic(_options: { baseURL?: string; apiKey?: string; headers?: Record<string, string> }) {
   return (model: string): LanguageModelV1 => {
     return createStubModel('anthropic', model);
   };
