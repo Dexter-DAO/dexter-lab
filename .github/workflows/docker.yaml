@@ -1,9 +1,6 @@
 name: Docker Publish
 
 on:
-  push:
-    branches: [main, stable]
-    tags: ['v*', '*.*.*']
   workflow_dispatch:
 
 concurrency:
