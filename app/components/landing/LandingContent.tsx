@@ -194,7 +194,7 @@ export function LandingContent(_props: LandingContentProps) {
         </p>
         <div className="mt-8 inline-block rounded-lg border border-accent-500/20 bg-accent-500/5 px-5 py-3">
           <p className="text-xs text-accent-500 font-semibold uppercase tracking-wider mb-1">
-            Free for everyone until February 24, 2026
+            Free for everyone until March 1, 2026
           </p>
           <p className="text-xs text-bolt-elements-textTertiary">
             After the promotional period, resource creation requires $DEXTER token holdings.

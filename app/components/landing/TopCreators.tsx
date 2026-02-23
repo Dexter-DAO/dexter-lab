@@ -135,7 +135,26 @@ function useCountUp(target: number, isVisible: boolean, duration = COUNTUP_DURAT
   return value;
 }
 
-// ─── Intersection observer hook ──────────────────────────────────────────────
+/*
+ * Intersection observer hook — uses the closest scrollable ancestor as `root`
+ * so it works inside nested scroll containers (the chat scroll area).
+ */
+
+function getScrollParent(el: HTMLElement): HTMLElement | null {
+  let node: HTMLElement | null = el.parentElement;
+
+  while (node) {
+    const { overflow, overflowY } = getComputedStyle(node);
+
+    if (/(auto|scroll)/.test(overflow + overflowY)) {
+      return node;
+    }
+
+    node = node.parentElement;
+  }
+
+  return null;
+}
 
 function useInView(threshold = 0.2): [React.RefObject<HTMLElement | null>, boolean] {
   const ref = useRef<HTMLElement | null>(null);
@@ -148,6 +167,8 @@ function useInView(threshold = 0.2): [React.RefObject<HTMLElement | null>, boole
       return undefined;
     }
 
+    const scrollRoot = getScrollParent(el);
+
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
@@ -155,7 +176,7 @@ function useInView(threshold = 0.2): [React.RefObject<HTMLElement | null>, boole
           observer.disconnect();
         }
       },
-      { threshold },
+      { threshold, root: scrollRoot },
     );
 
     observer.observe(el);
