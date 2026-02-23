@@ -97,12 +97,12 @@ function useCreatorNames(wallets: string[]): Map<string, string> {
 
 // ─── Animated count-up hook ──────────────────────────────────────────────────
 
-function useCountUp(target: number, isVisible: boolean, duration = COUNTUP_DURATION_MS): number {
+function useCountUp(target: number, active: boolean, duration = COUNTUP_DURATION_MS): number {
   const [value, setValue] = useState(0);
   const rafRef = useRef<number>();
 
   useEffect(() => {
-    if (!isVisible || target <= 0) {
+    if (!active || target <= 0) {
       return undefined;
     }
 
@@ -130,61 +130,9 @@ function useCountUp(target: number, isVisible: boolean, duration = COUNTUP_DURAT
         cancelAnimationFrame(rafRef.current);
       }
     };
-  }, [target, isVisible, duration]);
+  }, [target, active, duration]);
 
   return value;
-}
-
-/*
- * Intersection observer hook — uses the closest scrollable ancestor as `root`
- * so it works inside nested scroll containers (the chat scroll area).
- */
-
-function getScrollParent(el: HTMLElement): HTMLElement | null {
-  let node: HTMLElement | null = el.parentElement;
-
-  while (node) {
-    const { overflow, overflowY } = getComputedStyle(node);
-
-    if (/(auto|scroll)/.test(overflow + overflowY)) {
-      return node;
-    }
-
-    node = node.parentElement;
-  }
-
-  return null;
-}
-
-function useInView(threshold = 0.2): [React.RefObject<HTMLElement | null>, boolean] {
-  const ref = useRef<HTMLElement | null>(null);
-  const [inView, setInView] = useState(false);
-
-  useEffect(() => {
-    const el = ref.current;
-
-    if (!el) {
-      return undefined;
-    }
-
-    const scrollRoot = getScrollParent(el);
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setInView(true);
-          observer.disconnect();
-        }
-      },
-      { threshold, root: scrollRoot },
-    );
-
-    observer.observe(el);
-
-    return () => observer.disconnect();
-  }, [threshold]);
-
-  return [ref, inView];
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -242,22 +190,12 @@ const RANK_STYLES: Record<number, { ring: string; badge: string; glow: string }>
 
 // ─── Leaderboard Row ─────────────────────────────────────────────────────────
 
-function CreatorRow({
-  creator,
-  rank,
-  maxRevenue,
-  isVisible,
-}: {
-  creator: CreatorStats;
-  rank: number;
-  maxRevenue: number;
-  isVisible: boolean;
-}) {
+function CreatorRow({ creator, rank, maxRevenue }: { creator: CreatorStats; rank: number; maxRevenue: number }) {
   const style = RANK_STYLES[rank] || RANK_STYLES[5];
   const barPercent = maxRevenue > 0 ? (creator.revenueGenerated / maxRevenue) * 100 : 0;
 
-  const animatedGenerated = useCountUp(creator.revenueGenerated, isVisible);
-  const animatedEarned = useCountUp(creator.revenueEarned, isVisible);
+  const animatedGenerated = useCountUp(creator.revenueGenerated, true);
+  const animatedEarned = useCountUp(creator.revenueEarned, true);
 
   return (
     <a
@@ -269,7 +207,7 @@ function CreatorRow({
       {/* Revenue proportion bar (background) */}
       <div
         className="absolute inset-y-0 left-0 bg-accent-500/[0.04] transition-all duration-1000 ease-out"
-        style={{ width: isVisible ? `${barPercent}%` : '0%' }}
+        style={{ width: `${barPercent}%` }}
       />
 
       {/* Rank badge */}
@@ -317,16 +255,8 @@ function CreatorRow({
 
 // ─── Hero Stat ───────────────────────────────────────────────────────────────
 
-function HeroStat({
-  totalEarned,
-  creatorCount,
-  isVisible,
-}: {
-  totalEarned: number;
-  creatorCount: number;
-  isVisible: boolean;
-}) {
-  const animated = useCountUp(totalEarned, isVisible, 1600);
+function HeroStat({ totalEarned, creatorCount }: { totalEarned: number; creatorCount: number }) {
+  const animated = useCountUp(totalEarned, true, 1600);
 
   return (
     <div className="text-center mb-10">
@@ -347,7 +277,7 @@ export function TopCreators() {
   const [platformTotalEarned, setPlatformTotalEarned] = useState(0);
   const [totalCreatorCount, setTotalCreatorCount] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [sectionRef, isVisible] = useInView(0.15);
+  const sectionRef = useRef<HTMLElement | null>(null);
 
   // Extract wallets for name resolution
   const wallets = creators.map((c) => c.wallet);
@@ -476,7 +406,7 @@ export function TopCreators() {
   return (
     <section ref={sectionRef as React.RefObject<HTMLElement>} className="max-w-2xl mx-auto px-6 mb-28">
       {/* Hero stat — platform-wide total, not just top 5 */}
-      <HeroStat totalEarned={platformTotalEarned} creatorCount={totalCreatorCount} isVisible={isVisible} />
+      <HeroStat totalEarned={platformTotalEarned} creatorCount={totalCreatorCount} />
 
       {/* Header */}
       <div className="text-center mb-8">
@@ -495,13 +425,7 @@ export function TopCreators() {
       {/* Leaderboard */}
       <div className="space-y-2">
         {creators.map((creator, i) => (
-          <CreatorRow
-            key={creator.wallet}
-            creator={creator}
-            rank={i + 1}
-            maxRevenue={maxRevenue}
-            isVisible={isVisible}
-          />
+          <CreatorRow key={creator.wallet} creator={creator} rank={i + 1} maxRevenue={maxRevenue} />
         ))}
       </div>
 
