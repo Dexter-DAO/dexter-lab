@@ -34,8 +34,13 @@ See `package.json` scripts. The most relevant:
 ### Infrastructure notes
 
 - **Redis**: Optional. The app has an in-memory fallback when Redis is unavailable. Expect `[Redis] Connection error` logs — these are harmless.
-- **Docker**: Only needed for deploying x402 resource containers. Not required for running the main app.
+- **Docker**: Only needed for deploying x402 resource containers. Not required for running the main app. Without Docker, `/api/health` returns 503 and the client continuously polls it — this is cosmetic noise, not a functional blocker.
 - **Traefik**: Only needed for wildcard subdomain routing of deployed resources.
+
+### Known cloud environment limitations
+
+- **Chat send-to-view transition**: In the production Express build (`node server.js`), after sending a chat message from the homepage, the URL changes to `/chat/:id` but the chat content may not visually render. Navigating to the chat via the sidebar **does** work and shows the full AI building experience (code generation, workbench, WebContainer terminal). This is likely related to the Cloudflare dev proxy not being present in Express mode and the framer-motion animation scope not properly hiding the landing page elements.
+- **`/api/llmcall` endpoint**: Returns 500 in Express mode because `context.cloudflare?.env` is undefined. The API key resolution falls back to `process.env` but template selection may fail. The main chat still functions because `selectStarterTemplate` catches errors and falls through.
 
 ### Pre-commit hooks
 
