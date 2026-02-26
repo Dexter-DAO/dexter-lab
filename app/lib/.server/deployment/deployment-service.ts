@@ -258,6 +258,14 @@ function generateLandingPageHtml(config: ResourceConfig): string {
       <a id="identity-a2a" href="#" target="_blank" rel="noopener" style="font-size:12px;color:#818cf8;text-decoration:none">A2A Agent Card &rarr;</a>
     </div>
   </div>
+  <div style="margin-top:16px;padding:14px;border-radius:10px;border:1px solid rgba(168,85,247,0.2);background:rgba(168,85,247,0.05)">
+    <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
+      <span style="font-size:13px;color:#a78bfa">&#9881;</span>
+      <span style="font-size:11px;color:#a78bfa;font-weight:600;text-transform:uppercase;letter-spacing:0.1em">MCP Tool Server</span>
+    </div>
+    <code id="mcp-url" style="display:block;font-size:11px;color:#c4b5fd;background:rgba(0,0,0,0.3);padding:8px 10px;border-radius:6px;border:1px solid rgba(168,85,247,0.15);cursor:pointer;word-break:break-all" onclick="navigator.clipboard.writeText(this.textContent);this.style.color='#22c55e';setTimeout(function(){document.getElementById('mcp-url').style.color='#c4b5fd'},1500)"></code>
+    <p style="font-size:11px;color:#6b7280;margin-top:8px;line-height:1.5">Add this URL to Claude Desktop, Cursor, or any MCP client to use this API as an AI tool.</p>
+  </div>
   <div class="info">
     <strong>Programmatic access:</strong><br><br>
     <code>npm install @dexterai/x402</code><br><br>
@@ -290,6 +298,7 @@ function generateLandingPageHtml(config: ResourceConfig): string {
           document.getElementById('identity-a2a').href='https://api.dexter.cash/api/dexter-lab/resources/'+rid+'/agent.json';
           document.getElementById('identity-section').style.display='block';
         }
+        document.getElementById('mcp-url').textContent=location.origin+'/mcp';
       }).catch(function(){});
   }
   loadStats();
