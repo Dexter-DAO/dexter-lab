@@ -542,10 +542,77 @@ function injectPlatformCode(files: Map<string, string>, config: ResourceConfig):
     content = content.replace(/app\.listen\(/, `${catchAllCode}\napp.listen(`);
   }
 
+  /*
+   * 6. MCP endpoint -- exposes each paid endpoint as an MCP tool (stateless Streamable HTTP)
+   */
+  if (!content.includes('/mcp')) {
+    const toolDefs = config.endpoints
+      .filter((ep) => ep.priceUsdc && ep.priceUsdc > 0)
+      .map((ep) => {
+        const toolName = `${config.name.replace(/[^a-zA-Z0-9]/g, '_')}_${ep.method}_${ep.path.replace(/[^a-zA-Z0-9]/g, '_')}`;
+        const price = ep.priceUsdc || config.basePriceUsdc;
+        return `  mcpServer.tool(${JSON.stringify(toolName)}, ${JSON.stringify(`${ep.description || ep.path} ($${price} USDC per call via x402)`)}, {}, async () => ({ content: [{ type: 'text', text: JSON.stringify({ endpoint: '${ep.path}', method: '${ep.method}', price_usdc: ${price}, url: process.env.PUBLIC_URL || 'https://${config.id}.dexter.cash', payment_protocol: 'x402', instructions: 'Send an HTTP ${ep.method} request to the url+endpoint. The server returns 402 with a PAYMENT-REQUIRED header. Use @dexterai/x402/client wrapFetch to handle payment automatically.' }) }] }));`;
+      });
+
+    if (toolDefs.length > 0) {
+      const mcpCode = `
+// MCP endpoint (auto-added by Dexter Lab)
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
+
+const mcpServer = new McpServer({ name: ${JSON.stringify(config.name)}, version: '1.0.0' });
+${toolDefs.join('\n')}
+
+app.post('/mcp', async (req: any, res: any) => {
+  try {
+    const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
+    await mcpServer.connect(transport);
+    await transport.handleRequest(req, res, req.body);
+  } catch (e: any) {
+    res.status(500).json({ error: 'MCP error', message: e.message });
+  }
+});
+app.get('/mcp', (req: any, res: any) => {
+  res.json({ name: ${JSON.stringify(config.name)}, protocol: 'mcp', version: '2025-03-26', tools: ${JSON.stringify(config.endpoints.filter((e) => e.priceUsdc && e.priceUsdc > 0).map((e) => e.path))} });
+});
+`;
+      // Insert MCP imports at the top and route before app.listen
+      const lastImportIdx = content.lastIndexOf('import ');
+      const lineEnd = content.indexOf('\n', lastImportIdx);
+      const mcpImports = "import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';\nimport { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';\n";
+
+      // Only add imports if not already present
+      if (!content.includes('McpServer')) {
+        content = content.slice(0, lineEnd + 1) + mcpImports + content.slice(lineEnd + 1);
+      }
+
+      // Add MCP server setup and routes before app.listen
+      const mcpRouteCode = `
+// MCP server setup (auto-added by Dexter Lab)
+const mcpServer = new McpServer({ name: ${JSON.stringify(config.name)}, version: '1.0.0' });
+${toolDefs.join('\n')}
+
+app.post('/mcp', async (req: any, res: any) => {
+  try {
+    const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
+    await mcpServer.connect(transport);
+    await transport.handleRequest(req, res, req.body);
+  } catch (e: any) {
+    res.status(500).json({ error: 'MCP error', message: e.message });
+  }
+});
+app.get('/mcp', (req: any, res: any) => {
+  res.json({ name: ${JSON.stringify(config.name)}, protocol: 'mcp', version: '2025-03-26', tools: ${JSON.stringify(config.endpoints.filter((e) => e.priceUsdc && e.priceUsdc > 0).map((e) => e.path))} });
+});
+`;
+      content = content.replace(/app\.listen\(/, `${mcpRouteCode}\napp.listen(`);
+    }
+  }
+
   files.set(mainKey, content);
 
   /*
-   * 6. Ensure @dexterai/x402 is at ^1.6.0 in package.json
+   * 7. Ensure @dexterai/x402 is at ^1.6.0 in package.json
    *    (base image may cache older version; ^1.6.0 forces npm to fetch the new one)
    */
   const pkgJson = files.get('package.json');

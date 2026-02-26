@@ -13,6 +13,7 @@
  */
 
 import { type ActionFunction, type LoaderFunction, json } from '@remix-run/cloudflare';
+import { slugToTitle } from '~/utils/formatName';
 import { DeploymentService, reconcileState, runPostDeployTests, formatTestResults } from '~/lib/.server/deployment';
 import type { ResourceConfig, ResourceEndpoint } from '~/lib/.server/deployment/types';
 import type { TestSuiteResult } from '~/lib/.server/deployment/test-runner';
@@ -604,7 +605,7 @@ export const action: ActionFunction = async ({ request }) => {
           },
           body: JSON.stringify({
             chain: 'base',
-            name: body.name,
+            name: slugToTitle(body.name),
             description: body.description,
             walletAddress: managedWalletAddress,
             services: [
@@ -618,35 +619,53 @@ export const action: ActionFunction = async ({ request }) => {
                 endpoint: `${DEXTER_API_BASE}/api/dexter-lab/resources/${result.resourceId}/agent.json`,
                 version: '0.2.1',
               },
+              {
+                name: 'MCP',
+                endpoint: `${result.publicUrl}/mcp`,
+                version: '2025-03-26',
+              },
             ],
           }),
         });
 
         if (mintRes.ok) {
-          const mintData = (await mintRes.json()) as { agentId?: number; txHash?: string };
-          erc8004Result = mintData;
+          const mintData = (await mintRes.json()) as {
+            success?: boolean;
+            identity?: { agentId?: string | number };
+            txHash?: string;
+            agentId?: string | number;
+          };
+
+          // The mint endpoint returns agentId inside identity object (serialized as string from BigInt)
+          // Also check top-level for backwards compat
+          const rawAgentId = mintData.identity?.agentId ?? mintData.agentId;
+          const agentId = rawAgentId ? parseInt(String(rawAgentId), 10) : undefined;
+          const txHash = mintData.txHash;
+
+          erc8004Result = { agentId, txHash };
           console.log(
-            `[Deploy API] ERC-8004 identity minted for ${result.resourceId}: agentId=${mintData.agentId}, tx=${mintData.txHash}`,
+            `[Deploy API] ERC-8004 identity minted for ${result.resourceId}: agentId=${agentId}, tx=${txHash}`,
           );
 
-          // Store the agent ID on the resource record
-          if (mintData.agentId) {
+          if (agentId && !isNaN(agentId)) {
             persistResourceUpdateToApi(result.resourceId, {
-              erc8004_agent_id: mintData.agentId,
+              erc8004_agent_id: agentId,
               erc8004_agent_registry: 'eip155:8453:0x8004A169FB4a3325136EB29fA0ceB6D2e539a432',
-            }).catch(() => {
-              /* fire-and-forget */
+            }).catch((e) => {
+              console.error(`[Deploy API] Failed to persist ERC-8004 agent ID for ${result.resourceId}:`, e);
             });
+          } else {
+            console.warn(`[Deploy API] Mint succeeded but no valid agentId in response for ${result.resourceId}:`, JSON.stringify(mintData).substring(0, 200));
           }
 
           persistEventToApi({
             resource_id: result.resourceId,
             event_type: 'identity_minted',
-            message: `ERC-8004 identity minted on Base: agent #${mintData.agentId}`,
-            data: { agentId: mintData.agentId, txHash: mintData.txHash, chain: 'base' },
+            message: `ERC-8004 identity minted on Base: agent #${agentId}`,
+            data: { agentId, txHash, chain: 'base' },
             actor_system: true,
-          }).catch(() => {
-            /* fire-and-forget */
+          }).catch((e) => {
+            console.error(`[Deploy API] Failed to persist identity_minted event for ${result.resourceId}:`, e);
           });
         } else {
           const errText = await mintRes.text();

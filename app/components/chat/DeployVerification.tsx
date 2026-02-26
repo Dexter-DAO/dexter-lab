@@ -488,6 +488,13 @@ export const DeployVerification = memo(({ resourceId }: DeployVerificationProps)
           </motion.div>
         )}
 
+        {/* ─── MCP Endpoint ─── */}
+        {isComplete && publicUrl && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.35 }} className="mt-1">
+            <CopyableUrl url={`${publicUrl}/mcp`} method="MCP" />
+          </motion.div>
+        )}
+
         {/* ─── Price ─── */}
         {isComplete && priceUsdc !== undefined && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }} className="mt-1.5">
