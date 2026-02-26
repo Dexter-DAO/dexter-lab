@@ -8,6 +8,7 @@
 
 import type { LoaderFunction, ActionFunction } from '@remix-run/cloudflare';
 
+const CONNECTOR_KEY = process.env.CONNECTOR_REWARD_PRIVATE_KEY || '';
 const DEXTER_API_BASE = process.env.DEXTER_API_URL || 'https://api.dexter.cash';
 const LAB_SECRET = process.env.LAB_INTERNAL_SECRET || '';
 const AUTH_HEADERS: Record<string, string> = LAB_SECRET
@@ -19,6 +20,8 @@ interface ResourceEndpoint {
   method: string;
   description?: string;
   priceUsdc?: number;
+  requestSchema?: Record<string, unknown>;
+  exampleBody?: string;
 }
 
 interface Resource {
@@ -54,7 +57,50 @@ interface McpTool {
   name: string;
   description: string;
   inputSchema: Record<string, unknown>;
-  handler: () => Promise<{ content: Array<{ type: string; text: string }> }>;
+  handler: (args: Record<string, unknown>) => Promise<{ content: Array<{ type: string; text: string }> }>;
+}
+
+function deriveInputSchema(ep: ResourceEndpoint): Record<string, unknown> {
+  if (ep.requestSchema && Object.keys(ep.requestSchema).length > 0) {
+    return ep.requestSchema;
+  }
+
+  const needsBody = ['POST', 'PUT', 'PATCH'].includes(ep.method);
+  if (needsBody && ep.exampleBody) {
+    try {
+      const example = JSON.parse(ep.exampleBody);
+      const props: Record<string, { type: string }> = {};
+      for (const [key, val] of Object.entries(example)) {
+        props[key] = { type: typeof val === 'number' ? 'number' : typeof val === 'boolean' ? 'boolean' : 'string' };
+      }
+      return { type: 'object', properties: props };
+    } catch { /* fall through */ }
+  }
+
+  return { type: 'object', properties: {} };
+}
+
+async function executeX402Call(url: string, method: string, args: Record<string, unknown>): Promise<string> {
+  if (!CONNECTOR_KEY) {
+    return JSON.stringify({ error: 'Platform payment wallet not configured' });
+  }
+
+  const { wrapFetch, SOLANA_MAINNET } = await import('@dexterai/x402/client');
+
+  const x402Fetch = wrapFetch(fetch, {
+    walletPrivateKey: CONNECTOR_KEY,
+    preferredNetwork: SOLANA_MAINNET,
+    verbose: false,
+  });
+
+  const needsBody = ['POST', 'PUT', 'PATCH'].includes(method);
+  const response = await x402Fetch(url, {
+    method,
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    ...(needsBody && Object.keys(args).length > 0 ? { body: JSON.stringify(args) } : {}),
+  });
+
+  return await response.text();
 }
 
 function buildTools(resources: Resource[]): McpTool[] {
@@ -71,16 +117,14 @@ function buildTools(resources: Resource[]): McpTool[] {
         name: `${r.name}_${idSuffix}`.replace(/[^a-zA-Z0-9_-]/g, '_'),
         description: `${r.description || r.name} ($${price} USDC per call via x402)`,
         inputSchema: { type: 'object', properties: {} },
-        handler: async () => ({
-          content: [{
-            type: 'text',
-            text: JSON.stringify({
-              resource: r.name, url: r.public_url, price_usdc: price,
-              payment_protocol: 'x402',
-              instructions: `Send an HTTP request to ${r.public_url}. Returns 402 with PAYMENT-REQUIRED header. Use @dexterai/x402/client wrapFetch to handle payment.`,
-            }),
-          }],
-        }),
+        handler: async (args) => {
+          try {
+            const text = await executeX402Call(r.public_url!, 'GET', args);
+            return { content: [{ type: 'text', text }] };
+          } catch (e: any) {
+            return { content: [{ type: 'text', text: JSON.stringify({ error: e.message }) }] };
+          }
+        },
       });
     } else {
       for (const ep of paidEndpoints) {
@@ -88,18 +132,15 @@ function buildTools(resources: Resource[]): McpTool[] {
         tools.push({
           name: `${r.name}_${ep.method}_${ep.path}_${idSuffix}`.replace(/[^a-zA-Z0-9_-]/g, '_'),
           description: `${ep.description || ep.path} on ${r.name} ($${price} USDC via x402)`,
-          inputSchema: { type: 'object', properties: {} },
-          handler: async () => ({
-            content: [{
-              type: 'text',
-              text: JSON.stringify({
-                resource: r.name, endpoint: ep.path, method: ep.method,
-                url: `${r.public_url}${ep.path}`, price_usdc: price,
-                payment_protocol: 'x402',
-                instructions: `Send an HTTP ${ep.method} request to ${r.public_url}${ep.path}. Returns 402 with PAYMENT-REQUIRED header. Use @dexterai/x402/client wrapFetch to handle payment.`,
-              }),
-            }],
-          }),
+          inputSchema: deriveInputSchema(ep),
+          handler: async (args) => {
+            try {
+              const text = await executeX402Call(`${r.public_url}${ep.path}`, ep.method, args);
+              return { content: [{ type: 'text', text }] };
+            } catch (e: any) {
+              return { content: [{ type: 'text', text: JSON.stringify({ error: e.message }) }] };
+            }
+          },
         });
       }
     }
@@ -170,7 +211,7 @@ export const action: ActionFunction = async ({ request }) => {
       }), { status: 404, headers: { 'Content-Type': 'application/json' } });
     }
 
-    const result = await tool.handler();
+    const result = await tool.handler(params?.arguments || {});
 
     return new Response(JSON.stringify({
       jsonrpc: '2.0',

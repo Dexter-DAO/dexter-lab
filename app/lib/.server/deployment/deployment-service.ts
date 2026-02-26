@@ -543,54 +543,77 @@ function injectPlatformCode(files: Map<string, string>, config: ResourceConfig):
   }
 
   /*
-   * 6. MCP endpoint -- exposes each paid endpoint as an MCP tool (stateless Streamable HTTP)
+   * 6. MCP endpoint -- exposes each paid endpoint as an MCP tool that executes
+   *    real x402 calls and returns actual API responses.
    */
   if (!content.includes('/mcp')) {
-    const toolDefs = config.endpoints
-      .filter((ep) => ep.priceUsdc && ep.priceUsdc > 0)
-      .map((ep) => {
+    const paidEndpoints = config.endpoints.filter((ep) => ep.priceUsdc && ep.priceUsdc > 0);
+
+    if (paidEndpoints.length > 0) {
+      // Build tool definitions with proper input schemas and real execution handlers
+      const toolEntries = paidEndpoints.map((ep) => {
         const toolName = `${config.name.replace(/[^a-zA-Z0-9]/g, '_')}_${ep.method}_${ep.path.replace(/[^a-zA-Z0-9]/g, '_')}`;
         const price = ep.priceUsdc || config.basePriceUsdc;
-        return `  mcpServer.tool(${JSON.stringify(toolName)}, ${JSON.stringify(`${ep.description || ep.path} ($${price} USDC per call via x402)`)}, {}, async () => ({ content: [{ type: 'text', text: JSON.stringify({ endpoint: '${ep.path}', method: '${ep.method}', price_usdc: ${price}, url: process.env.PUBLIC_URL || 'https://${config.id}.dexter.cash', payment_protocol: 'x402', instructions: 'Send an HTTP ${ep.method} request to the url+endpoint. The server returns 402 with a PAYMENT-REQUIRED header. Use @dexterai/x402/client wrapFetch to handle payment automatically.' }) }] }));`;
+        const needsBody = ['POST', 'PUT', 'PATCH'].includes(ep.method);
+
+        // Derive input schema from requestSchema or exampleBody
+        let inputSchemaStr = '{ type: "object", properties: {} }';
+        if (ep.requestSchema && Object.keys(ep.requestSchema).length > 0) {
+          inputSchemaStr = JSON.stringify(ep.requestSchema);
+        } else if (needsBody && ep.exampleBody) {
+          try {
+            const example = JSON.parse(ep.exampleBody);
+            const props: Record<string, { type: string; description?: string }> = {};
+            for (const [key, val] of Object.entries(example)) {
+              props[key] = { type: typeof val === 'number' ? 'number' : typeof val === 'boolean' ? 'boolean' : 'string' };
+            }
+            inputSchemaStr = JSON.stringify({ type: 'object', properties: props });
+          } catch { /* use empty schema */ }
+        }
+
+        return { toolName, price, method: ep.method, path: ep.path, description: ep.description, inputSchemaStr, needsBody };
       });
 
-    if (toolDefs.length > 0) {
-      const mcpCode = `
-// MCP endpoint (auto-added by Dexter Lab)
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
+      const mcpImports = [
+        "import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';",
+        "import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';",
+      ].join('\n');
 
-const mcpServer = new McpServer({ name: ${JSON.stringify(config.name)}, version: '1.0.0' });
-${toolDefs.join('\n')}
-
-app.post('/mcp', async (req: any, res: any) => {
-  try {
-    const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
-    await mcpServer.connect(transport);
-    await transport.handleRequest(req, res, req.body);
-  } catch (e: any) {
-    res.status(500).json({ error: 'MCP error', message: e.message });
-  }
-});
-app.get('/mcp', (req: any, res: any) => {
-  res.json({ name: ${JSON.stringify(config.name)}, protocol: 'mcp', version: '2025-03-26', tools: ${JSON.stringify(config.endpoints.filter((e) => e.priceUsdc && e.priceUsdc > 0).map((e) => e.path))} });
-});
-`;
-      // Insert MCP imports at the top and route before app.listen
-      const lastImportIdx = content.lastIndexOf('import ');
-      const lineEnd = content.indexOf('\n', lastImportIdx);
-      const mcpImports = "import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';\nimport { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';\n";
-
-      // Only add imports if not already present
       if (!content.includes('McpServer')) {
-        content = content.slice(0, lineEnd + 1) + mcpImports + content.slice(lineEnd + 1);
+        const lastImportIdx = content.lastIndexOf('import ');
+        const lineEnd = content.indexOf('\n', lastImportIdx);
+        content = content.slice(0, lineEnd + 1) + mcpImports + '\n' + content.slice(lineEnd + 1);
       }
 
-      // Add MCP server setup and routes before app.listen
+      const toolRegistrations = toolEntries.map((t) => `
+  mcpServer.tool(
+    ${JSON.stringify(t.toolName)},
+    ${JSON.stringify(`${t.description || t.path} ($${t.price} USDC via x402)`)},
+    ${t.inputSchemaStr},
+    async (args: any) => {
+      try {
+        const baseUrl = 'http://localhost:' + (process.env.PORT || '3000');
+        const url = baseUrl + ${JSON.stringify(t.path)};
+        const res = await fetch(url, {
+          method: ${JSON.stringify(t.method)},
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+          ${t.needsBody ? 'body: JSON.stringify(args || {}),' : ''}
+        });
+        const text = await res.text();
+        if (res.status === 402) {
+          return { content: [{ type: 'text', text: JSON.stringify({ status: 402, payment_required: true, price_usdc: ${t.price}, url: (process.env.PUBLIC_URL || 'https://${config.id}.dexter.cash') + ${JSON.stringify(t.path)}, message: 'Payment required. Use x402 wrapFetch with a Solana wallet to pay and get the response.' }) }] };
+        }
+        return { content: [{ type: 'text', text }] };
+      } catch (e: any) {
+        return { content: [{ type: 'text', text: JSON.stringify({ error: e.message }) }] };
+      }
+    }
+  );`).join('\n');
+
       const mcpRouteCode = `
-// MCP server setup (auto-added by Dexter Lab)
+// MCP server (auto-added by Dexter Lab)
 const mcpServer = new McpServer({ name: ${JSON.stringify(config.name)}, version: '1.0.0' });
-${toolDefs.join('\n')}
+${toolRegistrations}
 
 app.post('/mcp', async (req: any, res: any) => {
   try {
@@ -598,11 +621,11 @@ app.post('/mcp', async (req: any, res: any) => {
     await mcpServer.connect(transport);
     await transport.handleRequest(req, res, req.body);
   } catch (e: any) {
-    res.status(500).json({ error: 'MCP error', message: e.message });
+    if (!res.headersSent) res.status(500).json({ error: 'MCP error', message: e.message });
   }
 });
 app.get('/mcp', (req: any, res: any) => {
-  res.json({ name: ${JSON.stringify(config.name)}, protocol: 'mcp', version: '2025-03-26', tools: ${JSON.stringify(config.endpoints.filter((e) => e.priceUsdc && e.priceUsdc > 0).map((e) => e.path))} });
+  res.json({ name: ${JSON.stringify(config.name)}, protocol: 'mcp', version: '2025-03-26', endpoints: ${JSON.stringify(paidEndpoints.map((e) => ({ path: e.path, method: e.method, price: e.priceUsdc })))} });
 });
 `;
       content = content.replace(/app\.listen\(/, `${mcpRouteCode}\napp.listen(`);
