@@ -50,3 +50,5 @@ x402-resource/
 x402-resources/
 video/
 agents-university/
+tmp/
+percolator-*/

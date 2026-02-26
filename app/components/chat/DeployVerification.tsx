@@ -490,8 +490,19 @@ export const DeployVerification = memo(({ resourceId }: DeployVerificationProps)
 
         {/* ─── MCP Endpoint ─── */}
         {isComplete && publicUrl && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.35 }} className="mt-1">
-            <CopyableUrl url={`${publicUrl}/mcp`} method="MCP" />
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.35 }} className="mt-2">
+            <div className="rounded-lg bg-purple-500/5 border border-purple-500/15 px-3 py-2">
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <div className="w-4 h-4 rounded bg-purple-500/15 flex items-center justify-center">
+                  <div className="i-ph:plug-bold text-purple-400 text-[9px]" />
+                </div>
+                <span className="text-[10px] text-purple-400 font-semibold uppercase tracking-wider">MCP Tool Server</span>
+              </div>
+              <CopyableUrl url={`${publicUrl}/mcp`} />
+              <p className="text-[10px] text-gray-500 mt-1.5 leading-relaxed">
+                Add this URL to Claude Desktop, Cursor, or any MCP client. AI agents can discover and call your API as a tool.
+              </p>
+            </div>
           </motion.div>
         )}
 
