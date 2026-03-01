@@ -521,6 +521,14 @@ function injectPlatformCode(files: Map<string, string>, config: ResourceConfig):
   }
 
   /*
+   * 2b. Trust proxy so req.protocol reflects X-Forwarded-Proto (https) from nginx/Traefik.
+   *     Without this, x402 middleware generates http:// resource URLs which break payment flows.
+   */
+  if (!content.includes('trust proxy')) {
+    content = content.replace(/const app = express\(\);/, "const app = express();\napp.set('trust proxy', 1);");
+  }
+
+  /*
    * 3. Add health endpoint if missing (before app.listen)
    */
   if (!content.includes('/health')) {
