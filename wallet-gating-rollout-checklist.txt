@@ -1,0 +1,43 @@
+Wallet Gating Rollout Checklist
+===============================
+
+Required env vars
+-----------------
+- WALLET_GATING_MODE=off|shadow|enforce
+- WALLET_AUTH_SECRET (required for stable signed session cookies across restarts)
+- DEXTER_TOKEN_MINT (optional; defaults to DEXTER mint)
+- DEXTER_MIN_HOLDER_BALANCE_RAW (holder threshold in raw units)
+- DEXTER_HOLDER_CACHE_TTL_MS (optional cache tuning)
+- DEXTER_HOLDER_RPC_TIMEOUT_MS (optional timeout tuning)
+
+Pre-enforce validation
+----------------------
+1) Deploy with WALLET_GATING_MODE=shadow.
+2) Validate endpoints:
+   - POST /api/wallet-auth/challenge
+   - POST /api/wallet-auth/verify
+   - GET /api/wallet-auth/session
+   - POST /api/wallet-auth/logout
+3) Confirm logs include:
+   - challenge_issued
+   - challenge_verified
+   - shadow_decision
+4) Confirm spoofed body fields (walletAddress/userId) do not affect server tier decisions.
+5) Confirm deploy/update flow still works after successful wallet signature.
+6) Confirm sign cancellation falls back to guest chat (no hard failure).
+
+Test commands
+-------------
+- pnpm test -- app/lib/.server/auth/wallet-auth.spec.ts app/lib/.server/auth/tier-policy.spec.ts app/lib/.server/auth/holder-status.spec.ts
+- pnpm typecheck
+
+Enforce cutover
+---------------
+1) Set WALLET_GATING_MODE=enforce.
+2) Restart service.
+3) Monitor first 15 minutes for auth-route errors, unexpected tier distribution, and deploy regressions.
+
+Rollback
+--------
+- If error rates rise: set WALLET_GATING_MODE=shadow.
+- If auth path is unstable: set WALLET_GATING_MODE=off.

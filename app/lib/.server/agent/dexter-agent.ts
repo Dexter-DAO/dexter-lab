@@ -13,6 +13,7 @@
 import { query } from '@anthropic-ai/claude-agent-sdk';
 import { createDexterMcpServer } from './mcp-tools';
 import { getSkillsPromptSection } from '~/lib/.server/skills';
+import { clampRequestedLimits, getTierCaps } from '~/lib/.server/auth/tier-policy';
 import type { DexterAgentOptions, DexterAgentResult, StreamMessage } from './types';
 
 /**
@@ -255,6 +256,19 @@ function createAgentOptions(options: DexterAgentOptions) {
     fullSystemPrompt += `\n\n<additional_instructions>\n${options.additionalInstructions}\n</additional_instructions>`;
   }
 
+  const resolvedAccessTier =
+    options.accessTier || (typeof options.userId === 'string' && options.userId.trim().length > 0
+      ? 'verified_non_holder'
+      : 'unverified');
+  const tierCaps = getTierCaps(resolvedAccessTier);
+  const effectiveLimits = clampRequestedLimits(
+    {
+      maxTurns: options.maxTurns,
+      maxBudgetUsd: options.maxBudgetUsd,
+    },
+    tierCaps,
+  );
+
   return {
     systemPrompt: fullSystemPrompt,
 
@@ -290,8 +304,8 @@ function createAgentOptions(options: DexterAgentOptions) {
     cwd: options.cwd || process.cwd(),
 
     // Limits
-    maxTurns: options.maxTurns || 50,
-    maxBudgetUsd: options.maxBudgetUsd,
+    maxTurns: effectiveLimits.maxTurns,
+    maxBudgetUsd: effectiveLimits.maxBudgetUsd,
 
     /*
      * Model - Use Claude Opus 4.6 for code generation (flagship model, released Feb 5 2026)

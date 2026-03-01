@@ -31,6 +31,9 @@ export interface DexterAgentOptions {
 
   /** Connected wallet address from the client (Solana base58 pubkey) */
   walletAddress?: string;
+
+  /** Server-resolved access tier for budget/turn clamping */
+  accessTier?: 'unverified' | 'verified_non_holder' | 'verified_holder';
 }
 
 export interface DexterAgentResult {

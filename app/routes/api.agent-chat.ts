@@ -7,12 +7,20 @@
 
 import type { ActionFunctionArgs } from '@remix-run/cloudflare';
 import { streamDexterAgent, type StreamMessage, type DexterAgentResult } from '~/lib/.server/agent';
+import { resolveDexterHolderStatus } from '~/lib/.server/auth/holder-status';
+import { clampRequestedLimits, getTierCaps } from '~/lib/.server/auth/tier-policy';
+import {
+  getWalletGatingMode,
+  readWalletSessionFromRequest,
+  type WalletAccessTier,
+} from '~/lib/.server/auth/wallet-auth';
 
 interface ChatRequest {
   prompt: string;
   sessionId?: string;
   forkSession?: boolean;
   maxTurns?: number;
+  maxBudgetUsd?: number;
   additionalInstructions?: string;
 
   /** User ID for cost attribution (Supabase UUID) */
@@ -20,6 +28,14 @@ interface ChatRequest {
 
   /** Connected Solana wallet address from the client */
   walletAddress?: string;
+}
+
+function resolveTier(
+  hasSession: boolean,
+  holderStatus: { isHolder: boolean } | null,
+): WalletAccessTier {
+  if (!hasSession) return 'unverified';
+  return holderStatus?.isHolder ? 'verified_holder' : 'verified_non_holder';
 }
 
 /**
@@ -137,14 +153,77 @@ export async function action({ request }: ActionFunctionArgs) {
     });
   }
 
+  const walletGatingMode = getWalletGatingMode();
+  const walletSession = readWalletSessionFromRequest(request);
+
+  let holderStatus: { isHolder: boolean; balanceRaw?: string; checkedAtMs?: number } | null = null;
+  if (walletGatingMode !== 'off' && walletSession) {
+    try {
+      const status = await resolveDexterHolderStatus(walletSession.walletAddress);
+      holderStatus = {
+        isHolder: status.isHolder,
+        balanceRaw: status.balanceRaw,
+        checkedAtMs: status.checkedAtMs,
+      };
+    } catch (error) {
+      console.warn('[wallet-gating] holder_check_failed', {
+        mode: walletGatingMode,
+        sessionId: walletSession.sessionId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  const resolvedTier = resolveTier(!!walletSession, holderStatus);
+  const requestedLimits = {
+    maxTurns: typeof body.maxTurns === 'number' ? body.maxTurns : undefined,
+    maxBudgetUsd: typeof body.maxBudgetUsd === 'number' ? body.maxBudgetUsd : undefined,
+  };
+
+  const tierLimited = clampRequestedLimits(requestedLimits, getTierCaps(resolvedTier));
+
+  // Legacy behavior retained for off/shadow rollout safety.
+  const legacyHasAttributedUser = typeof body.userId === 'string' && body.userId.trim().length > 0;
+  const legacyTier = legacyHasAttributedUser ? 'verified_holder' : 'unverified';
+  const legacyLimited = clampRequestedLimits(requestedLimits, getTierCaps(legacyTier));
+
+  const effectiveLimits = walletGatingMode === 'enforce' ? tierLimited : legacyLimited;
+  if (walletGatingMode === 'shadow') {
+    console.info('[wallet-gating] shadow_decision', {
+      sessionPresent: !!walletSession,
+      resolvedTier,
+      holder: holderStatus,
+      requested: requestedLimits,
+      legacyApplied: legacyLimited,
+      wouldEnforce: tierLimited,
+      suppliedWalletAddress: body.walletAddress ? 'present' : 'missing',
+      suppliedUserId: body.userId ? 'present' : 'missing',
+    });
+  } else {
+    console.info('[wallet-gating] decision', {
+      mode: walletGatingMode,
+      sessionPresent: !!walletSession,
+      resolvedTier,
+      holder: holderStatus,
+      requested: requestedLimits,
+      applied: effectiveLimits,
+    });
+  }
+
+  const walletAddressForTools =
+    walletGatingMode === 'off' ? body.walletAddress : walletSession?.walletAddress;
+  const userIdForAttribution = walletGatingMode === 'enforce' ? undefined : body.userId;
+
   // Create the agent stream
   const stream = streamDexterAgent(body.prompt, {
     sessionId: body.sessionId,
     forkSession: body.forkSession,
-    maxTurns: body.maxTurns,
+    maxTurns: effectiveLimits.maxTurns,
+    maxBudgetUsd: effectiveLimits.maxBudgetUsd,
     additionalInstructions: body.additionalInstructions,
-    userId: body.userId, // For cost attribution
-    walletAddress: body.walletAddress, // Threaded to MCP deploy/update tools
+    userId: userIdForAttribution, // Cost attribution only (not auth)
+    walletAddress: walletAddressForTools, // Server-trusted in shadow/enforce
+    accessTier: resolvedTier,
   });
 
   // Return streaming response
@@ -174,10 +253,11 @@ export async function loader() {
           prompt: 'string (required) - The user message',
           sessionId: 'string (optional) - Resume a previous conversation',
           forkSession: 'boolean (optional) - Fork instead of continue',
-          maxTurns: 'number (optional) - Maximum conversation turns',
+          maxTurns: 'number (optional) - Requested max turns, clamped by active policy tier',
+          maxBudgetUsd: 'number (optional) - Requested max budget, clamped by active policy tier',
           additionalInstructions: 'string (optional) - Extra system context',
-          userId: 'string (optional) - Supabase user ID for cost attribution',
-          walletAddress: 'string (optional) - Connected Solana wallet address for deploy/update',
+          userId: 'string (optional) - Untrusted client value (used only for legacy attribution in off/shadow)',
+          walletAddress: 'string (optional) - Untrusted client value (ignored in enforce mode)',
         },
         response: 'Server-Sent Events stream',
       },

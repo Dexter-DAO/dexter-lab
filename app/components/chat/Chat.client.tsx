@@ -28,6 +28,7 @@ import type { ElementInfo } from '~/components/workbench/Inspector';
 import type { TextUIPart, FileUIPart, Attachment } from '~/types/ui-utils';
 import { useMCPStore } from '~/lib/stores/mcp';
 import { $walletAddress } from '~/lib/stores/wallet';
+import { useWalletAuth } from '~/lib/hooks/useWalletAuth';
 import type { LlmErrorAlertType } from '~/types/actions';
 import * as chatDebug from '~/utils/chatDebugger';
 
@@ -88,6 +89,7 @@ export const ChatImpl = memo(
     useShortcuts();
 
     const textareaRef = useRef<HTMLTextAreaElement>(null);
+    const walletPromptedRef = useRef<string | null>(null);
     const [chatStarted, setChatStarted] = useState(initialMessages.length > 0);
     const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
     const [imageDataList, setImageDataList] = useState<string[]>([]);
@@ -119,6 +121,7 @@ export const ChatImpl = memo(
     const [selectedElement, setSelectedElement] = useState<ElementInfo | null>(null);
     const mcpSettings = useMCPStore((state) => state.settings);
     const walletAddress = useStore($walletAddress);
+    const { walletAuth, refreshSession, verifyWallet, logoutWalletSession } = useWalletAuth();
 
     const {
       messages,
@@ -153,6 +156,7 @@ export const ChatImpl = memo(
         },
         maxLLMSteps: mcpSettings.maxLLMSteps,
         walletAddress: walletAddress || undefined,
+        walletAuthTier: walletAuth.tier,
       },
       sendExtraMessageFields: true,
       onError: (e) => {
@@ -180,6 +184,35 @@ export const ChatImpl = memo(
       initialMessages,
       initialInput: Cookies.get(PROMPT_COOKIE_KEY) || '',
     });
+    useEffect(() => {
+      refreshSession().catch(() => {
+        // Non-blocking: chat still works for guests.
+      });
+    }, [refreshSession]);
+
+    useEffect(() => {
+      if (!walletAddress) {
+        if (walletAuth.status === 'verified') {
+          logoutWalletSession().catch(() => {});
+        }
+        walletPromptedRef.current = null;
+        return;
+      }
+
+      if (walletAuth.status === 'verified' && walletAuth.walletAddress === walletAddress) {
+        walletPromptedRef.current = walletAddress;
+        return;
+      }
+      if (walletPromptedRef.current === walletAddress) {
+        return;
+      }
+
+      walletPromptedRef.current = walletAddress;
+      toast.info('Connect + sign once to unlock holder chat limits.', {
+        autoClose: 3500,
+      });
+    }, [walletAddress, walletAuth.status, walletAuth.walletAddress, logoutWalletSession]);
+
     useEffect(() => {
       const prompt = searchParams.get('prompt');
 
@@ -510,6 +543,14 @@ export const ChatImpl = memo(
       if (!messageContent?.trim()) {
         logger.debug('sendMessage: Empty message, returning');
         return;
+      }
+
+      if (walletAddress) {
+        const verified = await verifyWallet(walletAddress);
+        if (verified) {
+          toast.success('Wallet verified for holder-gated chat tiers.', { autoClose: 2500 });
+          await refreshSession().catch(() => {});
+        }
       }
 
       if (isLoading) {
