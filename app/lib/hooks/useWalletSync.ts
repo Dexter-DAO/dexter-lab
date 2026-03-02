@@ -16,14 +16,18 @@
 
 import { useEffect, useRef } from 'react';
 import { useAppKitAccount } from '@reown/appkit/react';
-import { setWalletAddress, disconnectWallet, initWalletFromStorage } from '~/lib/stores/wallet';
+import { $walletAddress, setWalletAddress, disconnectWallet, initWalletFromStorage } from '~/lib/stores/wallet';
+
+const STALE_WALLET_GRACE_MS = 8_000;
 
 export function useWalletSync(): void {
   const { address, isConnected } = useAppKitAccount();
   const wasConnected = useRef(false);
+  const hydratedAtMs = useRef<number>(Date.now());
 
   // Initialize from localStorage on first mount
   useEffect(() => {
+    hydratedAtMs.current = Date.now();
     initWalletFromStorage();
   }, []);
 
@@ -60,6 +64,21 @@ export function useWalletSync(): void {
 
       disconnectWallet();
       wasConnected.current = false;
+    } else if (!isConnected && !wasConnected.current && !address) {
+      /*
+       * If AppKit never re-established a session and we still show a persisted
+       * wallet address, we can end up in a stale "connected-looking" UI where
+       * the modal cannot actually disconnect anything.
+       *
+       * Give AppKit a small grace window, then clear stale persisted wallet
+       * state so UI and wallet modal are consistent.
+       */
+      const persistedWallet = $walletAddress.get();
+      const isPastGraceWindow = Date.now() - hydratedAtMs.current >= STALE_WALLET_GRACE_MS;
+
+      if (persistedWallet && isPastGraceWindow) {
+        disconnectWallet();
+      }
     }
 
     /*
@@ -67,5 +86,28 @@ export function useWalletSync(): void {
      * Do nothing. The address from localStorage (set by initWalletFromStorage)
      * stays in the nanostore until AppKit reconnects or the user disconnects.
      */
+  }, [address, isConnected]);
+
+  useEffect(() => {
+    const handleVisibilityOrFocus = () => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
+        return;
+      }
+
+      const persistedWallet = $walletAddress.get();
+      const isPastGraceWindow = Date.now() - hydratedAtMs.current >= STALE_WALLET_GRACE_MS;
+
+      if (!isConnected && !address && !wasConnected.current && persistedWallet && isPastGraceWindow) {
+        disconnectWallet();
+      }
+    };
+
+    window.addEventListener('focus', handleVisibilityOrFocus);
+    document.addEventListener('visibilitychange', handleVisibilityOrFocus);
+
+    return () => {
+      window.removeEventListener('focus', handleVisibilityOrFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityOrFocus);
+    };
   }, [address, isConnected]);
 }
