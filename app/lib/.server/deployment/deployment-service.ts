@@ -252,9 +252,9 @@ function generateLandingPageHtml(config: ResourceConfig): string {
     <div style="display:flex;flex-direction:column;gap:8px">
       <div style="display:flex;align-items:center;gap:8px">
         <span style="font-size:13px;color:#a78bfa">&#9830;</span>
-        <span style="font-size:13px;color:#d1d5db">Agent <strong id="identity-agent-id" style="color:#a78bfa"></strong> on Base</span>
+        <span style="font-size:13px;color:#d1d5db">Agent <strong id="identity-agent-id" style="color:#a78bfa"></strong> on <span id="identity-chain">Solana</span></span>
       </div>
-      <a id="identity-8004scan" href="#" target="_blank" rel="noopener" style="font-size:12px;color:#818cf8;text-decoration:none">View on 8004scan &rarr;</a>
+      <a id="identity-explorer" href="#" target="_blank" rel="noopener" style="font-size:12px;color:#818cf8;text-decoration:none">View on explorer &rarr;</a>
       <a id="identity-a2a" href="#" target="_blank" rel="noopener" style="font-size:12px;color:#818cf8;text-decoration:none">A2A Agent Card &rarr;</a>
     </div>
   </div>
@@ -293,8 +293,11 @@ function generateLandingPageHtml(config: ResourceConfig): string {
           el.style.display='flex';
         }
         if(d.erc8004_agent_id){
-          document.getElementById('identity-agent-id').textContent='#'+d.erc8004_agent_id;
-          document.getElementById('identity-8004scan').href='https://www.8004scan.io/agents/base/'+d.erc8004_agent_id;
+          var reg=d.erc8004_agent_registry||'';
+          var isSol=reg.indexOf('solana:')===0;
+          document.getElementById('identity-agent-id').textContent=isSol?d.erc8004_agent_id:'#'+d.erc8004_agent_id;
+          document.getElementById('identity-chain').textContent=isSol?'Solana':'Base';
+          document.getElementById('identity-explorer').href=isSol?'https://solscan.io/account/'+d.erc8004_agent_id:'https://www.8004scan.io/agents/base/'+d.erc8004_agent_id;
           document.getElementById('identity-a2a').href='https://api.dexter.cash/api/dexter-lab/resources/'+rid+'/agent.json';
           document.getElementById('identity-section').style.display='block';
         }

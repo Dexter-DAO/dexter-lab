@@ -579,16 +579,18 @@ export const action: ActionFunction = async ({ request }) => {
       }).catch((e) => console.warn('[Deploy API] Cover image generation failed:', e));
 
       /*
-       * Auto-mint ERC-8004 identity for this resource.
-       * Gives the deployed resource an on-chain identity on Base so it's
-       * discoverable on 8004scan and by other agents via A2A.
-       * Runs inline (not fire-and-forget) so we can include the result in
-       * the response, but a mint failure does NOT block the deploy.
+       * Auto-mint 8004 identity for this resource.
+       * Default chain is Solana (official 8004-solana by QuantuLabs).
+       * Set IDENTITY_MINT_CHAIN=base to use Base instead.
        */
-      let erc8004Result: { agentId?: number; txHash?: string; error?: string } | null = null;
+      const identityChain = (process.env.IDENTITY_MINT_CHAIN || 'solana') as 'solana' | 'base';
+      const SOLANA_REGISTRY = 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp:8oo4dC4JvBLwy5tGgiH3WwK4B9PWxL9Z4XjA2jzkQMbQ';
+      const BASE_REGISTRY = 'eip155:8453:0x8004A169FB4a3325136EB29fA0ceB6D2e539a432';
+
+      let erc8004Result: { agentId?: number | string; txHash?: string; error?: string } | null = null;
 
       try {
-        console.log(`[Deploy API] Auto-minting ERC-8004 identity for ${result.resourceId}...`);
+        console.log(`[Deploy API] Auto-minting 8004 identity on ${identityChain} for ${result.resourceId}...`);
 
         await pushDeployProgress(result.resourceId, {
           type: 'minting_identity',
@@ -604,7 +606,7 @@ export const action: ActionFunction = async ({ request }) => {
             'X-Internal-Key': process.env.INTERNAL_API_KEY || '',
           },
           body: JSON.stringify({
-            chain: 'base',
+            chain: identityChain,
             name: slugToTitle(body.name),
             description: body.description,
             walletAddress: managedWalletAddress,
@@ -631,28 +633,32 @@ export const action: ActionFunction = async ({ request }) => {
         if (mintRes.ok) {
           const mintData = (await mintRes.json()) as {
             success?: boolean;
-            identity?: { agentId?: string | number };
+            identity?: { agentId?: string | number; mintAddress?: string };
             txHash?: string;
             agentId?: string | number;
           };
 
-          // The mint endpoint returns agentId inside identity object (serialized as string from BigInt)
-          // Also check top-level for backwards compat
           const rawAgentId = mintData.identity?.agentId ?? mintData.agentId;
-          const agentId = rawAgentId ? parseInt(String(rawAgentId), 10) : undefined;
+          const mintAddress = mintData.identity?.mintAddress;
+
+          // For Solana the canonical identifier is the asset pubkey (mint_address);
+          // for Base it's the sequential numeric agentId.
+          const agentId = identityChain === 'solana'
+            ? (mintAddress || rawAgentId)
+            : (rawAgentId ? parseInt(String(rawAgentId), 10) : undefined);
           const txHash = mintData.txHash;
 
           erc8004Result = { agentId, txHash };
           console.log(
-            `[Deploy API] ERC-8004 identity minted for ${result.resourceId}: agentId=${agentId}, tx=${txHash}`,
+            `[Deploy API] 8004 identity minted on ${identityChain} for ${result.resourceId}: agentId=${agentId}, tx=${txHash}`,
           );
 
-          if (agentId && !isNaN(agentId)) {
+          if (agentId) {
             persistResourceUpdateToApi(result.resourceId, {
-              erc8004_agent_id: agentId,
-              erc8004_agent_registry: 'eip155:8453:0x8004A169FB4a3325136EB29fA0ceB6D2e539a432',
+              erc8004_agent_id: typeof agentId === 'number' ? agentId : 0,
+              erc8004_agent_registry: identityChain === 'solana' ? SOLANA_REGISTRY : BASE_REGISTRY,
             }).catch((e) => {
-              console.error(`[Deploy API] Failed to persist ERC-8004 agent ID for ${result.resourceId}:`, e);
+              console.error(`[Deploy API] Failed to persist 8004 agent ID for ${result.resourceId}:`, e);
             });
           } else {
             console.warn(`[Deploy API] Mint succeeded but no valid agentId in response for ${result.resourceId}:`, JSON.stringify(mintData).substring(0, 200));
@@ -661,8 +667,8 @@ export const action: ActionFunction = async ({ request }) => {
           persistEventToApi({
             resource_id: result.resourceId,
             event_type: 'identity_minted',
-            message: `ERC-8004 identity minted on Base: agent #${agentId}`,
-            data: { agentId, txHash, chain: 'base' },
+            message: `8004 identity minted on ${identityChain}: agent ${agentId}`,
+            data: { agentId, txHash, chain: identityChain },
             actor_system: true,
           }).catch((e) => {
             console.error(`[Deploy API] Failed to persist identity_minted event for ${result.resourceId}:`, e);
@@ -670,12 +676,12 @@ export const action: ActionFunction = async ({ request }) => {
         } else {
           const errText = await mintRes.text();
           erc8004Result = { error: `HTTP ${mintRes.status}: ${errText}` };
-          console.error(`[Deploy API] ERC-8004 mint failed for ${result.resourceId}: ${erc8004Result.error}`);
+          console.error(`[Deploy API] 8004 mint failed for ${result.resourceId}: ${erc8004Result.error}`);
 
           persistEventToApi({
             resource_id: result.resourceId,
             event_type: 'identity_mint_failed',
-            message: `ERC-8004 mint failed: ${erc8004Result.error}`,
+            message: `8004 mint failed: ${erc8004Result.error}`,
             data: { error: erc8004Result.error },
             actor_system: true,
           }).catch(() => {
@@ -685,8 +691,14 @@ export const action: ActionFunction = async ({ request }) => {
       } catch (mintErr) {
         const errMsg = mintErr instanceof Error ? mintErr.message : String(mintErr);
         erc8004Result = { error: errMsg };
-        console.error(`[Deploy API] ERC-8004 mint error for ${result.resourceId}:`, mintErr);
+        console.error(`[Deploy API] 8004 mint error for ${result.resourceId}:`, mintErr);
       }
+
+      const explorerUrl = erc8004Result?.agentId
+        ? identityChain === 'solana'
+          ? `https://solscan.io/account/${erc8004Result.agentId}`
+          : `https://www.8004scan.io/agents/base/${erc8004Result.agentId}`
+        : null;
 
       return json(
         {
@@ -700,8 +712,8 @@ export const action: ActionFunction = async ({ request }) => {
                 agentId: erc8004Result.agentId ?? null,
                 txHash: erc8004Result.txHash ?? null,
                 error: erc8004Result.error ?? null,
-                chain: 'base',
-                explorer: erc8004Result.agentId ? `https://www.8004scan.io/agents/base/${erc8004Result.agentId}` : null,
+                chain: identityChain,
+                explorer: explorerUrl,
               }
             : null,
           testResults: testResults

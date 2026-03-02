@@ -647,12 +647,18 @@ function ResourceItem({ resource, onWithdraw }: { resource: LabResource; onWithd
                 <div className="text-gray-500 dark:text-gray-500">On-chain</div>
                 <div className="text-right">
                   <a
-                    href={`https://www.8004scan.io/agents/base/${resource.erc8004_agent_id}`}
+                    href={
+                      resource.erc8004_agent_registry?.startsWith('solana:')
+                        ? `https://solscan.io/account/${resource.erc8004_agent_id}`
+                        : `https://www.8004scan.io/agents/base/${resource.erc8004_agent_id}`
+                    }
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-purple-400 hover:text-purple-300 transition-colors"
                   >
-                    Agent #{resource.erc8004_agent_id}
+                    {resource.erc8004_agent_registry?.startsWith('solana:')
+                      ? `Solana Agent`
+                      : `Agent #${resource.erc8004_agent_id}`}
                   </a>
                 </div>
               </>

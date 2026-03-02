@@ -345,13 +345,20 @@ function useIdentityData(resourceId: string, isComplete: boolean): IdentityData 
           const res = await fetch(`${DEXTER_API_BASE}/api/dexter-lab/resources/${encodeURIComponent(resourceId)}`);
 
           if (res.ok) {
-            const data = (await res.json()) as { erc8004_agent_id?: number | null };
+            const data = (await res.json()) as {
+              erc8004_agent_id?: number | string | null;
+              erc8004_agent_registry?: string | null;
+            };
 
             if (data.erc8004_agent_id && !cancelled) {
+              const isSolana = data.erc8004_agent_registry?.startsWith('solana:');
+
               setIdentity({
                 agentId: data.erc8004_agent_id,
-                explorer: `https://www.8004scan.io/agents/base/${data.erc8004_agent_id}`,
-                chain: 'Base',
+                explorer: isSolana
+                  ? `https://solscan.io/account/${data.erc8004_agent_id}`
+                  : `https://www.8004scan.io/agents/base/${data.erc8004_agent_id}`,
+                chain: isSolana ? 'Solana' : 'Base',
               });
 
               return;
@@ -635,7 +642,7 @@ export const DeployVerification = memo(({ resourceId }: DeployVerificationProps)
             </div>
             <div className="flex flex-col">
               <span className="text-[12px] text-gray-300">
-                Agent #{identity.agentId} <span className="text-gray-600">on {identity.chain}</span>
+                Agent {identity.chain === 'Solana' ? '' : '#'}{identity.agentId} <span className="text-gray-600">on {identity.chain}</span>
               </span>
               <a
                 href={identity.explorer}
@@ -645,7 +652,7 @@ export const DeployVerification = memo(({ resourceId }: DeployVerificationProps)
               >
                 <div className="i-ph:arrow-square-out text-gray-600 group-hover/id:text-purple-400 text-[10px] transition-colors" />
                 <span className="text-[10px] text-gray-500 group-hover/id:text-purple-400 transition-colors">
-                  View on 8004scan
+                  {identity.chain === 'Solana' ? 'View on Solscan' : 'View on 8004scan'}
                 </span>
               </a>
             </div>

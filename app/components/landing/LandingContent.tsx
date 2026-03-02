@@ -162,7 +162,7 @@ export function LandingContent(_props: LandingContentProps) {
           <div className="text-center">
             <div className="text-accent-500 text-xs font-mono tracking-widest uppercase mb-2">On-Chain Identity</div>
             <p className="text-sm text-bolt-elements-textSecondary leading-relaxed">
-              Every resource is minted as an ERC-8004 agent on Base. Discoverable on 8004scan.
+              Every resource gets an 8004 agent identity on Base and Solana. Discoverable on 8004scan.
             </p>
           </div>
           <div className="text-center">
