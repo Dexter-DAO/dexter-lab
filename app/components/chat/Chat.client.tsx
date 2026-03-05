@@ -193,7 +193,11 @@ export const ChatImpl = memo(
     useEffect(() => {
       if (!walletAddress) {
         if (walletAuth.status === 'verified') {
-          logoutWalletSession().catch(() => {});
+          logoutWalletSession().catch((error) => {
+            logger.debug(
+              `wallet session logout refresh failed: ${error instanceof Error ? error.message : String(error)}`,
+            );
+          });
         }
 
         walletPromptedRef.current = null;
@@ -553,7 +557,11 @@ export const ChatImpl = memo(
 
         if (verified) {
           toast.success('Wallet verified for holder-gated chat tiers.', { autoClose: 2500 });
-          await refreshSession().catch(() => {});
+          await refreshSession().catch((error) => {
+            logger.debug(
+              `wallet session refresh after verify failed: ${error instanceof Error ? error.message : String(error)}`,
+            );
+          });
         }
       }
 
