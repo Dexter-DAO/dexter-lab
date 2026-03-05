@@ -66,6 +66,7 @@ const inlineThemeCode = stripIndents`
 `;
 
 const GA_MEASUREMENT_ID = 'G-5VWKHNMTMT';
+const DYNAMIC_IMPORT_RECOVERY_KEY = 'dexter-lab:dynamic-import-recovery-attempted';
 
 const gaScript = `
   window.dataLayer = window.dataLayer || [];
@@ -170,6 +171,36 @@ export default function App() {
       .catch((error) => {
         logStore.logError('Failed to initialize debug logging', error);
       });
+  }, []);
+
+  useEffect(() => {
+    const maybeRecoverDynamicImport = (reason: unknown) => {
+      const message = reason instanceof Error ? reason.message : String(reason);
+      const isDynamicImportFailure =
+        message.includes('Failed to fetch dynamically imported module') ||
+        message.includes('Importing a module script failed');
+
+      if (!isDynamicImportFailure) {
+        return;
+      }
+
+      if (sessionStorage.getItem(DYNAMIC_IMPORT_RECOVERY_KEY) === '1') {
+        return;
+      }
+
+      sessionStorage.setItem(DYNAMIC_IMPORT_RECOVERY_KEY, '1');
+      window.location.reload();
+    };
+
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      maybeRecoverDynamicImport(event.reason);
+    };
+
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
+
+    return () => {
+      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+    };
   }, []);
 
   return (

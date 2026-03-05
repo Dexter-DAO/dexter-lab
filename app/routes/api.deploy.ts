@@ -674,9 +674,9 @@ export const action: ActionFunction = async ({ request }) => {
 
           persistEventToApi({
             resource_id: result.resourceId,
-            event_type: 'identity_minted',
+            event_type: 'update',
             message: `8004 identity minted on ${identityChain}: agent ${agentId}`,
-            data: { agentId, txHash, chain: identityChain },
+            data: { event_subtype: 'identity_minted', agentId, txHash, chain: identityChain },
             actor_system: true,
           }).catch((e) => {
             console.error(`[Deploy API] Failed to persist identity_minted event for ${result.resourceId}:`, e);
@@ -688,9 +688,9 @@ export const action: ActionFunction = async ({ request }) => {
 
           persistEventToApi({
             resource_id: result.resourceId,
-            event_type: 'identity_mint_failed',
+            event_type: 'error',
             message: `8004 mint failed: ${erc8004Result.error}`,
-            data: { error: erc8004Result.error },
+            data: { event_subtype: 'identity_mint_failed', error: erc8004Result.error },
             actor_system: true,
           }).catch(() => {
             /* fire-and-forget */

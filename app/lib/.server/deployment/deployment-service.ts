@@ -46,6 +46,47 @@ const BASE_IMAGE = 'dexter-x402-base:latest';
 
 // Max build context size (5MB) to prevent abuse
 const MAX_BUILD_CONTEXT_BYTES = 5 * 1024 * 1024;
+const RESOURCE_LOCK_TTL_MS = 10 * 60 * 1000;
+const resourceLocks = new Map<string, { owner: string; acquiredAt: number }>();
+
+function acquireResourceLock(resourceId: string, owner: string): boolean {
+  const existing = resourceLocks.get(resourceId);
+
+  if (existing) {
+    const lockAgeMs = Date.now() - existing.acquiredAt;
+
+    if (lockAgeMs < RESOURCE_LOCK_TTL_MS) {
+      return false;
+    }
+
+    console.warn(
+      `[DeployLock] ${resourceId}: expiring stale lock from ${existing.owner} (${Math.round(lockAgeMs / 1000)}s old)`,
+    );
+    resourceLocks.delete(resourceId);
+  }
+
+  resourceLocks.set(resourceId, { owner, acquiredAt: Date.now() });
+
+  return true;
+}
+
+function releaseResourceLock(resourceId: string, owner: string): void {
+  const existing = resourceLocks.get(resourceId);
+
+  if (!existing) {
+    return;
+  }
+
+  if (existing.owner !== owner) {
+    return;
+  }
+
+  resourceLocks.delete(resourceId);
+}
+
+function isResourceLocked(resourceId: string): boolean {
+  return resourceLocks.has(resourceId);
+}
 
 /**
  * Check if the base image is available and log staleness warnings
@@ -868,10 +909,10 @@ function buildResourceApiPayload(resource: DeployedResource): Record<string, unk
     base_price_usdc: resource.config.basePriceUsdc,
     tags: resource.config.tags,
     public_url: resource.publicUrl,
-    container_id: resource.containerId,
+    ...(resource.containerId ? { container_id: resource.containerId } : {}),
     status: resource.status,
     healthy: resource.healthy,
-    source_files_json: resource.sourceFiles ?? null,
+    ...(resource.sourceFiles ? { source_files_json: resource.sourceFiles } : {}),
     endpoints_json: resource.config.endpoints,
     deployed_at: resource.deployedAt.toISOString(),
     updated_at: resource.updatedAt.toISOString(),
@@ -913,6 +954,16 @@ export async function deploy(
   config: Omit<ResourceConfig, 'id'>,
 ): Promise<DeploymentResult> {
   const resourceId = generateResourceId();
+  const lockOwner = 'deploy';
+
+  if (!acquireResourceLock(resourceId, lockOwner)) {
+    return {
+      success: false,
+      resourceId,
+      error: `Deployment already in progress for ${resourceId}`,
+    };
+  }
+
   const fullConfig: ResourceConfig = {
     ...config,
     id: resourceId,
@@ -922,6 +973,7 @@ export async function deploy(
   const baseReady = await checkBaseImage();
 
   if (!baseReady) {
+    releaseResourceLock(resourceId, lockOwner);
     return {
       success: false,
       resourceId,
@@ -937,6 +989,7 @@ export async function deploy(
   }
 
   if (totalBytes > MAX_BUILD_CONTEXT_BYTES) {
+    releaseResourceLock(resourceId, lockOwner);
     return {
       success: false,
       resourceId,
@@ -1038,6 +1091,8 @@ export async function deploy(
       resourceId,
       error: errorMessage,
     };
+  } finally {
+    releaseResourceLock(resourceId, lockOwner);
   }
 }
 
@@ -1389,6 +1444,11 @@ export async function reconcileState(): Promise<{
             resource.updatedAt = new Date();
             await resourceRegistry.set(resourceId, resource);
           } else {
+            if (resource.status === 'deploying' && isResourceLocked(resourceId)) {
+              // Deploy/redeploy is still active in this process; avoid false ghost recovery.
+              continue;
+            }
+
             console.warn(`[Reconcile] ${resourceId}: marked as ${resource.status} but has no container ID`);
             await handleLostContainer(resource, resourceId, stats);
           }
@@ -1490,6 +1550,13 @@ async function handleLostContainer(
   resourceId: string,
   stats: { recovered: number; lost: number; errors: number },
 ): Promise<void> {
+  const lockOwner = 'reconcile-rebuild';
+
+  if (!acquireResourceLock(resourceId, lockOwner)) {
+    console.warn(`[Reconcile] ${resourceId}: rebuild skipped because another operation holds the lock`);
+    return;
+  }
+
   if (resource.sourceFiles) {
     // We have the source -- attempt rebuild
     console.log(`[Reconcile] ${resourceId}: attempting rebuild from stored source...`);
@@ -1538,6 +1605,8 @@ async function handleLostContainer(
       await syncResourceStateToApi(resource, { status: 'failed', healthy: false });
       stats.errors++;
       console.error(`[Reconcile] ${resourceId}: rebuild threw:`, err);
+    } finally {
+      releaseResourceLock(resourceId, lockOwner);
     }
   } else {
     // No source files -- can't recover
@@ -1550,6 +1619,7 @@ async function handleLostContainer(
     await syncResourceStateToApi(resource, { status: 'lost', healthy: false });
     stats.lost++;
     console.warn(`[Reconcile] ${resourceId}: LOST -- no stored source files for rebuild`);
+    releaseResourceLock(resourceId, lockOwner);
   }
 }
 
@@ -1563,9 +1633,16 @@ export async function redeploy(
   files: Map<string, string>,
   config: Omit<ResourceConfig, 'id'>,
 ): Promise<DeploymentResult & { version?: number }> {
+  const lockOwner = 'redeploy';
+
+  if (!acquireResourceLock(resourceId, lockOwner)) {
+    return { success: false, resourceId, error: `Another deploy/reconcile operation is in progress for ${resourceId}` };
+  }
+
   const existing = await resourceRegistry.get(resourceId);
 
   if (!existing) {
+    releaseResourceLock(resourceId, lockOwner);
     return { success: false, resourceId, error: `Resource not found: ${resourceId}` };
   }
 
@@ -1577,6 +1654,7 @@ export async function redeploy(
   const baseReady = await checkBaseImage();
 
   if (!baseReady) {
+    releaseResourceLock(resourceId, lockOwner);
     return {
       success: false,
       resourceId,
@@ -1592,6 +1670,7 @@ export async function redeploy(
   }
 
   if (totalBytes > MAX_BUILD_CONTEXT_BYTES) {
+    releaseResourceLock(resourceId, lockOwner);
     return {
       success: false,
       resourceId,
@@ -1686,6 +1765,8 @@ export async function redeploy(
     await resourceRegistry.set(resourceId, existing);
 
     return { success: false, resourceId, error: errorMessage };
+  } finally {
+    releaseResourceLock(resourceId, lockOwner);
   }
 }
 

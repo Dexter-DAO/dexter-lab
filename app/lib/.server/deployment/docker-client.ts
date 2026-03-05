@@ -415,7 +415,7 @@ export async function deployResource(
     // Create the container
     console.log(`[Deploy] Creating container for ${resourceId}...`);
 
-    containerId = await createContainer({
+    const createArgs: ContainerOptions = {
       resourceId,
       image: imageName,
       env: {
@@ -433,7 +433,27 @@ export async function deployResource(
         timeoutSeconds: 5,
         retries: 3,
       },
-    });
+    };
+
+    try {
+      containerId = await createContainer(createArgs);
+    } catch (createErr) {
+      const createMessage = createErr instanceof Error ? createErr.message : String(createErr);
+      const conflictMatch = createMessage.match(/already in use by container "([a-f0-9]{12,64})"/i);
+      const conflictingContainerId = conflictMatch?.[1];
+
+      if (!conflictingContainerId) {
+        throw createErr;
+      }
+
+      console.warn(
+        `[Deploy] ${resourceId}: stale container name conflict (${conflictingContainerId.slice(0, 12)}), removing and retrying once`,
+      );
+      await removeContainer(conflictingContainerId, true).catch(() => {
+        /* best-effort; retry below will surface any remaining issue */
+      });
+      containerId = await createContainer(createArgs);
+    }
 
     if (onContainerCreated) {
       await onContainerCreated(containerId);
