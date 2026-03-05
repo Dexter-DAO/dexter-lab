@@ -402,7 +402,10 @@ export async function deployResource(
   resourceId: string,
   context: BuildContext,
   env: Record<string, string>,
+  onContainerCreated?: (containerId: string) => Promise<void> | void,
 ): Promise<DeploymentResult> {
+  let containerId: string | undefined;
+
   try {
     // Build the image
     console.log(`[Deploy] Building image for ${resourceId}...`);
@@ -412,7 +415,7 @@ export async function deployResource(
     // Create the container
     console.log(`[Deploy] Creating container for ${resourceId}...`);
 
-    const containerId = await createContainer({
+    containerId = await createContainer({
       resourceId,
       image: imageName,
       env: {
@@ -431,6 +434,10 @@ export async function deployResource(
         retries: 3,
       },
     });
+
+    if (onContainerCreated) {
+      await onContainerCreated(containerId);
+    }
 
     // Start the container
     console.log(`[Deploy] Starting container ${containerId.slice(0, 12)}...`);
@@ -474,9 +481,25 @@ export async function deployResource(
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     console.error(`[Deploy] Deployment failed for ${resourceId}: ${errorMessage}`);
 
+    if (containerId) {
+      try {
+        console.log(`[Deploy] Cleaning up failed container ${containerId.slice(0, 12)}...`);
+        await stopContainer(containerId).catch(() => {
+          /* best-effort */
+        });
+        await removeContainer(containerId, true);
+      } catch (cleanupErr) {
+        console.warn(
+          `[Deploy] Cleanup failed for ${resourceId} (${containerId.slice(0, 12)}):`,
+          cleanupErr instanceof Error ? cleanupErr.message : cleanupErr,
+        );
+      }
+    }
+
     return {
       success: false,
       resourceId,
+      containerId,
       error: errorMessage,
     };
   }

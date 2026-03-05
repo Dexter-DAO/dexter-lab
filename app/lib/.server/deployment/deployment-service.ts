@@ -26,7 +26,7 @@ import {
   startContainer,
 } from './docker-client';
 import { resourceRegistry } from './redis-client';
-import { persistResourceUpdateToApi } from './api-client';
+import { persistResourceUpdateToApi, syncResourceUpdateWithRecovery } from './api-client';
 
 // Base domain for resources (wildcard *.dexter.cash)
 const RESOURCE_BASE_DOMAIN = process.env.RESOURCE_BASE_DOMAIN || 'dexter.cash';
@@ -532,11 +532,22 @@ function injectPlatformCode(files: Map<string, string>, config: ResourceConfig):
   }
 
   /*
-   * 3. Add health endpoint if missing (before app.listen)
+   * 3. Add exact /health endpoint if missing.
+   * Use exact route detection so '/api/health' doesn't suppress '/health'.
    */
-  if (!content.includes('/health')) {
-    const healthCode = `\n// Health check (auto-added by Dexter Lab)\napp.get('/health', (req: any, res: any) => {\n  res.json({ status: 'ok', resourceId: '${config.id}', timestamp: Date.now() });\n});\n`;
-    content = content.replace(/app\.listen\(/, `${healthCode}\napp.listen(`);
+  const hasExactHealthRoute =
+    /app\.get\(\s*['"`]\/health['"`]/.test(content) || /router\.get\(\s*['"`]\/health['"`]/.test(content);
+
+  if (!hasExactHealthRoute) {
+    const healthCode = `\n// Health check (auto-added by Dexter Lab)\napp.get('/health', (_req: any, res: any) => {\n  res.json({ status: 'ok', resourceId: '${config.id}', timestamp: Date.now() });\n});\n`;
+
+    if (content.includes('app.use(x402BrowserSupport());')) {
+      content = content.replace('app.use(x402BrowserSupport());', `app.use(x402BrowserSupport());${healthCode}`);
+    } else if (content.includes('app.use(express.json());')) {
+      content = content.replace('app.use(express.json());', `app.use(express.json());${healthCode}`);
+    } else {
+      content = content.replace(/const app = express\(\);/, `const app = express();${healthCode}`);
+    }
   }
 
   /*
@@ -844,6 +855,50 @@ function createBuildContext(files: Map<string, string>, config: ResourceConfig):
   };
 }
 
+function buildResourceApiPayload(resource: DeployedResource): Record<string, unknown> {
+  return {
+    id: resource.config.id,
+    creator_wallet: resource.config.creatorWallet,
+    pay_to_wallet: resource.config.creatorWallet,
+    platform_fee_bps: 3000,
+    name: resource.config.name,
+    description: resource.config.description,
+    resource_type: resource.config.type,
+    pricing_model: resource.config.pricingModel,
+    base_price_usdc: resource.config.basePriceUsdc,
+    tags: resource.config.tags,
+    public_url: resource.publicUrl,
+    container_id: resource.containerId,
+    status: resource.status,
+    healthy: resource.healthy,
+    source_files_json: resource.sourceFiles ?? null,
+    endpoints_json: resource.config.endpoints,
+    deployed_at: resource.deployedAt.toISOString(),
+    updated_at: resource.updatedAt.toISOString(),
+  };
+}
+
+async function syncResourceStateToApi(resource: DeployedResource, update: Record<string, unknown>): Promise<void> {
+  const resourceId = resource.config.id;
+
+  try {
+    const outcome = await syncResourceUpdateWithRecovery({
+      resourceId,
+      update,
+      recreate: {
+        ...buildResourceApiPayload(resource),
+        ...update,
+      },
+    });
+
+    if (outcome === 'recreated_after_404') {
+      console.warn(`[Reconcile] ${resourceId}: API row missing (404), recreated from local state`);
+    }
+  } catch (error) {
+    console.warn(`[Reconcile] ${resourceId}: API sync failed:`, error);
+  }
+}
+
 /*
  * Facilitator registration removed — the endpoint /api/x402/resources/register
  * never existed. Resources are persisted to dexter-api via persistResourceToApi()
@@ -931,15 +986,25 @@ export async function deploy(
     await resourceRegistry.set(resourceId, resource);
 
     // Deploy the resource
-    const result = await deployResource(resourceId, context, {
-      RESOURCE_ID: resourceId,
-      CREATOR_WALLET: config.creatorWallet,
-      BASE_PRICE_USDC: String(config.basePriceUsdc),
-      ...config.envVars,
-    });
+    const result = await deployResource(
+      resourceId,
+      context,
+      {
+        RESOURCE_ID: resourceId,
+        CREATOR_WALLET: config.creatorWallet,
+        BASE_PRICE_USDC: String(config.basePriceUsdc),
+        ...config.envVars,
+      },
+      async (containerId) => {
+        resource.containerId = containerId;
+        resource.updatedAt = new Date();
+        await resourceRegistry.set(resourceId, resource);
+      },
+    );
 
     if (!result.success) {
       resource.status = 'failed';
+      resource.containerId = result.containerId ?? resource.containerId;
       resource.error = result.error;
       resource.updatedAt = new Date();
       await resourceRegistry.set(resourceId, resource);
@@ -1219,6 +1284,11 @@ export async function reconcileState(): Promise<{
 
     console.log(`[Reconcile] Checking ${resources.length} resources against Docker...`);
 
+    const dockerContainers = await listResourceContainers();
+    const dockerContainersByResourceId = new Map(
+      dockerContainers.map((container) => [container.resourceId, container]),
+    );
+
     for (const resource of resources) {
       const resourceId = resource.config.id;
 
@@ -1241,10 +1311,10 @@ export async function reconcileState(): Promise<{
                * ~19 lightweight PATCHes every 5 min is negligible; guarantees
                * the API never drifts from actual container state.
                */
-              persistResourceUpdateToApi(resourceId, {
+              await syncResourceStateToApi(resource, {
                 healthy: status.healthy,
                 status: 'running',
-              }).catch((e) => console.warn(`[Reconcile] ${resourceId}: API health sync failed:`, e));
+              });
             } else {
               // Container exists but stopped -- try to restart if it was supposed to be running
               if (resource.status === 'running') {
@@ -1259,10 +1329,10 @@ export async function reconcileState(): Promise<{
                   console.log(`[Reconcile] ${resourceId}: restarted successfully`);
 
                   // Sync recovered status to API
-                  persistResourceUpdateToApi(resourceId, {
+                  await syncResourceStateToApi(resource, {
                     healthy: true,
                     status: 'running',
-                  }).catch((e) => console.warn(`[Reconcile] ${resourceId}: API recovery sync failed:`, e));
+                  });
                 } catch (restartErr) {
                   console.warn(`[Reconcile] ${resourceId}: restart failed:`, restartErr);
                   resource.status = 'failed';
@@ -1273,10 +1343,10 @@ export async function reconcileState(): Promise<{
                   stats.errors++;
 
                   // Sync failure status to API
-                  persistResourceUpdateToApi(resourceId, {
+                  await syncResourceStateToApi(resource, {
                     healthy: false,
                     status: 'failed',
-                  }).catch((e) => console.warn(`[Reconcile] ${resourceId}: API failure sync failed:`, e));
+                  });
                 }
               }
             }
@@ -1287,10 +1357,41 @@ export async function reconcileState(): Promise<{
             );
             await handleLostContainer(resource, resourceId, stats);
           }
+        } else if (resource.status === 'failed' && !resource.containerId) {
+          const leaked = dockerContainersByResourceId.get(resourceId);
+
+          if (leaked) {
+            console.warn(
+              `[Reconcile] ${resourceId}: failed/no-container but Docker has ${leaked.id.slice(0, 12)} -- removing leak`,
+            );
+
+            try {
+              await removeContainer(leaked.id, true);
+              await removeImage(`dexter-resource-${resourceId}:latest`).catch(() => {
+                /* best-effort */
+              });
+              resource.updatedAt = new Date();
+              await resourceRegistry.set(resourceId, resource);
+            } catch (cleanupErr) {
+              console.warn(`[Reconcile] ${resourceId}: leaked container cleanup failed:`, cleanupErr);
+              stats.errors++;
+            }
+          }
         } else if (resource.status === 'running' || resource.status === 'deploying') {
           // No container ID but marked as running -- also a ghost
-          console.warn(`[Reconcile] ${resourceId}: marked as ${resource.status} but has no container ID`);
-          await handleLostContainer(resource, resourceId, stats);
+          const leaked = dockerContainersByResourceId.get(resourceId);
+
+          if (leaked) {
+            console.warn(
+              `[Reconcile] ${resourceId}: ${resource.status} without containerId, re-linking Docker container ${leaked.id.slice(0, 12)}`,
+            );
+            resource.containerId = leaked.id;
+            resource.updatedAt = new Date();
+            await resourceRegistry.set(resourceId, resource);
+          } else {
+            console.warn(`[Reconcile] ${resourceId}: marked as ${resource.status} but has no container ID`);
+            await handleLostContainer(resource, resourceId, stats);
+          }
         }
 
         // Clean up stale resources (failed/stopped/lost for >48h since deployment)
@@ -1334,7 +1435,6 @@ export async function reconcileState(): Promise<{
      * This prevents "zombie" containers from surviving across restarts.
      */
     try {
-      const dockerContainers = await listResourceContainers();
       const redisIds = new Set(resources.map((r) => r.config.id));
       let orphansRemoved = 0;
 
@@ -1414,6 +1514,7 @@ async function handleLostContainer(
         resource.error = undefined;
         resource.updatedAt = new Date();
         await resourceRegistry.set(resourceId, resource);
+        await syncResourceStateToApi(resource, { status: 'running', healthy: true });
         stats.recovered++;
         console.log(`[Reconcile] ${resourceId}: rebuilt and redeployed successfully`);
       } else {
@@ -1423,6 +1524,7 @@ async function handleLostContainer(
         resource.containerId = null;
         resource.updatedAt = new Date();
         await resourceRegistry.set(resourceId, resource);
+        await syncResourceStateToApi(resource, { status: 'failed', healthy: false });
         stats.errors++;
         console.error(`[Reconcile] ${resourceId}: rebuild failed: ${result.error}`);
       }
@@ -1433,6 +1535,7 @@ async function handleLostContainer(
       resource.containerId = null;
       resource.updatedAt = new Date();
       await resourceRegistry.set(resourceId, resource);
+      await syncResourceStateToApi(resource, { status: 'failed', healthy: false });
       stats.errors++;
       console.error(`[Reconcile] ${resourceId}: rebuild threw:`, err);
     }
@@ -1444,6 +1547,7 @@ async function handleLostContainer(
     resource.error = 'Container lost and no source files stored for rebuild';
     resource.updatedAt = new Date();
     await resourceRegistry.set(resourceId, resource);
+    await syncResourceStateToApi(resource, { status: 'lost', healthy: false });
     stats.lost++;
     console.warn(`[Reconcile] ${resourceId}: LOST -- no stored source files for rebuild`);
   }
