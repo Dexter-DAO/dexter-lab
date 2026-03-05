@@ -34,8 +34,9 @@ export interface ChatHistoryItem {
 }
 
 const persistenceEnabled = !import.meta.env.VITE_DISABLE_PERSISTENCE;
+const isBrowser = typeof window !== 'undefined' && typeof indexedDB !== 'undefined';
 
-export let db: IDBDatabase | undefined = persistenceEnabled ? await openDatabase() : undefined;
+export let db: IDBDatabase | undefined = persistenceEnabled && isBrowser ? await openDatabase() : undefined;
 
 if (db) {
   db.onclose = () => {
