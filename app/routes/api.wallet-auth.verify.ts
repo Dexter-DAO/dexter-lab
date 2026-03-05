@@ -2,11 +2,7 @@ import { json } from '@remix-run/cloudflare';
 import type { ActionFunctionArgs } from '@remix-run/cloudflare';
 import { withSecurity } from '~/lib/security';
 import { resolveDexterHolderStatus } from '~/lib/.server/auth/holder-status';
-import {
-  issueWalletSessionCookie,
-  validateWalletAddress,
-  verifyWalletChallenge,
-} from '~/lib/.server/auth/wallet-auth';
+import { issueWalletSessionCookie, validateWalletAddress, verifyWalletChallenge } from '~/lib/.server/auth/wallet-auth';
 
 async function walletAuthVerifyAction({ request }: ActionFunctionArgs) {
   try {
@@ -19,9 +15,11 @@ async function walletAuthVerifyAction({ request }: ActionFunctionArgs) {
     if (!body?.challengeId || typeof body.challengeId !== 'string') {
       return json({ ok: false, error: 'invalid_challenge_id' }, { status: 400 });
     }
+
     if (!validateWalletAddress(body.walletAddress)) {
       return json({ ok: false, error: 'invalid_wallet_address' }, { status: 400 });
     }
+
     if (!body.signature || typeof body.signature !== 'string') {
       return json({ ok: false, error: 'invalid_signature' }, { status: 400 });
     }
@@ -31,6 +29,7 @@ async function walletAuthVerifyAction({ request }: ActionFunctionArgs) {
       walletAddress: body.walletAddress,
       signatureBase58: body.signature,
     });
+
     if (!verified.ok) {
       console.warn('[wallet-gating] challenge_verify_rejected', {
         reason: verified.reason,
@@ -42,6 +41,7 @@ async function walletAuthVerifyAction({ request }: ActionFunctionArgs) {
     const { cookie, session } = issueWalletSessionCookie(body.walletAddress);
 
     let tier: 'verified_non_holder' | 'verified_holder' = 'verified_non_holder';
+
     try {
       const holder = await resolveDexterHolderStatus(body.walletAddress);
       tier = holder.isHolder ? 'verified_holder' : 'verified_non_holder';

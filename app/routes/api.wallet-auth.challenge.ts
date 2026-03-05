@@ -6,6 +6,7 @@ import { createWalletChallenge, validateWalletAddress } from '~/lib/.server/auth
 async function walletAuthChallengeAction({ request }: ActionFunctionArgs) {
   try {
     const body = (await request.json()) as { walletAddress?: string };
+
     if (!validateWalletAddress(body?.walletAddress)) {
       return json({ ok: false, error: 'invalid_wallet_address' }, { status: 400 });
     }

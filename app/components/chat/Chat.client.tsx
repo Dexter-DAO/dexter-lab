@@ -195,7 +195,9 @@ export const ChatImpl = memo(
         if (walletAuth.status === 'verified') {
           logoutWalletSession().catch(() => {});
         }
+
         walletPromptedRef.current = null;
+
         return;
       }
 
@@ -203,6 +205,7 @@ export const ChatImpl = memo(
         walletPromptedRef.current = walletAddress;
         return;
       }
+
       if (walletPromptedRef.current === walletAddress) {
         return;
       }
@@ -547,6 +550,7 @@ export const ChatImpl = memo(
 
       if (walletAddress) {
         const verified = await verifyWallet(walletAddress);
+
         if (verified) {
           toast.success('Wallet verified for holder-gated chat tiers.', { autoClose: 2500 });
           await refreshSession().catch(() => {});

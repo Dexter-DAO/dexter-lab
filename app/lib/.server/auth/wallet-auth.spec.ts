@@ -36,6 +36,7 @@ describe('wallet-auth primitives', () => {
       signatureBase58,
     });
     expect(replayAttempt.ok).toBe(false);
+
     if (!replayAttempt.ok) {
       expect(replayAttempt.reason).toBe('challenge_used');
     }

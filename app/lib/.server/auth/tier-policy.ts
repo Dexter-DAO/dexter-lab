@@ -37,8 +37,14 @@ function getVerifiedHolderCaps(): TierCaps {
 }
 
 export function getTierCaps(tier: WalletAccessTier): TierCaps {
-  if (tier === 'verified_holder') return getVerifiedHolderCaps();
-  if (tier === 'verified_non_holder') return getVerifiedNonHolderCaps();
+  if (tier === 'verified_holder') {
+    return getVerifiedHolderCaps();
+  }
+
+  if (tier === 'verified_non_holder') {
+    return getVerifiedNonHolderCaps();
+  }
+
   return getUnverifiedCaps();
 }
 

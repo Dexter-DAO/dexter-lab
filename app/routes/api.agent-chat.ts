@@ -30,11 +30,11 @@ interface ChatRequest {
   walletAddress?: string;
 }
 
-function resolveTier(
-  hasSession: boolean,
-  holderStatus: { isHolder: boolean } | null,
-): WalletAccessTier {
-  if (!hasSession) return 'unverified';
+function resolveTier(hasSession: boolean, holderStatus: { isHolder: boolean } | null): WalletAccessTier {
+  if (!hasSession) {
+    return 'unverified';
+  }
+
   return holderStatus?.isHolder ? 'verified_holder' : 'verified_non_holder';
 }
 
@@ -157,6 +157,7 @@ export async function action({ request }: ActionFunctionArgs) {
   const walletSession = readWalletSessionFromRequest(request);
 
   let holderStatus: { isHolder: boolean; balanceRaw?: string; checkedAtMs?: number } | null = null;
+
   if (walletGatingMode !== 'off' && walletSession) {
     try {
       const status = await resolveDexterHolderStatus(walletSession.walletAddress);
@@ -188,6 +189,7 @@ export async function action({ request }: ActionFunctionArgs) {
   const legacyLimited = clampRequestedLimits(requestedLimits, getTierCaps(legacyTier));
 
   const effectiveLimits = walletGatingMode === 'enforce' ? tierLimited : legacyLimited;
+
   if (walletGatingMode === 'shadow') {
     console.info('[wallet-gating] shadow_decision', {
       sessionPresent: !!walletSession,
@@ -210,8 +212,7 @@ export async function action({ request }: ActionFunctionArgs) {
     });
   }
 
-  const walletAddressForTools =
-    walletGatingMode === 'off' ? body.walletAddress : walletSession?.walletAddress;
+  const walletAddressForTools = walletGatingMode === 'off' ? body.walletAddress : walletSession?.walletAddress;
   const userIdForAttribution = walletGatingMode === 'enforce' ? undefined : body.userId;
 
   // Create the agent stream

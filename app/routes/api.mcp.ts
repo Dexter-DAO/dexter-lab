@@ -37,19 +37,29 @@ interface Resource {
 async function fetchRunningResources(): Promise<Resource[]> {
   const res = await fetch(`${DEXTER_API_BASE}/api/dexter-lab/resources`, { headers: AUTH_HEADERS });
 
-  if (!res.ok) return [];
+  if (!res.ok) {
+    return [];
+  }
 
   const data = (await res.json()) as Resource[] | { resources?: Resource[]; data?: Resource[] };
-  const resources = Array.isArray(data) ? data : (data.resources || data.data || []);
+  const resources = Array.isArray(data) ? data : data.resources || data.data || [];
 
   return resources.filter((r) => r.status === 'running' && r.public_url);
 }
 
 function parseEndpoints(r: Resource): ResourceEndpoint[] {
-  if (!r.endpoints_json) return [];
-  if (typeof r.endpoints_json === 'string') {
-    try { return JSON.parse(r.endpoints_json); } catch { return []; }
+  if (!r.endpoints_json) {
+    return [];
   }
+
+  if (typeof r.endpoints_json === 'string') {
+    try {
+      return JSON.parse(r.endpoints_json);
+    } catch {
+      return [];
+    }
+  }
+
   return r.endpoints_json;
 }
 
@@ -66,15 +76,20 @@ function deriveInputSchema(ep: ResourceEndpoint): Record<string, unknown> {
   }
 
   const needsBody = ['POST', 'PUT', 'PATCH'].includes(ep.method);
+
   if (needsBody && ep.exampleBody) {
     try {
       const example = JSON.parse(ep.exampleBody);
       const props: Record<string, { type: string }> = {};
+
       for (const [key, val] of Object.entries(example)) {
         props[key] = { type: typeof val === 'number' ? 'number' : typeof val === 'boolean' ? 'boolean' : 'string' };
       }
+
       return { type: 'object', properties: props };
-    } catch { /* fall through */ }
+    } catch {
+      /* fall through */
+    }
   }
 
   return { type: 'object', properties: {} };
@@ -150,13 +165,20 @@ function buildTools(resources: Resource[]): McpTool[] {
 }
 
 export const action: ActionFunction = async ({ request }) => {
-  const body = await request.json() as { jsonrpc?: string; method?: string; id?: unknown; params?: unknown };
+  const body = (await request.json()) as { jsonrpc?: string; method?: string; id?: unknown; params?: unknown };
 
   if (body.jsonrpc !== '2.0' || !body.method) {
-    return new Response(JSON.stringify({ jsonrpc: '2.0', error: { code: -32600, message: 'Invalid JSON-RPC request' }, id: body.id ?? null }), {
-      status: 400,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return new Response(
+      JSON.stringify({
+        jsonrpc: '2.0',
+        error: { code: -32600, message: 'Invalid JSON-RPC request' },
+        id: body.id ?? null,
+      }),
+      {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      },
+    );
   }
 
   const resources = await fetchRunningResources();
@@ -164,29 +186,35 @@ export const action: ActionFunction = async ({ request }) => {
   const toolMap = new Map(tools.map((t) => [t.name, t]));
 
   if (body.method === 'initialize') {
-    return new Response(JSON.stringify({
-      jsonrpc: '2.0',
-      id: body.id,
-      result: {
-        protocolVersion: '2025-03-26',
-        capabilities: { tools: {} },
-        serverInfo: { name: 'Dexter Lab', version: '1.0.0' },
-      },
-    }), { headers: { 'Content-Type': 'application/json' } });
+    return new Response(
+      JSON.stringify({
+        jsonrpc: '2.0',
+        id: body.id,
+        result: {
+          protocolVersion: '2025-03-26',
+          capabilities: { tools: {} },
+          serverInfo: { name: 'Dexter Lab', version: '1.0.0' },
+        },
+      }),
+      { headers: { 'Content-Type': 'application/json' } },
+    );
   }
 
   if (body.method === 'tools/list') {
-    return new Response(JSON.stringify({
-      jsonrpc: '2.0',
-      id: body.id,
-      result: {
-        tools: tools.map((t) => ({
-          name: t.name,
-          description: t.description,
-          inputSchema: t.inputSchema,
-        })),
-      },
-    }), { headers: { 'Content-Type': 'application/json' } });
+    return new Response(
+      JSON.stringify({
+        jsonrpc: '2.0',
+        id: body.id,
+        result: {
+          tools: tools.map((t) => ({
+            name: t.name,
+            description: t.description,
+            inputSchema: t.inputSchema,
+          })),
+        },
+      }),
+      { headers: { 'Content-Type': 'application/json' } },
+    );
   }
 
   if (body.method === 'tools/call') {
@@ -194,37 +222,49 @@ export const action: ActionFunction = async ({ request }) => {
     const toolName = params?.name;
 
     if (!toolName) {
-      return new Response(JSON.stringify({
-        jsonrpc: '2.0',
-        error: { code: -32602, message: 'Missing tool name' },
-        id: body.id,
-      }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+      return new Response(
+        JSON.stringify({
+          jsonrpc: '2.0',
+          error: { code: -32602, message: 'Missing tool name' },
+          id: body.id,
+        }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } },
+      );
     }
 
     const tool = toolMap.get(toolName);
 
     if (!tool) {
-      return new Response(JSON.stringify({
-        jsonrpc: '2.0',
-        error: { code: -32602, message: `Unknown tool: ${toolName}` },
-        id: body.id,
-      }), { status: 404, headers: { 'Content-Type': 'application/json' } });
+      return new Response(
+        JSON.stringify({
+          jsonrpc: '2.0',
+          error: { code: -32602, message: `Unknown tool: ${toolName}` },
+          id: body.id,
+        }),
+        { status: 404, headers: { 'Content-Type': 'application/json' } },
+      );
     }
 
     const result = await tool.handler(params?.arguments || {});
 
-    return new Response(JSON.stringify({
-      jsonrpc: '2.0',
-      id: body.id,
-      result,
-    }), { headers: { 'Content-Type': 'application/json' } });
+    return new Response(
+      JSON.stringify({
+        jsonrpc: '2.0',
+        id: body.id,
+        result,
+      }),
+      { headers: { 'Content-Type': 'application/json' } },
+    );
   }
 
-  return new Response(JSON.stringify({
-    jsonrpc: '2.0',
-    error: { code: -32601, message: `Method not found: ${body.method}` },
-    id: body.id ?? null,
-  }), { status: 404, headers: { 'Content-Type': 'application/json' } });
+  return new Response(
+    JSON.stringify({
+      jsonrpc: '2.0',
+      error: { code: -32601, message: `Method not found: ${body.method}` },
+      id: body.id ?? null,
+    }),
+    { status: 404, headers: { 'Content-Type': 'application/json' } },
+  );
 };
 
 export const loader: LoaderFunction = async () => {

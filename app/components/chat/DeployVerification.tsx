@@ -321,7 +321,7 @@ const IDENTITY_POLL_INTERVAL = 3_000;
 const IDENTITY_POLL_MAX = 30_000;
 
 interface IdentityData {
-  agentId: number;
+  agentId: number | string;
   explorer: string;
   chain: string;
 }
@@ -503,11 +503,14 @@ export const DeployVerification = memo(({ resourceId }: DeployVerificationProps)
                 <div className="w-4 h-4 rounded bg-purple-500/15 flex items-center justify-center">
                   <div className="i-ph:plug-bold text-purple-400 text-[9px]" />
                 </div>
-                <span className="text-[10px] text-purple-400 font-semibold uppercase tracking-wider">MCP Tool Server</span>
+                <span className="text-[10px] text-purple-400 font-semibold uppercase tracking-wider">
+                  MCP Tool Server
+                </span>
               </div>
               <CopyableUrl url={`${publicUrl}/mcp`} />
               <p className="text-[10px] text-gray-500 mt-1.5 leading-relaxed">
-                Add this URL to Claude Desktop, Cursor, or any MCP client. AI agents can discover and call your API as a tool.
+                Add this URL to Claude Desktop, Cursor, or any MCP client. AI agents can discover and call your API as a
+                tool.
               </p>
             </div>
           </motion.div>
@@ -642,7 +645,8 @@ export const DeployVerification = memo(({ resourceId }: DeployVerificationProps)
             </div>
             <div className="flex flex-col">
               <span className="text-[12px] text-gray-300">
-                Agent {identity.chain === 'Solana' ? '' : '#'}{identity.agentId} <span className="text-gray-600">on {identity.chain}</span>
+                Agent {identity.chain === 'Solana' ? '' : '#'}
+                {identity.agentId} <span className="text-gray-600">on {identity.chain}</span>
               </span>
               <a
                 href={identity.explorer}

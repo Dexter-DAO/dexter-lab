@@ -168,7 +168,8 @@ export function LandingContent(_props: LandingContentProps) {
           <div className="text-center">
             <div className="text-accent-500 text-xs font-mono tracking-widest uppercase mb-2">Agent Discovery</div>
             <p className="text-sm text-bolt-elements-textSecondary leading-relaxed">
-              Resources expose A2A agent cards and MCP tool servers. Other AI agents can find, call, and pay for your API automatically.
+              Resources expose A2A agent cards and MCP tool servers. Other AI agents can find, call, and pay for your
+              API automatically.
             </p>
           </div>
         </div>
@@ -179,14 +180,16 @@ export function LandingContent(_props: LandingContentProps) {
         <div className="text-center mb-12">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 mb-6">
             <div className="w-2 h-2 rounded-full bg-purple-500 animate-pulse" />
-            <span className="text-[10px] text-purple-400 font-semibold uppercase tracking-widest">Model Context Protocol</span>
+            <span className="text-[10px] text-purple-400 font-semibold uppercase tracking-widest">
+              Model Context Protocol
+            </span>
           </div>
           <h2 className="font-display text-2xl lg:text-3xl font-bold mb-5 tracking-tight" style={GRADIENT_STYLE}>
             Every resource is an MCP tool.
           </h2>
           <p className="text-sm lg:text-base text-bolt-elements-textSecondary leading-relaxed max-w-xl mx-auto">
-            Deploy an API and it&apos;s instantly callable by Claude, Cursor, and any AI agent that speaks MCP.
-            No integration code. No API keys. Payment happens automatically via x402.
+            Deploy an API and it&apos;s instantly callable by Claude, Cursor, and any AI agent that speaks MCP. No
+            integration code. No API keys. Payment happens automatically via x402.
           </p>
         </div>
 
@@ -194,8 +197,8 @@ export function LandingContent(_props: LandingContentProps) {
           <div className="rounded-xl border border-gray-800/40 bg-gray-900/50 p-5">
             <div className="text-purple-400 text-xs font-mono tracking-widest uppercase mb-3">Per Resource</div>
             <p className="text-sm text-bolt-elements-textSecondary leading-relaxed mb-3">
-              Each deployed resource exposes its own <span className="text-gray-300 font-mono text-xs">/mcp</span> endpoint.
-              Share the URL directly with anyone who wants to use your API as an AI tool.
+              Each deployed resource exposes its own <span className="text-gray-300 font-mono text-xs">/mcp</span>{' '}
+              endpoint. Share the URL directly with anyone who wants to use your API as an AI tool.
             </p>
             <div className="font-mono text-[11px] text-gray-500 bg-gray-950/60 rounded px-3 py-2 border border-gray-800/30">
               https://res-abc123.dexter.cash/mcp
@@ -215,8 +218,8 @@ export function LandingContent(_props: LandingContentProps) {
 
         <div className="text-center">
           <p className="text-xs text-bolt-elements-textTertiary leading-relaxed max-w-lg mx-auto">
-            When an AI agent calls a tool, the platform pays the x402 fee and returns real data.
-            Creators earn revenue from every tool call, just like every API call.
+            When an AI agent calls a tool, the platform pays the x402 fee and returns real data. Creators earn revenue
+            from every tool call, just like every API call.
           </p>
         </div>
       </section>

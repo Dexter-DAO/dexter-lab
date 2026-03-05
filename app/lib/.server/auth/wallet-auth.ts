@@ -44,7 +44,11 @@ function sessionTtlMs(): number {
 
 function getCookieSecret(): string {
   const configured = process.env.WALLET_AUTH_SECRET?.trim();
-  if (configured) return configured;
+
+  if (configured) {
+    return configured;
+  }
+
   return fallbackSecret;
 }
 
@@ -69,8 +73,13 @@ function cleanupChallenges(nowMs = Date.now()): void {
 }
 
 function isLikelySolanaAddress(value: unknown): value is string {
-  if (typeof value !== 'string') return false;
-  if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(value)) return false;
+  if (typeof value !== 'string') {
+    return false;
+  }
+
+  if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(value)) {
+    return false;
+  }
 
   try {
     const decoded = base58Decode(value);
@@ -100,7 +109,9 @@ function createEd25519PublicKey(pubkeyBytes: Uint8Array) {
   if (pubkeyBytes.length !== 32) {
     throw new Error('Invalid Solana public key length');
   }
+
   const keyDer = Buffer.concat([ED25519_SPKI_PREFIX, Buffer.from(pubkeyBytes)]);
+
   return createPublicKey({ key: keyDer, format: 'der', type: 'spki' });
 }
 
@@ -108,15 +119,13 @@ function verifyDetachedSignature(walletAddress: string, message: string, signatu
   const publicKeyBytes = base58Decode(walletAddress);
   const signatureBytes = base58Decode(signatureBase58);
 
-  if (signatureBytes.length !== 64) return false;
+  if (signatureBytes.length !== 64) {
+    return false;
+  }
 
   const publicKey = createEd25519PublicKey(publicKeyBytes);
-  return verifySignature(
-    null,
-    Buffer.from(message, 'utf8'),
-    publicKey,
-    Buffer.from(signatureBytes),
-  );
+
+  return verifySignature(null, Buffer.from(message, 'utf8'), publicKey, Buffer.from(signatureBytes));
 }
 
 function serializeCookie(name: string, value: string, maxAgeSeconds: number): string {
@@ -127,16 +136,23 @@ function serializeCookie(name: string, value: string, maxAgeSeconds: number): st
     'HttpOnly',
     'SameSite=Lax',
   ];
+
   if (process.env.NODE_ENV === 'production') {
     parts.push('Secure');
   }
+
   return parts.join('; ');
 }
 
 function buildSessionCookie(session: WalletSession): string {
   const payload = base64UrlEncode(JSON.stringify(session));
   const signature = signValue(payload);
-  return serializeCookie(SESSION_COOKIE_NAME, `${payload}.${signature}`, Math.max(1, Math.floor((session.expiresAtMs - Date.now()) / 1000)));
+
+  return serializeCookie(
+    SESSION_COOKIE_NAME,
+    `${payload}.${signature}`,
+    Math.max(1, Math.floor((session.expiresAtMs - Date.now()) / 1000)),
+  );
 }
 
 export function clearWalletSessionCookie(): string {
@@ -151,12 +167,17 @@ export function issueWalletSessionCookie(walletAddress: string): { cookie: strin
     authenticatedAtMs: nowMs,
     expiresAtMs: nowMs + sessionTtlMs(),
   };
+
   return { session, cookie: buildSessionCookie(session) };
 }
 
 export function maybeRefreshWalletSessionCookie(session: WalletSession): string | null {
   const ttl = session.expiresAtMs - Date.now();
-  if (ttl > sessionTtlMs() / 2) return null;
+
+  if (ttl > sessionTtlMs() / 2) {
+    return null;
+  }
+
   return issueWalletSessionCookie(session.walletAddress).cookie;
 }
 
@@ -164,21 +185,42 @@ export function readWalletSessionFromRequest(request: Request): WalletSession | 
   try {
     const cookies = parseCookies(request.headers.get('Cookie'));
     const rawCookie = cookies[SESSION_COOKIE_NAME];
-    if (!rawCookie) return null;
+
+    if (!rawCookie) {
+      return null;
+    }
 
     const [payload, providedSig] = rawCookie.split('.');
-    if (!payload || !providedSig) return null;
+
+    if (!payload || !providedSig) {
+      return null;
+    }
 
     const expectedSig = signValue(payload);
     const expectedBuffer = Buffer.from(expectedSig, 'utf8');
     const providedBuffer = Buffer.from(providedSig, 'utf8');
-    if (expectedBuffer.length !== providedBuffer.length) return null;
-    if (!timingSafeEqual(expectedBuffer, providedBuffer)) return null;
+
+    if (expectedBuffer.length !== providedBuffer.length) {
+      return null;
+    }
+
+    if (!timingSafeEqual(expectedBuffer, providedBuffer)) {
+      return null;
+    }
 
     const parsed = JSON.parse(base64UrlDecode(payload)) as WalletSession;
-    if (!parsed || !isLikelySolanaAddress(parsed.walletAddress)) return null;
-    if (!Number.isFinite(parsed.expiresAtMs) || parsed.expiresAtMs <= Date.now()) return null;
-    if (!parsed.sessionId) return null;
+
+    if (!parsed || !isLikelySolanaAddress(parsed.walletAddress)) {
+      return null;
+    }
+
+    if (!Number.isFinite(parsed.expiresAtMs) || parsed.expiresAtMs <= Date.now()) {
+      return null;
+    }
+
+    if (!parsed.sessionId) {
+      return null;
+    }
 
     return parsed;
   } catch {
@@ -220,28 +262,29 @@ export function createWalletChallenge(walletAddress: string, request: Request) {
   };
 }
 
-export function verifyWalletChallenge(input: {
-  challengeId: string;
-  walletAddress: string;
-  signatureBase58: string;
-}) {
+export function verifyWalletChallenge(input: { challengeId: string; walletAddress: string; signatureBase58: string }) {
   cleanupChallenges();
+
   const challenge = challengeStore.get(input.challengeId);
 
   if (!challenge) {
     return { ok: false as const, reason: 'challenge_not_found' };
   }
+
   if (challenge.used) {
     return { ok: false as const, reason: 'challenge_used' };
   }
+
   if (challenge.expiresAtMs <= Date.now()) {
     return { ok: false as const, reason: 'challenge_expired' };
   }
+
   if (challenge.walletAddress !== input.walletAddress) {
     return { ok: false as const, reason: 'wallet_mismatch' };
   }
 
   let verified = false;
+
   try {
     verified = verifyDetachedSignature(input.walletAddress, challenge.message, input.signatureBase58);
   } catch {
@@ -254,12 +297,17 @@ export function verifyWalletChallenge(input: {
 
   challenge.used = true;
   challengeStore.set(challenge.id, challenge);
+
   return { ok: true as const, challenge };
 }
 
 export function getWalletGatingMode(): 'off' | 'shadow' | 'enforce' {
   const raw = process.env.WALLET_GATING_MODE?.trim().toLowerCase();
-  if (raw === 'off' || raw === 'shadow' || raw === 'enforce') return raw;
+
+  if (raw === 'off' || raw === 'shadow' || raw === 'enforce') {
+    return raw;
+  }
+
   return 'shadow';
 }
 

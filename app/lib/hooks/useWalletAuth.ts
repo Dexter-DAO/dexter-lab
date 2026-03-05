@@ -27,16 +27,27 @@ async function signWithInjectedWallet(walletAddress: string, message: string): P
 
   for (const candidate of candidates) {
     try {
-      if (!candidate?.publicKey || typeof candidate.publicKey.toBase58 !== 'function') continue;
+      if (!candidate?.publicKey || typeof candidate.publicKey.toBase58 !== 'function') {
+        continue;
+      }
+
       const candidateAddress = candidate.publicKey.toBase58();
-      if (candidateAddress !== walletAddress) continue;
-      if (typeof candidate.signMessage !== 'function') continue;
+
+      if (candidateAddress !== walletAddress) {
+        continue;
+      }
+
+      if (typeof candidate.signMessage !== 'function') {
+        continue;
+      }
 
       const signature = await candidate.signMessage(utf8Bytes(message), 'utf8');
       const signatureBytes = signature?.signature || signature;
+
       if (!(signatureBytes instanceof Uint8Array)) {
         throw new Error('Wallet returned an invalid signature payload');
       }
+
       return base58Encode(signatureBytes);
     } catch {
       // Try the next provider.
@@ -53,6 +64,7 @@ export function useWalletAuth() {
     try {
       const response = await fetch('/api/wallet-auth/session', { method: 'GET' });
       const payload = (await response.json()) as WalletAuthSessionResponse;
+
       if (!response.ok || !payload.ok || !payload.authenticated) {
         setWalletAuthState({
           status: 'guest',
@@ -69,6 +81,7 @@ export function useWalletAuth() {
         sessionId: payload.sessionId,
         expiresAtMs: payload.expiresAtMs,
       });
+
       return payload;
     } catch (error) {
       setWalletAuthState({
@@ -83,7 +96,10 @@ export function useWalletAuth() {
 
   const verifyWallet = useCallback(
     async (walletAddress: string): Promise<boolean> => {
-      if (!walletAddress) return false;
+      if (!walletAddress) {
+        return false;
+      }
+
       if (
         walletAuth.status === 'verified' &&
         walletAuth.walletAddress === walletAddress &&
@@ -110,6 +126,7 @@ export function useWalletAuth() {
           message?: string;
           error?: string;
         };
+
         if (!challengeRes.ok || !challengeBody.ok || !challengeBody.challengeId || !challengeBody.message) {
           throw new Error(challengeBody.error || 'challenge_failed');
         }
@@ -126,6 +143,7 @@ export function useWalletAuth() {
           }),
         });
         const verifyBody = (await verifyRes.json()) as WalletAuthSessionResponse;
+
         if (!verifyRes.ok || !verifyBody.ok) {
           throw new Error(verifyBody.error || 'verify_failed');
         }
@@ -137,6 +155,7 @@ export function useWalletAuth() {
           sessionId: verifyBody.sessionId,
           expiresAtMs: verifyBody.expiresAtMs,
         });
+
         return true;
       } catch (error) {
         setWalletAuthState({

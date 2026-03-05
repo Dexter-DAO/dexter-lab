@@ -578,20 +578,34 @@ function injectPlatformCode(files: Map<string, string>, config: ResourceConfig):
 
         // Derive input schema from requestSchema or exampleBody
         let inputSchemaStr = '{ type: "object", properties: {} }';
+
         if (ep.requestSchema && Object.keys(ep.requestSchema).length > 0) {
           inputSchemaStr = JSON.stringify(ep.requestSchema);
         } else if (needsBody && ep.exampleBody) {
           try {
             const example = JSON.parse(ep.exampleBody);
             const props: Record<string, { type: string; description?: string }> = {};
+
             for (const [key, val] of Object.entries(example)) {
-              props[key] = { type: typeof val === 'number' ? 'number' : typeof val === 'boolean' ? 'boolean' : 'string' };
+              props[key] = {
+                type: typeof val === 'number' ? 'number' : typeof val === 'boolean' ? 'boolean' : 'string',
+              };
             }
             inputSchemaStr = JSON.stringify({ type: 'object', properties: props });
-          } catch { /* use empty schema */ }
+          } catch {
+            /* use empty schema */
+          }
         }
 
-        return { toolName, price, method: ep.method, path: ep.path, description: ep.description, inputSchemaStr, needsBody };
+        return {
+          toolName,
+          price,
+          method: ep.method,
+          path: ep.path,
+          description: ep.description,
+          inputSchemaStr,
+          needsBody,
+        };
       });
 
       const mcpImports = [
@@ -605,7 +619,9 @@ function injectPlatformCode(files: Map<string, string>, config: ResourceConfig):
         content = content.slice(0, lineEnd + 1) + mcpImports + '\n' + content.slice(lineEnd + 1);
       }
 
-      const toolRegistrations = toolEntries.map((t) => `
+      const toolRegistrations = toolEntries
+        .map(
+          (t) => `
   mcpServer.tool(
     ${JSON.stringify(t.toolName)},
     ${JSON.stringify(`${t.description || t.path} ($${t.price} USDC via x402)`)},
@@ -628,7 +644,9 @@ function injectPlatformCode(files: Map<string, string>, config: ResourceConfig):
         return { content: [{ type: 'text', text: JSON.stringify({ error: e.message }) }] };
       }
     }
-  );`).join('\n');
+  );`,
+        )
+        .join('\n');
 
       const mcpRouteCode = `
 // MCP server (auto-added by Dexter Lab)

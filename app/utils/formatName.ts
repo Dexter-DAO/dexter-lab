@@ -1,6 +1,21 @@
 const KNOWN_ABBREVIATIONS = new Set([
-  'ai', 'api', 'nft', 'defi', 'dao', 'dex', 'sol', 'btc', 'eth',
-  'usdc', 'usdt', 'mcp', 'a2a', 'etf', 'fatf', 'kyc', 'aml',
+  'ai',
+  'api',
+  'nft',
+  'defi',
+  'dao',
+  'dex',
+  'sol',
+  'btc',
+  'eth',
+  'usdc',
+  'usdt',
+  'mcp',
+  'a2a',
+  'etf',
+  'fatf',
+  'kyc',
+  'aml',
 ]);
 
 /**
@@ -13,7 +28,11 @@ export function slugToTitle(slug: string): string {
     .filter(Boolean)
     .map((word) => {
       const lower = word.toLowerCase();
-      if (KNOWN_ABBREVIATIONS.has(lower)) return word.toUpperCase();
+
+      if (KNOWN_ABBREVIATIONS.has(lower)) {
+        return word.toUpperCase();
+      }
+
       return lower.charAt(0).toUpperCase() + lower.slice(1);
     })
     .join(' ');

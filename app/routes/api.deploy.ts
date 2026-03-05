@@ -641,11 +641,16 @@ export const action: ActionFunction = async ({ request }) => {
           const rawAgentId = mintData.identity?.agentId ?? mintData.agentId;
           const mintAddress = mintData.identity?.mintAddress;
 
-          // For Solana the canonical identifier is the asset pubkey (mint_address);
-          // for Base it's the sequential numeric agentId.
-          const agentId = identityChain === 'solana'
-            ? (mintAddress || rawAgentId)
-            : (rawAgentId ? parseInt(String(rawAgentId), 10) : undefined);
+          /*
+           * For Solana the canonical identifier is the asset pubkey (mint_address);
+           * for Base it's the sequential numeric agentId.
+           */
+          const agentId =
+            identityChain === 'solana'
+              ? mintAddress || rawAgentId
+              : rawAgentId
+                ? parseInt(String(rawAgentId), 10)
+                : undefined;
           const txHash = mintData.txHash;
 
           erc8004Result = { agentId, txHash };
@@ -661,7 +666,10 @@ export const action: ActionFunction = async ({ request }) => {
               console.error(`[Deploy API] Failed to persist 8004 agent ID for ${result.resourceId}:`, e);
             });
           } else {
-            console.warn(`[Deploy API] Mint succeeded but no valid agentId in response for ${result.resourceId}:`, JSON.stringify(mintData).substring(0, 200));
+            console.warn(
+              `[Deploy API] Mint succeeded but no valid agentId in response for ${result.resourceId}:`,
+              JSON.stringify(mintData).substring(0, 200),
+            );
           }
 
           persistEventToApi({

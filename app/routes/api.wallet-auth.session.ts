@@ -2,19 +2,18 @@ import { json } from '@remix-run/cloudflare';
 import type { LoaderFunctionArgs } from '@remix-run/cloudflare';
 import { withSecurity } from '~/lib/security';
 import { resolveDexterHolderStatus } from '~/lib/.server/auth/holder-status';
-import {
-  maybeRefreshWalletSessionCookie,
-  readWalletSessionFromRequest,
-} from '~/lib/.server/auth/wallet-auth';
+import { maybeRefreshWalletSessionCookie, readWalletSessionFromRequest } from '~/lib/.server/auth/wallet-auth';
 
 async function walletAuthSessionLoader({ request }: LoaderFunctionArgs) {
   try {
     const session = readWalletSessionFromRequest(request);
+
     if (!session) {
       return json({ ok: true, authenticated: false, tier: 'unverified' });
     }
 
     let tier: 'verified_non_holder' | 'verified_holder' = 'verified_non_holder';
+
     try {
       const holder = await resolveDexterHolderStatus(session.walletAddress);
       tier = holder.isHolder ? 'verified_holder' : 'verified_non_holder';

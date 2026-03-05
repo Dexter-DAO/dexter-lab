@@ -257,9 +257,8 @@ function createAgentOptions(options: DexterAgentOptions) {
   }
 
   const resolvedAccessTier =
-    options.accessTier || (typeof options.userId === 'string' && options.userId.trim().length > 0
-      ? 'verified_non_holder'
-      : 'unverified');
+    options.accessTier ||
+    (typeof options.userId === 'string' && options.userId.trim().length > 0 ? 'verified_non_holder' : 'unverified');
   const tierCaps = getTierCaps(resolvedAccessTier);
   const effectiveLimits = clampRequestedLimits(
     {
