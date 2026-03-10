@@ -333,12 +333,13 @@ function generateLandingPageHtml(config: ResourceConfig): string {
           document.getElementById('stat-earn').textContent=Number(d.creator_earnings_usdc||0).toFixed(4);
           el.style.display='flex';
         }
-        if(d.erc8004_agent_id){
+        if(d.erc8004_agent_id||d.erc8004_mint_address){
           var reg=d.erc8004_agent_registry||'';
           var isSol=reg.indexOf('solana:')===0;
-          document.getElementById('identity-agent-id').textContent=isSol?d.erc8004_agent_id:'#'+d.erc8004_agent_id;
+          var solAsset=d.erc8004_mint_address||d.pay_to_wallet||d.erc8004_agent_id;
+          document.getElementById('identity-agent-id').textContent=isSol?(d.erc8004_mint_address?d.erc8004_mint_address.slice(0,8)+'...':'Solana Agent'):'#'+d.erc8004_agent_id;
           document.getElementById('identity-chain').textContent=isSol?'Solana':'Base';
-          document.getElementById('identity-explorer').href=isSol?'https://solscan.io/account/'+d.erc8004_agent_id:'https://www.8004scan.io/agents/base/'+d.erc8004_agent_id;
+          document.getElementById('identity-explorer').href=isSol?'https://solscan.io/account/'+solAsset:'https://www.8004scan.io/agents?id='+d.erc8004_agent_id;
           document.getElementById('identity-a2a').href='https://api.dexter.cash/api/dexter-lab/resources/'+rid+'/agent.json';
           document.getElementById('identity-section').style.display='block';
         }

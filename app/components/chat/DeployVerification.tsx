@@ -348,16 +348,19 @@ function useIdentityData(resourceId: string, isComplete: boolean): IdentityData 
             const data = (await res.json()) as {
               erc8004_agent_id?: number | string | null;
               erc8004_agent_registry?: string | null;
+              erc8004_mint_address?: string | null;
+              pay_to_wallet?: string | null;
             };
 
-            if (data.erc8004_agent_id && !cancelled) {
+            if ((data.erc8004_agent_id || data.erc8004_mint_address) && !cancelled) {
               const isSolana = data.erc8004_agent_registry?.startsWith('solana:');
+              const solanaAsset = data.erc8004_mint_address || data.pay_to_wallet;
 
               setIdentity({
-                agentId: data.erc8004_agent_id,
+                agentId: data.erc8004_mint_address || data.erc8004_agent_id,
                 explorer: isSolana
-                  ? `https://solscan.io/account/${data.erc8004_agent_id}`
-                  : `https://www.8004scan.io/agents/base/${data.erc8004_agent_id}`,
+                  ? `https://solscan.io/account/${solanaAsset}`
+                  : `https://www.8004scan.io/agents?id=${data.erc8004_agent_id}`,
                 chain: isSolana ? 'Solana' : 'Base',
               });
 

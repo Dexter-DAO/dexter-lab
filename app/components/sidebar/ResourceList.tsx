@@ -59,6 +59,7 @@ interface LabResource {
   last_revenue_sync_at?: string | null;
   erc8004_agent_id?: number | null;
   erc8004_agent_registry?: string | null;
+  erc8004_mint_address?: string | null;
   endpoints_json?: LabEndpoint[] | null;
 }
 
@@ -649,8 +650,10 @@ function ResourceItem({ resource, onWithdraw }: { resource: LabResource; onWithd
                   <a
                     href={
                       resource.erc8004_agent_registry?.startsWith('solana:')
-                        ? `https://solscan.io/account/${resource.erc8004_agent_id}`
-                        : `https://www.8004scan.io/agents/base/${resource.erc8004_agent_id}`
+                        ? resource.erc8004_mint_address
+                          ? `https://solscan.io/account/${resource.erc8004_mint_address}`
+                          : `https://solscan.io/account/${resource.pay_to_wallet}`
+                        : `https://www.8004scan.io/agents?id=${resource.erc8004_agent_id}`
                     }
                     target="_blank"
                     rel="noopener noreferrer"

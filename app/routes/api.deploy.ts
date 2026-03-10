@@ -662,6 +662,7 @@ export const action: ActionFunction = async ({ request }) => {
             persistResourceUpdateToApi(result.resourceId, {
               erc8004_agent_id: typeof agentId === 'number' ? agentId : 0,
               erc8004_agent_registry: identityChain === 'solana' ? SOLANA_REGISTRY : BASE_REGISTRY,
+              ...(mintAddress ? { erc8004_mint_address: mintAddress } : {}),
             }).catch((e) => {
               console.error(`[Deploy API] Failed to persist 8004 agent ID for ${result.resourceId}:`, e);
             });
